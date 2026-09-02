@@ -1,12 +1,19 @@
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient
 
 load_dotenv()
 
 mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 db_name = os.environ.get("DB_NAME", "aeroflow")
+
+def get_client(url):
+    kwargs = {}
+    if "mongodb+srv" in url or "tls" in url.lower() or "ssl" in url.lower():
+        kwargs["tlsCAFile"] = certifi.where()
+    return AsyncIOMotorClient(url, **kwargs)
 
 class DBProxy:
     def __init__(self):
@@ -21,7 +28,7 @@ class DBProxy:
             loop = None
 
         if self._client is None or getattr(self._client, "_io_loop", None) != loop:
-            self._client = AsyncIOMotorClient(mongo_url)
+            self._client = get_client(mongo_url)
             self._db = self._client[db_name]
         return self._db
 
@@ -31,7 +38,7 @@ class DBProxy:
     def __getitem__(self, name):
         return self._get_db()[name]
 
-client = AsyncIOMotorClient(mongo_url)
+client = get_client(mongo_url)
 db = DBProxy()
 
 LOCAL_TZ = datetime.now().astimezone().tzinfo or timezone(timedelta(hours=5, minutes=30))
