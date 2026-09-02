@@ -1,0 +1,281 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aeroflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aeroflow-config
+  namespace: aeroflow
+data:
+  DB_NAME: "aeroflow"
+  MODE_CUTOFF_HOURS: "2"
+  EMAIL_FROM_NAME: "AeroFlow Operations"
+  FRONTEND_URL: "http://aeroflow.example.com"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aeroflow-secrets
+  namespace: aeroflow
+type: Opaque
+stringData:
+  MONGO_URL: "mongodb://aeroflow-mongodb:27017"
+  JWT_SECRET: "aeroflow-super-secret-production-key-change-me-12345"
+  ENCRYPTION_KEY: "dGhpcy1pcy1hLTMyLWJ5dGUtZW5jcnlwdGlvbi1rZXk="
+  ADMIN_EMAIL: "admin@aeroflow.local"
+  ADMIN_PASSWORD: "change-admin-password-in-production"
+  EMERGENT_EMAIL_KEY: ""
+  TWILIO_ACCOUNT_SID: ""
+  TWILIO_AUTH_TOKEN: ""
+  TWILIO_FROM_NUMBER: ""
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aeroflow-mongodb
+  namespace: aeroflow
+spec:
+  selector:
+    app: aeroflow-mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: aeroflow-mongodb
+  namespace: aeroflow
+spec:
+  serviceName: aeroflow-mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aeroflow-mongodb
+  template:
+    metadata:
+      labels:
+        app: aeroflow-mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7.0
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1.5Gi"
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aeroflow-backend
+  namespace: aeroflow
+  labels:
+    app: aeroflow-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aeroflow-backend
+  template:
+    metadata:
+      labels:
+        app: aeroflow-backend
+    spec:
+      containers:
+        - name: backend
+          image: aeroflow/backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: aeroflow-config
+            - secretRef:
+                name: aeroflow-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aeroflow-backend-svc
+  namespace: aeroflow
+spec:
+  selector:
+    app: aeroflow-backend
+  ports:
+    - port: 80
+      targetPort: 8001
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: aeroflow-backend-hpa
+  namespace: aeroflow
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: aeroflow-backend
+  minReplicas: 3
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aeroflow-frontend
+  namespace: aeroflow
+  labels:
+    app: aeroflow-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aeroflow-frontend
+  template:
+    metadata:
+      labels:
+        app: aeroflow-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: aeroflow/frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          env:
+            - name: BACKEND_UPSTREAM
+              value: "aeroflow-backend-svc:80"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aeroflow-frontend-svc
+  namespace: aeroflow
+spec:
+  selector:
+    app: aeroflow-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: aeroflow
+spec:
+  selector:
+    app: aeroflow-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8001
+    - name: direct
+      port: 8001
+      targetPort: 8001
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aeroflow-ingress
+  namespace: aeroflow
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "aeroflow-backend-svc"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+spec:
+  rules:
+    - host: aeroflow.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: aeroflow-backend-svc
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: aeroflow-frontend-svc
+                port:
+                  number: 80

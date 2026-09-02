@@ -1,0 +1,256 @@
+{
+  "project_name": "AEROFLOW AI - Smart Airport Operations & Passenger Experience Platform",
+  "project_code": "SIH-2026-AEROFLOW",
+  "design_vision": "A high-precision, cinematic aviation interface combining Swiss tactical command center telemetry for operations staff with a fluid, physics-infused journey chronicle for passengers. Zero lag, high visual tension, deep contrast, and bespoke airplane vector timeline mechanics.",
+  "theme_strategy": {
+    "default_mode": "dark",
+    "theme_toggle": true,
+    "dark_palette": {
+      "bg_base": "#070A10",
+      "bg_surface": "#0E131F",
+      "bg_surface_elevated": "#151C2C",
+      "bg_surface_glass": "rgba(14, 19, 31, 0.75)",
+      "border_subtle": "rgba(255, 255, 255, 0.08)",
+      "border_highlight": "rgba(56, 189, 248, 0.35)",
+      "text_primary": "#F8FAFC",
+      "text_secondary": "#94A3B8",
+      "text_muted": "#64748B",
+      "accent_cyan": "#00E5FF",
+      "accent_blue": "#2563EB",
+      "accent_amber": "#F59E0B",
+      "accent_emerald": "#10B981",
+      "accent_rose": "#F43F5E",
+      "radar_sweep_glow": "rgba(0, 229, 255, 0.15)"
+    },
+    "light_palette": {
+      "bg_base": "#F4F7FB",
+      "bg_surface": "#FFFFFF",
+      "bg_surface_elevated": "#EAEFF6",
+      "bg_surface_glass": "rgba(255, 255, 255, 0.85)",
+      "border_subtle": "rgba(15, 23, 42, 0.08)",
+      "border_highlight": "rgba(2, 132, 199, 0.4)",
+      "text_primary": "#0B132B",
+      "text_secondary": "#475569",
+      "text_muted": "#94A3B8",
+      "accent_cyan": "#0284C7",
+      "accent_blue": "#1D4ED8",
+      "accent_amber": "#D97706",
+      "accent_emerald": "#059669",
+      "accent_rose": "#E11D48",
+      "radar_sweep_glow": "rgba(2, 132, 199, 0.1)"
+    }
+  },
+  "typography": {
+    "font_family_heading": "Cabinet Grotesk, Outfit, Clash Display, sans-serif",
+    "font_family_body": "IBM Plex Sans, Figtree, system-ui, sans-serif",
+    "font_family_mono": "JetBrains Mono, Source Code Pro, monospace",
+    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@600;700;800;900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@500;600;700;800&display=swap",
+    "hierarchy": {
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight",
+      "h2_section": "text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight",
+      "h3_card": "text-xl sm:text-2xl font-bold tracking-tight",
+      "h4_widget": "text-lg sm:text-xl font-semibold tracking-normal",
+      "body": "text-base font-normal leading-relaxed",
+      "body_sm": "text-sm font-medium leading-normal",
+      "overline_mono": "text-xs font-mono uppercase tracking-[0.2em] font-semibold",
+      "telemetry_digit": "font-mono font-bold tracking-tighter"
+    }
+  },
+  "layout_architecture": {
+    "portal_structure": "Dual Mode Architecture with Instant Switching in Top Nav (Passenger Flow <-> Staff Ops Console)",
+    "views": [
+      {
+        "id": "passenger_portal",
+        "name": "Passenger Journey Experience",
+        "route": "/",
+        "description": "Consumer delight portal with live flight lookup, aircraft vector timeline, stage wait forecasting, departure countdown, carousel ETA for arrival, and notification subscriptions.",
+        "key_sections": [
+          "Flight Tracker Search Bar (Flight #, Route, Date with instant autocomplete & mock pre-fills: AI 102, 6E 2341, UK 819, BA 142)",
+          "Flight Hero Dossier (Aircraft type, Gate, Departure/Arrival times, Status badge, Weather, Terminal map pin)",
+          "The 'AeroPath' Aircraft Journey Timeline (Vector plane gliding across 5 milestones with predicted wait times & crowd density badges)",
+          "Smart Time Recommendation Card ('Leave Home By' & 'Target Airport Entry' dynamic calculations based on live traffic & security queue)",
+          "Arrival Luggage Tracker (Flight bag status, Assigned Carousel #, First Bag ETA, Last Bag Completion forecast)",
+          "Pre-Flight Notification Opt-in Modal (SMS/WhatsApp/Push toggle with alert stage preferences)"
+        ]
+      },
+      {
+        "id": "staff_console",
+        "name": "Ops Commander & Operations Hub",
+        "route": "/ops",
+        "description": "Tactical command dashboard for airport management, ground handlers, and CISF security officers.",
+        "key_sections": [
+          "Live Terminal Congestion Map (Interactive visual heatmap of Check-in Halls, CISF Security Bays, Immigration, and Gate Concourses)",
+          "Zone Telemetry & Staff Counter Allocator (Current passenger count vs throughput threshold, AI recommended active counters slider/action)",
+          "Baggage Carousel Allocation Matrix (Flight -> Carousel assigning table, live luggage conveyor state, unload progress, First/Last bag timer)",
+          "Live Anomaly & Ops Alert Center (Severity filters: Critical/High/Medium, quick acknowledge, re-route passenger load, resolve action)",
+          "Historical Analytics & ML Forecast Studio (Hourly passenger volume line chart, 7-day 24h heatmap, carousel turn efficiency, alert frequency)",
+          "Carousel Master List Manager & CSV Simulator (CRUD modal to add/edit carousels, status toggle, maintenance lock, batch mock upload)"
+        ]
+      }
+    ]
+  },
+  "airplane_journey_timeline_specification": {
+    "component_name": "AeroJourneyTimeline.js",
+    "concept": "A sleek, responsive horizontal (desktop) and dynamic stepped vertical (mobile) timeline featuring an animated SVG aircraft with an energy particle trail, glowing progress beacons, and hoverable milestone nodes.",
+    "milestones": [
+      {
+        "id": "entry",
+        "name": "Terminal Gate Entry",
+        "short_name": "Gate Entry",
+        "sub": "ID & DigiYatra Check",
+        "icon": "DoorOpen",
+        "avg_wait_min": 4,
+        "crowd_level": "normal",
+        "crowd_badge_color": "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
+        "ai_prediction": "DigiYatra Gates 2-4 clear (1 min). Manual queue at Gate 1 (6 min)."
+      },
+      {
+        "id": "checkin",
+        "name": "Check-in & Bag Drop",
+        "short_name": "Bag Drop",
+        "sub": "Counters 14-22",
+        "icon": "Luggage",
+        "avg_wait_min": 9,
+        "crowd_level": "medium",
+        "crowd_badge_color": "text-amber-400 bg-amber-500/10 border-amber-500/30",
+        "ai_prediction": "Counter 18 Self-Bag-Drop optimal. Queue clearing fast."
+      },
+      {
+        "id": "security",
+        "name": "Security Check (CISF)",
+        "short_name": "Security",
+        "sub": "Central Concourse B",
+        "icon": "ShieldCheck",
+        "avg_wait_min": 14,
+        "crowd_level": "heavy",
+        "crowd_badge_color": "text-rose-400 bg-rose-500/10 border-rose-500/30",
+        "ai_prediction": "Peak rush hour. Lanes 5-8 recommended. Trays automated."
+      },
+      {
+        "id": "immigration",
+        "name": "Immigration & Customs",
+        "short_name": "Immigration",
+        "sub": "International Only (Conditional)",
+        "icon": "FileCheck",
+        "avg_wait_min": 6,
+        "crowd_level": "normal",
+        "crowd_badge_color": "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
+        "ai_prediction": "E-Gates operational for biometric passports."
+      },
+      {
+        "id": "gate",
+        "name": "Boarding Gate",
+        "short_name": "Gate Concourse",
+        "sub": "Gate 42B (Pier 3)",
+        "icon": "PlaneTakeoff",
+        "avg_wait_min": 0,
+        "crowd_level": "normal",
+        "crowd_badge_color": "text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
+        "ai_prediction": "Boarding begins at 18:40. Priority Group 1 first."
+      }
+    ],
+    "interactive_features": [
+      "Active milestone scrubber: Clicking any milestone activates detail popup with queue camera snippet, counter suggestions, and step directions.",
+      "Flight Mode Toggle: Departure Journey vs Arrival (Baggage Claim) Mode.",
+      "Domestic vs International Toggle (Dynamically inserts/removes Immigration stage & adjusts target airport arrival buffer from 2h to 3h)."
+    ]
+  },
+  "motion_and_physics": {
+    "engine": "framer-motion + CSS accelerated transforms (strictly no heavy WebGL to guarantee 60fps on mobile)",
+    "mouse_interaction": {
+      "radar_spotlight": "Subtle cursor tracking radial-gradient highlight over dark cards (`pointer-events-none` layer)",
+      "card_tilt": "Lightweight 3D hover perspective (rotateX/rotateY clamp at max 5deg) on key summary widgets"
+    },
+    "cinematic_loading": {
+      "style": "Aviation HUD Radar Boot Sequence with telemetry scan lines, coordinate calibrations, and audio-visual radar sweep animation",
+      "duration_ms": 1200
+    },
+    "transitions": {
+      "page_switch": "framer-motion AnimatePresence with opacity + 15px Y-axis translate (0.25s ease-out)",
+      "tab_filter": "layoutId animated pill highlight on selected tab/pill"
+    }
+  },
+  "image_urls": [
+    {
+      "category": "hero_passenger_banner",
+      "description": "Cinematic runway night takeoff with landing lights for the passenger journey portal backdrop",
+      "image_url": "https://images.unsplash.com/photo-1520437358207-323b43b50729?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwxfHxhaXJwbGFuZSUyMHJ1bndheSUyMG5pZ2h0fGVufDB8fHx8MTc4NzgwNjMxOHww&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "terminal_architecture_view",
+      "description": "Futuristic white architectural terminal concourse with skylights for terminal guide modal and zone map",
+      "image_url": "https://images.unsplash.com/photo-1687552626877-f4596995931c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwyfHxhaXJwb3J0JTIwdGVybWluYWwlMjBtb2Rlcm58ZW58MHx8fHwxNzg3ODA2MzE4fDA&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "flight_status_board",
+      "description": "High contrast airport departure flight information board for operations telemetry aesthetics",
+      "image_url": "https://images.unsplash.com/photo-1490430657723-4d607c1503fc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTJ8MHwxfHNlYXJjaHwyfHxyYWRhciUyMHNjcmVlbiUyMGFpciUyMHRyYWZmaWN8ZW58MHx8fHwxNzg3ODA2MzI2fDA&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "cockpit_telemetry_hud",
+      "description": "Aviation avionics digital display for analytics header backdrop & Ops alert monitoring",
+      "image_url": "https://images.unsplash.com/photo-1522798120812-304f8819f4be?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTJ8MHwxfHNlYXJjaHw0fHxyYWRhciUyMHNjcmVlbiUyMGFpciUyMHRyYWZmaWN8ZW58MHx8fHwxNzg3ODA2MzI2fDA&ixlib=rb-4.1.0&q=85"
+    }
+  ],
+  "components_blueprint": [
+    {
+      "path": "src/components/layout/Navbar.js",
+      "description": "Sticky glassmorphism header with AeroFlow logo, live UTC/IST airport clock, flight search trigger, Passenger/Ops toggle with role indicator, sound effect toggle, and Theme switcher."
+    },
+    {
+      "path": "src/components/passenger/FlightSearchHero.js",
+      "description": "Search bar with flight number autocomplete, route selector (DEL -> BOM, BLR -> DXB, etc.), recent queries, and quick-load demo flights."
+    },
+    {
+      "path": "src/components/passenger/AeroJourneyTimeline.js",
+      "description": "The marquee Airplane vector timeline showcasing real-time stage navigation, wait predictions, congestion heat rings, and dynamic arrival buffer calculation."
+    },
+    {
+      "path": "src/components/passenger/TimeRecommendationCard.js",
+      "description": "Calculates 'Leave Home by' using distance + live airport queue metrics, showing traffic buffer, terminal transit time, and flight boarding gate closure alert."
+    },
+    {
+      "path": "src/components/passenger/BaggageTrackerCard.js",
+      "description": "Arrival mode luggage tracker with live carousel assignment, belt conveyor animation, First Bag ETA clock, and completion progress."
+    },
+    {
+      "path": "src/components/passenger/NotificationOptInModal.js",
+      "description": "Accessible modal with channels (WhatsApp, SMS, Push Notification) and fine-grained toggles for Gate Change, Security Surge, and Boarding Call."
+    },
+    {
+      "path": "src/components/ops/TerminalCongestionMap.js",
+      "description": "Interactive terminal zone schematic (Check-in, Security T1/T2/T3, Immigration North/South, Gates 1-50) with color-coded density and click-to-rebalance controls."
+    },
+    {
+      "path": "src/components/ops/CarouselAllocationBoard.js",
+      "description": "Comprehensive carousel management matrix with drag/select re-assignment, throughput meters, bag unload status, and baggage delay flag indicators."
+    },
+    {
+      "path": "src/components/ops/AlertsFeedCenter.js",
+      "description": "Live operations alerts queue (Congestion, Understaffing, Baggage Delay, Anomaly) with priority filters, audio ping, acknowledge badge, and resolve actions."
+    },
+    {
+      "path": "src/components/ops/HistoricalAnalyticsStudio.js",
+      "description": "Recharts-powered visual telemetry featuring 24h passenger volume trends, hour-by-day congestion heatmap matrix, carousel utilization bars, and alert resolution velocity."
+    },
+    {
+      "path": "src/components/ops/CarouselMasterCrudModal.js",
+      "description": "Master carousel list CRUD modal allowing addition of new belts, flight assignment editing, maintenance status locks, and mock JSON/CSV data load."
+    }
+  ],
+  "accessibility_and_testing": {
+    "data_testid_convention": "All clickable buttons, inputs, modals, tabs, status pills, and chart containers must have unambiguous kebab-case `data-testid` attributes (e.g., `data-testid=\"flight-search-input\"`, `data-testid=\"journey-step-security\"`, `data-testid=\"nav-mode-ops-toggle\"`, `data-testid=\"alert-acknowledge-btn-1\"`).",
+    "apca_contrast": "Text over tinted backgrounds must maintain high APCA contrast. Dark backgrounds must use #F8FAFC text for primary labels and #94A3B8 for secondary.",
+    "aria_roles": "All custom interactive components must have appropriate ARIA attributes (role='tablist', role='dialog', aria-expanded, aria-live for telemetry feeds)."
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Never use generic centered layouts or unstyled default components.",
+    "Do not use transparent background on dropdowns, modals, navbars or popovers. Always use glassmorphism with solid backing: `bg-[#0E131F]/90 backdrop-blur-xl border border-white/10`.",
+    "Ensure all interactive elements have hover, focus-visible, and active micro-interactions.",
+    "Implement Sonner toast notifications for actions such as 'Alert Acknowledged', 'Counter Staffing Adjusted', 'Notification Subscribed', 'Carousel Reassigned'.",
+    "Support both desktop multi-column dense layouts and mobile single-column stacked touch layouts seamlessly.",
+    "Include pre-seeded realistic Indian and International flight mock data (e.g., Air India AI 102 to JFK, IndiGo 6E 2341 to BOM, Vistara UK 819 to BLR, Emirates EK 512 to DXB).",
+    "Keep motion performant: use CSS GPU-accelerated transforms and framer-motion stagger containers. Avoid heavy 3D WebGL render loops that cause mobile lag.",
+    "Use data-testid on every interactive button, input, toggle, tab, and card."
+  ]
+}
