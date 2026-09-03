@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Plane, ArrowRight, PlaneTakeoff, PlaneLanding, MapPin, Calendar as CalendarIcon, AlertCircle, Info } from "lucide-react";
-import { motion } from "framer-motion";
+import { Search, Plane, ArrowRight, PlaneTakeoff, PlaneLanding, MapPin, Calendar as CalendarIcon, AlertCircle, Info, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { fmtTime, fmtDateTime } from "@/lib/format";
@@ -24,9 +24,23 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const blurRef = useRef();
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, []);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -80,7 +94,9 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
           formattedDate = `${year}-${month}-${day}`;
         }
         const { data } = await api.get("/flights/search", { params: { number: q || undefined, direction: dir || undefined, period: period || undefined, date: formattedDate || undefined, limit: 14 } });
-        if (alive) setResults(data.flights || []);
+        if (alive) {
+          setResults(data.flights || []);
+        }
       } finally { if (alive) setLoading(false); }
     }, 180);
     return () => { alive = false; clearTimeout(t); };
@@ -111,23 +127,36 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
   };
 
   return (
-    <div className="relative z-30">
+    <div className="relative z-30" ref={containerRef}>
       <div className="glass rounded-2xl p-2 flex flex-col sm:flex-row gap-2 glow-cyan" data-testid="flight-search-box">
         <div className="flex-1 flex items-center gap-3 px-4 py-3">
           <Search className="w-5 h-5 text-aero-cyan" />
           <input
             data-testid="flight-search-input"
             value={q}
-            onChange={(e) => setQ(e.target.value.toUpperCase())}
-            onFocus={() => { clearTimeout(blurRef.current); setFocused(true); }}
-            onBlur={() => { blurRef.current = setTimeout(() => setFocused(false), 200); }}
+            onChange={(e) => {
+              setQ(e.target.value.toUpperCase());
+              setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
             placeholder="Search flight number e.g. AI102, 6E2341, EK512"
             className="flex-1 bg-transparent outline-none text-base placeholder:text-aero-t3 font-medium"
           />
+          {q && (
+            <button
+              onClick={() => {
+                setQ("");
+                setIsOpen(false);
+              }}
+              className="p-1 rounded-full text-slate-400 hover:text-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-1 rounded-xl border border-aero-border p-1 self-stretch sm:self-auto">
           {[["", "All"], ["departure", "Depart"], ["arrival", "Arrive"]].map(([v, l]) => (
-            <button key={v} data-testid={`search-dir-${v || "all"}`} onMouseDown={(e) => e.preventDefault()} onClick={() => setDir(v)}
+            <button key={v} data-testid={`search-dir-${v || "all"}`} onMouseDown={(e) => e.preventDefault()} onClick={() => { setDir(v); setIsOpen(true); }}
               className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${dir === v ? "bg-aero-cyan text-[#041014]" : "text-aero-t2 hover:text-aero-t1"}`}>
               {l}
             </button>
@@ -171,14 +200,14 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mt-3 relative z-20">
-        <Select value={q && QUICK.includes(q) ? q : "all"} onValueChange={(v) => setQ(v === "all" ? "" : v)}>
+        <Select value={q && QUICK.includes(q) ? q : "all"} onValueChange={(v) => { setQ(v === "all" ? "" : v); setIsOpen(true); }}>
           <SelectTrigger data-testid="filter-airline" className="w-[150px] h-9 bg-aero-surface border-aero-border text-sm"><SelectValue placeholder="All airlines" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All airlines</SelectItem>
             {QUICK.map((c) => <SelectItem key={c} value={c}>{AIRLINE_NAMES[c] || c}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={period || "any"} onValueChange={(v) => setPeriod(v === "any" ? "" : v)}>
+        <Select value={period || "any"} onValueChange={(v) => { setPeriod(v === "any" ? "" : v); setIsOpen(true); }}>
           <SelectTrigger data-testid="filter-time" className="w-[140px] h-9 bg-aero-surface border-aero-border text-sm"><SelectValue placeholder="Any time" /></SelectTrigger>
           <SelectContent>
             {PERIODS.map(([v, l]) => <SelectItem key={v || "any"} value={v || "any"}>{l}</SelectItem>)}
@@ -207,6 +236,7 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
                     const formatted = `${day}/${month}/${year}`;
                     const isoDate = `${year}-${month}-${day}`;
                     setDate(formatted);
+                    setIsOpen(true);
 
                     if (isoDate > maxAllowedDateStr) {
                       toast.info(
@@ -229,7 +259,7 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
           </Popover>
         </div>
         {(q || period || date) && (
-          <button data-testid="filter-clear" onMouseDown={(e) => e.preventDefault()} onClick={() => { setQ(""); setPeriod(""); setDate(""); }}
+          <button data-testid="filter-clear" onMouseDown={(e) => e.preventDefault()} onClick={() => { setQ(""); setPeriod(""); setDate(""); setIsOpen(false); }}
             className="text-xs text-aero-t3 hover:text-aero-cyan px-2">Clear</button>
         )}
       </div>
@@ -250,8 +280,8 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
         </motion.div>
       )}
 
-      {results.length > 0 && !isDateBeyondLimit && (
-        <div className="mt-3 aero-card divide-y divide-aero-border max-h-[380px] overflow-auto relative z-40" data-testid="flight-results">
+      {isOpen && results.length > 0 && !isDateBeyondLimit && (
+        <div className="mt-3 aero-card divide-y divide-aero-border max-h-[380px] overflow-auto relative z-40 shadow-xl" data-testid="flight-results">
           {results.map((f) => {
             const Dir = f.direction === "departure" ? PlaneTakeoff : PlaneLanding;
             const isDelayed = f.status === "delayed" || (f.flight_delay_minutes && f.flight_delay_minutes > 0);
@@ -262,8 +292,11 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
 
             return (
               <button key={f.flight_id} data-testid={`flight-result-${f.flight_number}`}
-                onClick={() => { onSelect(f, location, true); setFocused(false); }}
-                className={`w-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 text-left hover:bg-aero-elevated/60 transition-all group ${isDelayed ? "bg-amber-500/[0.03]" : ""}`}>
+                onClick={() => {
+                  onSelect(f, location, true);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 text-left hover:bg-aero-elevated/60 transition-all group cursor-pointer ${isDelayed ? "bg-amber-500/[0.03]" : ""}`}>
                 <div className={`w-10 h-10 rounded-xl ${theme.accentBg} border ${theme.accentBorder} grid place-items-center shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>
                   <Dir className={`w-5 h-5 ${theme.accentText}`} />
                 </div>

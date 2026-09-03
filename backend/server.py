@@ -54,19 +54,25 @@ async def bot_protection_middleware(request: Request, call_next):
 async def health_check():
     return {"status": "healthy", "timestamp": iso(now())}
 
-frontend_url = os.environ.get("FRONTEND_URL", "https://aeroflow-hub.vercel.app")
-origins = list({
-    frontend_url,
+frontend_env = os.environ.get("FRONTEND_URL", "")
+valid_origins = [
     "https://aeroflow-hub.vercel.app",
     "https://aero-flow.vercel.app",
+    "https://aeroflow-ops.vercel.app",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
-})
+]
+if frontend_env and frontend_env != "*":
+    for u in frontend_env.split(","):
+        clean_u = u.strip().rstrip("/")
+        if clean_u and clean_u not in valid_origins:
+            valid_origins.append(clean_u)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+",
+    allow_origins=valid_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.tech|https://.*\.me|http://localhost:\d+|http://127\.0\.0\.1:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
