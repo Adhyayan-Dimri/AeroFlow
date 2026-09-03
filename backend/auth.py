@@ -265,8 +265,10 @@ async def register(body: RegisterIn, background: BackgroundTasks, request: Reque
     await db.users.insert_one(doc)
     resp = {"otp_required": True, "email": email, "role": role, "channel": channel}
     if channel == "email":
+        if not email_service.configured():
+            logger.warning("📧 [EMAIL NOT CONFIGURED] Verification code for %s is: %s (Configure RESEND_API_KEY or GMAIL in environment variables to deliver live emails)", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
-        logger.info("OTP sent to %s", email)
+        logger.info("OTP verification task queued for %s", email)
     else:
         logger.info("SMS OTP sent to %s for %s", validated_phone, email)
     return resp
@@ -306,6 +308,8 @@ async def resend_otp(body: ForgotIn, background: BackgroundTasks):
         otp = _gen_otp()
         await db.users.update_one({"_id": user["_id"]}, {"$set": {
             "otp_hash": hashlib.sha256(otp.encode()).hexdigest(), "otp_expires": now() + timedelta(minutes=10)}})
+        if not email_service.configured():
+            logger.warning("📧 [EMAIL NOT CONFIGURED] Resent verification code for %s is: %s", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
         logger.info("OTP resent to %s", email)
         return {"otp_required": True}

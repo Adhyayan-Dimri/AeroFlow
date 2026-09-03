@@ -113,6 +113,9 @@ async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
         logger.error("Gmail send failed: %s", e)
         return False
 
+def configured() -> bool:
+    return _configured()
+
 async def _send_via_resend(to_email: str, subject: str, html: str) -> bool:
     try:
         async with httpx.AsyncClient(timeout=30) as client:
@@ -129,17 +132,24 @@ async def _send_via_resend(to_email: str, subject: str, html: str) -> bool:
                     "html": html
                 },
             )
-        resp.raise_for_status()
-        logger.info("Email sent via Resend to %s", to_email)
+        if resp.status_code >= 400:
+            logger.error("Resend API rejected email to %s with status %d: %s", to_email, resp.status_code, resp.text)
+            return False
+        logger.info("Email successfully sent via Resend to %s", to_email)
         return True
     except Exception as e:
         logger.error("Resend send failed: %s", e)
         return False
 
 async def _send(to_email: str, subject: str, html: str) -> bool:
-    _assert_safe_email(subject, html)
+    try:
+        _assert_safe_email(subject, html)
+    except Exception as se:
+        logger.error("Email safety validation failed: %s", se)
+        return False
+
     if not _configured():
-        logger.warning("Email not configured; skipping send to %s", to_email)
+        logger.warning("⚠️ No email provider configured (Set RESEND_API_KEY or GMAIL_EMAIL/GMAIL_APP_PASSWORD in environment variables). Skipping email to %s", to_email)
         return False
 
     if GMAIL_ENABLED and GMAIL_EMAIL and GMAIL_APP_PASSWORD:
@@ -147,7 +157,7 @@ async def _send(to_email: str, subject: str, html: str) -> bool:
     elif EMAIL_KEY and not EMAIL_KEY.startswith("{"):
         return await _send_via_resend(to_email, subject, html)
     else:
-        logger.warning("No email provider configured")
+        logger.warning("No valid email provider configured")
         return False
 
 def _wrap(inner: str) -> str:

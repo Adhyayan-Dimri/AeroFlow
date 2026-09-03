@@ -60,7 +60,13 @@ async def cors_and_security_middleware(request: Request, call_next):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": iso(now())}
+    import email_service
+    return {
+        "status": "healthy",
+        "timestamp": iso(now()),
+        "email_configured": email_service.configured(),
+        "email_provider": "gmail" if email_service.GMAIL_ENABLED else ("resend" if email_service.EMAIL_KEY else "none (logged to console)")
+    }
 
 frontend_env = os.environ.get("FRONTEND_URL", "")
 valid_origins = [
