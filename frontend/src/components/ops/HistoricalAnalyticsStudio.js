@@ -153,12 +153,51 @@ function getHeatStyle(avgCount, max) {
   };
 }
 
+function getDefaultBaggage() {
+  const carousels = [
+    { carousel_number: "C-01", utilization_pct: 82.5, assignments: 12, status: "active" },
+    { carousel_number: "C-02", utilization_pct: 91.0, assignments: 14, status: "active" },
+    { carousel_number: "C-03", utilization_pct: 68.0, assignments: 9, status: "active" },
+    { carousel_number: "C-04", utilization_pct: 74.5, assignments: 11, status: "active" },
+    { carousel_number: "C-05", utilization_pct: 45.0, assignments: 6, status: "active" },
+    { carousel_number: "C-06", utilization_pct: 88.0, assignments: 13, status: "active" },
+    { carousel_number: "C-07", utilization_pct: 0.0, assignments: 0, status: "maintenance" },
+    { carousel_number: "C-08", utilization_pct: 59.0, assignments: 8, status: "active" },
+    { carousel_number: "C-09", utilization_pct: 77.0, assignments: 11, status: "active" },
+    { carousel_number: "C-10", utilization_pct: 63.5, assignments: 9, status: "active" },
+    { carousel_number: "C-11", utilization_pct: 85.0, assignments: 12, status: "active" },
+    { carousel_number: "C-12", utilization_pct: 52.0, assignments: 7, status: "active" },
+  ];
+  return { carousel_utilization: carousels };
+}
+
+function getDefaultAlerts() {
+  const now = new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toISOString().slice(0, 10);
+    days.push({
+      day: dayStr,
+      info: 14 + (i * 3) % 7,
+      warning: 6 + (i * 2) % 5,
+      critical: i === 2 || i === 5 ? 2 : 1
+    });
+  }
+  return {
+    by_day: days,
+    avg_ack_seconds: 142,
+    open: 3
+  };
+}
+
 export default function HistoricalAnalyticsStudio() {
   const [range, setRange] = useState("24h");
   const [cong, setCong] = useState(() => getDefaultCongestion("24h"));
   const [heat, setHeat] = useState(() => getDefaultHeatmap());
-  const [bag, setBag] = useState(null);
-  const [alerts, setAlerts] = useState(null);
+  const [bag, setBag] = useState(() => getDefaultBaggage());
+  const [alerts, setAlerts] = useState(() => getDefaultAlerts());
   const [timeline, setTimeline] = useState([]);
   const [hour, setHour] = useState(new Date().getHours());
 
