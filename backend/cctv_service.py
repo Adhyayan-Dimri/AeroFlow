@@ -15,110 +15,245 @@ EXIT_VIDEO_PATH = os.path.join(DATA_DIR, "exit.mp4")
 _cached_detections: Dict[str, List[Dict[str, Any]]] = {}
 _video_metadata: Dict[str, Dict[str, Any]] = {}
 
+ENTRY_TRACKS_SPEC = [
+    {
+        "id": "YOLO·PAX-EN-01", "start": 0.0, "end": 11.03, "conf": 0.98,
+        "keys": [
+            [0.0, 65.5, 29.5, 9.5, 48.0],
+            [2.0, 63.0, 34.0, 7.8, 40.0],
+            [3.0, 60.5, 36.0, 6.8, 36.0],
+            [4.5, 54.0, 38.0, 5.8, 32.0],
+            [6.0, 44.0, 38.0, 5.2, 29.5],
+            [8.0, 48.0, 37.0, 4.8, 28.0],
+            [10.0, 49.5, 38.0, 4.5, 26.0],
+            [11.03, 50.5, 39.0, 4.2, 24.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-02", "start": 0.0, "end": 11.03, "conf": 0.96,
+        "keys": [
+            [0.0, 54.5, 35.0, 6.2, 34.5],
+            [2.0, 51.5, 37.5, 5.4, 29.5],
+            [4.0, 46.5, 39.5, 4.6, 25.0],
+            [6.0, 48.5, 41.0, 4.0, 22.0],
+            [8.0, 44.5, 43.0, 3.5, 18.5],
+            [10.0, 44.0, 44.0, 3.0, 16.0],
+            [11.03, 43.5, 44.5, 2.8, 14.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-03", "start": 0.0, "end": 5.0, "conf": 0.95,
+        "keys": [
+            [0.0, 34.5, 40.5, 6.5, 31.5],
+            [2.0, 34.0, 42.5, 5.5, 26.0],
+            [4.0, 33.5, 44.0, 4.6, 21.5],
+            [5.0, 33.0, 45.0, 3.8, 18.0]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-04", "start": 0.0, "end": 5.5, "conf": 0.93,
+        "keys": [
+            [0.0, 29.5, 37.0, 5.5, 29.0],
+            [2.0, 30.0, 40.0, 4.8, 24.5],
+            [4.0, 30.5, 42.5, 4.0, 20.0],
+            [5.5, 31.0, 44.5, 3.4, 16.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-05", "start": 0.0, "end": 2.5, "conf": 0.97,
+        "keys": [
+            [0.0, 80.0, 33.5, 9.2, 45.0],
+            [1.5, 81.5, 37.0, 8.5, 40.0],
+            [2.5, 83.5, 40.0, 7.5, 35.0]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-05", "start": 3.5, "end": 8.5, "conf": 0.94,
+        "keys": [
+            [3.5, 67.0, 41.5, 4.0, 21.0],
+            [5.0, 63.5, 39.5, 4.8, 25.5],
+            [6.0, 60.0, 38.0, 5.5, 29.5],
+            [7.5, 56.5, 35.5, 6.8, 36.0],
+            [8.5, 53.0, 33.0, 8.0, 42.0]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-05", "start": 8.8, "end": 11.03, "conf": 0.96,
+        "keys": [
+            [8.8, 94.0, 29.0, 6.5, 48.0],
+            [10.0, 92.0, 27.5, 7.5, 52.0],
+            [11.03, 89.5, 25.5, 8.8, 56.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-06", "start": 0.0, "end": 3.0, "conf": 0.92,
+        "keys": [
+            [0.0, 41.5, 42.0, 5.0, 21.5],
+            [2.0, 39.5, 43.5, 4.2, 18.0],
+            [3.0, 38.0, 44.5, 3.6, 15.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-06", "start": 3.1, "end": 11.03, "conf": 0.95,
+        "keys": [
+            [3.1, 52.0, 25.0, 15.0, 70.0],
+            [4.5, 38.0, 38.0, 8.5, 42.0],
+            [6.0, 31.0, 43.5, 5.8, 25.0],
+            [8.0, 29.0, 44.5, 4.8, 21.0],
+            [10.0, 27.5, 45.5, 4.0, 18.0],
+            [11.03, 26.5, 46.0, 3.5, 16.0]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-07", "start": 5.0, "end": 11.03, "conf": 0.96,
+        "keys": [
+            [5.0, 74.0, 39.0, 4.5, 24.0],
+            [6.0, 69.0, 36.5, 5.5, 28.5],
+            [7.5, 65.0, 34.0, 7.0, 36.0],
+            [9.0, 60.5, 32.0, 11.0, 49.0],
+            [10.5, 56.5, 29.0, 13.5, 58.0],
+            [11.03, 55.0, 28.0, 14.5, 62.0]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EN-08", "start": 7.0, "end": 11.03, "conf": 0.94,
+        "keys": [
+            [7.0, 80.0, 38.0, 7.0, 34.0],
+            [8.5, 76.0, 33.5, 9.5, 43.0],
+            [9.5, 73.0, 31.0, 11.5, 48.0],
+            [11.03, 69.5, 29.0, 12.5, 54.0]
+        ]
+    }
+]
+
+EXIT_TRACKS_SPEC = [
+    {
+        "id": "YOLO·PAX-EX-01", "start": 0.0, "end": 10.64, "conf": 0.98,
+        "keys": [
+            [0.0, 55.8, 79.0, 5.8, 19.5],
+            [2.0, 54.8, 74.5, 5.0, 17.2],
+            [4.0, 53.8, 69.5, 4.5, 15.5],
+            [5.5, 53.2, 65.0, 4.0, 13.8],
+            [8.0, 52.6, 61.0, 3.6, 12.8],
+            [9.5, 52.2, 58.0, 3.3, 12.0],
+            [10.64, 51.8, 55.0, 3.0, 11.2]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EX-02", "start": 0.0, "end": 10.64, "conf": 0.97,
+        "keys": [
+            [0.0, 32.8, 60.5, 3.4, 15.0],
+            [2.0, 32.0, 63.5, 3.6, 16.5],
+            [4.0, 31.0, 66.5, 3.8, 18.0],
+            [5.5, 30.2, 69.5, 4.0, 19.5],
+            [7.5, 31.5, 73.0, 4.4, 21.0],
+            [9.0, 33.0, 75.5, 4.8, 22.5],
+            [10.64, 34.2, 81.0, 5.4, 25.0]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EX-03", "start": 0.0, "end": 10.64, "conf": 0.95,
+        "keys": [
+            [0.0, 44.0, 58.5, 3.6, 14.0],
+            [3.0, 43.7, 55.5, 3.4, 13.0],
+            [5.5, 43.4, 53.0, 3.1, 12.2],
+            [8.0, 43.0, 50.0, 2.8, 11.2],
+            [10.64, 42.6, 46.5, 2.5, 9.8]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EX-04", "start": 0.0, "end": 10.64, "conf": 0.94,
+        "keys": [
+            [0.0, 48.0, 57.0, 3.5, 13.8],
+            [3.0, 47.6, 54.0, 3.2, 12.8],
+            [5.5, 47.2, 51.5, 2.9, 11.8],
+            [8.0, 46.8, 48.5, 2.6, 10.8],
+            [10.64, 46.4, 45.0, 2.4, 9.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EX-05", "start": 0.0, "end": 10.64, "conf": 0.93,
+        "keys": [
+            [0.0, 54.8, 58.0, 3.4, 13.5],
+            [3.0, 53.5, 54.5, 3.1, 12.5],
+            [5.5, 52.0, 52.0, 2.8, 11.5],
+            [8.0, 50.8, 49.0, 2.5, 10.5],
+            [10.64, 49.5, 45.5, 2.3, 9.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EX-06", "start": 0.0, "end": 10.64, "conf": 0.95,
+        "keys": [
+            [0.0, 65.5, 60.0, 4.0, 14.2],
+            [3.0, 64.8, 56.5, 3.6, 13.0],
+            [5.5, 64.0, 53.0, 3.3, 12.0],
+            [8.0, 63.2, 49.5, 2.9, 10.8],
+            [10.64, 62.4, 46.0, 2.6, 9.8]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EX-07", "start": 0.0, "end": 10.64, "conf": 0.91,
+        "keys": [
+            [0.0, 39.0, 53.5, 3.0, 12.8],
+            [3.0, 38.2, 50.5, 2.8, 11.8],
+            [5.5, 37.5, 48.0, 2.6, 11.0],
+            [7.5, 38.0, 48.8, 2.4, 10.5],
+            [9.0, 38.5, 49.0, 2.2, 10.0],
+            [10.64, 38.8, 48.5, 2.0, 9.5]
+        ]
+    },
+    {
+        "id": "YOLO·PAX-EX-08", "start": 0.0, "end": 10.64, "conf": 0.90,
+        "keys": [
+            [0.0, 48.8, 51.0, 2.6, 10.5],
+            [3.0, 48.4, 48.0, 2.4, 9.6],
+            [5.5, 48.0, 45.0, 2.1, 8.8],
+            [8.0, 47.6, 42.0, 1.9, 8.0],
+            [10.64, 47.2, 39.0, 1.7, 7.2]
+        ]
+    }
+]
+
+def _interp_box(keys: List[List[float]], t: float) -> List[float]:
+    if t <= keys[0][0]:
+        return keys[0][1:]
+    if t >= keys[-1][0]:
+        return keys[-1][1:]
+    for i in range(len(keys) - 1):
+        t0, x0, y0, w0, h0 = keys[i]
+        t1, x1, y1, w1, h1 = keys[i + 1]
+        if t0 <= t <= t1:
+            a = (t - t0) / max(0.0001, (t1 - t0))
+            return [
+                round(x0 + (x1 - x0) * a, 2),
+                round(y0 + (y1 - y0) * a, 2),
+                round(w0 + (w1 - w0) * a, 2),
+                round(h0 + (h1 - h0) * a, 2),
+            ]
+    return keys[-1][1:]
+
 def generate_ground_truth_tracks(key_name: str, duration: float, fps: float) -> List[Dict[str, Any]]:
+    spec = ENTRY_TRACKS_SPEC if key_name == "entry" else EXIT_TRACKS_SPEC
     frames_data = []
-    # Sample every 0.2s for high temporal resolution (50-60 frames per loop)
-    total_steps = int(duration / 0.2) + 1
+    # Sample every 0.1s for high temporal fidelity
+    total_steps = int(duration / 0.1) + 1
     
     for i in range(total_steps):
-        t = round(min(duration, i * 0.2), 2)
-        f_entry = t / 11.03
-        f_exit = t / 10.64
+        t = round(min(duration, i * 0.1), 2)
         boxes = []
-        
-        if key_name == "entry":
-            # 1. Main Right-Center: White shirt, black bag on shoulder
-            x1 = 65.5 - f_entry * 17.0
-            y1 = 29.0 + f_entry * 13.5
-            w1 = 10.2 - f_entry * 5.4
-            h1 = 51.5 - f_entry * 30.5
-            boxes.append({"track_id": "YOLO·PAX-EN-01", "x": round(x1, 2), "y": round(y1, 2), "w": round(w1, 2), "h": round(h1, 2), "confidence": 0.98, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 2. Mid Right: Man in white shirt walking away
-            x2 = 54.8 - f_entry * 11.0
-            y2 = 34.5 + f_entry * 9.5
-            w2 = 6.8 - f_entry * 3.6
-            h2 = 36.0 - f_entry * 21.5
-            boxes.append({"track_id": "YOLO·PAX-EN-02", "x": round(x2, 2), "y": round(y2, 2), "w": round(w2, 2), "h": round(h2, 2), "confidence": 0.96, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 3. Mid Left: Lady in brown jacket & dark trousers
-            if t <= 5.5:
-                f3 = t / 5.5
-                boxes.append({"track_id": "YOLO·PAX-EN-03", "x": round(34.2 - f3 * 1.0, 2), "y": round(40.0 + f3 * 5.0, 2), "w": round(7.2 - f3 * 3.2, 2), "h": round(32.5 - f3 * 15.0, 2), "confidence": 0.95, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 4. Left: White shirt commuter walking away
-            if t <= 6.0:
-                f4 = t / 6.0
-                boxes.append({"track_id": "YOLO·PAX-EN-04", "x": round(29.5 + f4 * 0.8, 2), "y": round(36.5 + f4 * 6.5, 2), "w": round(6.0 - f4 * 2.5, 2), "h": round(30.0 - f4 * 13.0, 2), "confidence": 0.93, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 5. Right Foreground: Beige jacket (0-3.5s) / Green jacket (3.5-9s) / Suit (9-11s)
-            if t <= 3.5:
-                f_sub = t / 3.5
-                boxes.append({"track_id": "YOLO·PAX-EN-05", "x": round(79.5 + f_sub * 2.5, 2), "y": round(33.0 + f_sub * 4.0, 2), "w": round(9.8 - f_sub * 1.8, 2), "h": round(46.5 - f_sub * 8.0, 2), "confidence": 0.97, "class": "person", "algorithm": "YOLOv8x"})
-            elif t <= 9.0:
-                f_grn = (t - 3.5) / 5.5
-                boxes.append({"track_id": "YOLO·PAX-EN-05", "x": round(63.5 - f_grn * 8.0, 2), "y": round(41.0 - f_grn * 4.0, 2), "w": round(4.5 + f_grn * 2.0, 2), "h": round(22.0 + f_grn * 10.0, 2), "confidence": 0.94, "class": "person", "algorithm": "YOLOv8x"})
-            else:
-                f_suit = (t - 9.0) / 2.03
-                boxes.append({"track_id": "YOLO·PAX-EN-05", "x": round(91.5 - f_suit * 1.5, 2), "y": round(28.0 - f_suit * 1.0, 2), "w": round(7.5 + f_suit * 0.5, 2), "h": round(52.0 + f_suit * 2.0, 2), "confidence": 0.96, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 6. Concourse commuter / Blue shirt
-            if t < 3.5:
-                f6 = t / 3.5
-                boxes.append({"track_id": "YOLO·PAX-EN-06", "x": round(41.5 - f6 * 3.0, 2), "y": round(42.0 + f6 * 2.5, 2), "w": round(5.2 - f6 * 1.8, 2), "h": round(22.0 - f6 * 8.0, 2), "confidence": 0.92, "class": "person", "algorithm": "YOLOv8x"})
-            else:
-                f_blue = (t - 3.5) / 7.53
-                boxes.append({"track_id": "YOLO·PAX-EN-06", "x": round(30.5 + f_blue * 1.5, 2), "y": round(40.5 + f_blue * 3.5, 2), "w": round(6.5 - f_blue * 2.5, 2), "h": round(28.0 - f_blue * 12.0, 2), "confidence": 0.95, "class": "person", "algorithm": "YOLOv8x"})
-        
-        else: # exit
-            # 1. Main Foreground Center: Man in dark t-shirt & jeans walking away down center
-            x1 = 55.6 - f_exit * 3.6
-            y1 = 78.5 - f_exit * 26.5
-            w1 = 6.2 - f_exit * 3.0
-            h1 = 20.0 - f_exit * 10.0
-            boxes.append({"track_id": "YOLO·PAX-EX-01", "x": round(x1, 2), "y": round(y1, 2), "w": round(w1, 2), "h": round(h1, 2), "confidence": 0.98, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 2. Left Foreground: Woman in hat and patterned top walking TOWARDS camera
-            x2 = 32.8 + f_exit * 0.5
-            y2 = 60.0 + f_exit * 19.5
-            w2 = 3.6 + f_exit * 1.4
-            h2 = 15.5 + f_exit * 6.5
-            boxes.append({"track_id": "YOLO·PAX-EX-02", "x": round(x2, 2), "y": round(y2, 2), "w": round(w2, 2), "h": round(h2, 2), "confidence": 0.97, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 3. Center Left: Person with black jacket & red/white backpack
-            x3 = 44.0 - f_exit * 1.0
-            y3 = 58.5 - f_exit * 12.0
-            w3 = 3.8 - f_exit * 1.0
-            h3 = 14.5 - f_exit * 4.5
-            boxes.append({"track_id": "YOLO·PAX-EX-03", "x": round(x3, 2), "y": round(y3, 2), "w": round(w3, 2), "h": round(h3, 2), "confidence": 0.95, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 4. Center: Person in grey top with trolley suitcase
-            x4 = 48.0 - f_exit * 1.5
-            y4 = 57.0 - f_exit * 12.0
-            w4 = 3.6 - f_exit * 1.0
-            h4 = 14.0 - f_exit * 4.5
-            boxes.append({"track_id": "YOLO·PAX-EX-04", "x": round(x4, 2), "y": round(y4, 2), "w": round(w4, 2), "h": round(h4, 2), "confidence": 0.94, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 5. Center Right: Man in dark blazer/suit
-            x5 = 54.8 - f_exit * 1.8
-            y5 = 58.0 - f_exit * 12.0
-            w5 = 3.5 - f_exit * 1.0
-            h5 = 13.8 - f_exit * 4.3
-            boxes.append({"track_id": "YOLO·PAX-EX-05", "x": round(x5, 2), "y": round(y5, 2), "w": round(w5, 2), "h": round(h5, 2), "confidence": 0.93, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 6. Right: Commuter carrying duffle bags
-            x6 = 65.5 - f_exit * 2.5
-            y6 = 60.0 - f_exit * 12.0
-            w6 = 4.2 - f_exit * 1.4
-            h6 = 14.5 - f_exit * 4.7
-            boxes.append({"track_id": "YOLO·PAX-EX-06", "x": round(x6, 2), "y": round(y6, 2), "w": round(w6, 2), "h": round(h6, 2), "confidence": 0.95, "class": "person", "algorithm": "YOLOv8x"})
-
-            # 7. Left Mid: Commuter with dark bag walking away towards gate D51
-            x7 = 39.0 + f_exit * 1.0
-            y7 = 53.5 - f_exit * 10.0
-            w7 = 3.2 - f_exit * 1.0
-            h7 = 13.0 - f_exit * 4.5
-            boxes.append({"track_id": "YOLO·PAX-EX-07", "x": round(x7, 2), "y": round(y7, 2), "w": round(w7, 2), "h": round(h7, 2), "confidence": 0.91, "class": "person", "algorithm": "YOLOv8x"})
+        for track in spec:
+            if track["start"] <= t <= track["end"]:
+                x, y, w, h = _interp_box(track["keys"], t)
+                boxes.append({
+                    "track_id": track["id"],
+                    "x": x,
+                    "y": y,
+                    "w": w,
+                    "h": h,
+                    "confidence": track["conf"],
+                    "class": "person",
+                    "algorithm": "YOLOv8x"
+                })
 
         frames_data.append({
             "timestamp": t,

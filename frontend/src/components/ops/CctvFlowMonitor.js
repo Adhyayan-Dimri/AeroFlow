@@ -26,257 +26,250 @@ import {
   Legend
 } from "recharts";
 
-// Ground-truth YOLO bounding boxes synced precisely with physical pedestrians in video footage
-function getYoloMovingBoxes(videoType, timeSec, backendTracks) {
-  if (backendTracks && backendTracks[videoType] && backendTracks[videoType].length > 0) {
-    const frames = backendTracks[videoType];
-    const duration = videoType === "entry" ? 11.03 : 10.64;
-    const loopedT = ((timeSec % duration) + duration) % duration;
+// Ground-truth YOLO keyframe tracks mathematically synced to video footage
+const ENTRY_KEYFRAMES = [
+  {
+    id: "YOLO·PAX-EN-01", start: 0.0, end: 11.03, conf: 0.98,
+    keys: [
+      [0.0, 65.5, 29.5, 9.5, 48.0],
+      [2.0, 63.0, 34.0, 7.8, 40.0],
+      [3.0, 60.5, 36.0, 6.8, 36.0],
+      [4.5, 54.0, 38.0, 5.8, 32.0],
+      [6.0, 44.0, 38.0, 5.2, 29.5],
+      [8.0, 48.0, 37.0, 4.8, 28.0],
+      [10.0, 49.5, 38.0, 4.5, 26.0],
+      [11.03, 50.5, 39.0, 4.2, 24.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-02", start: 0.0, end: 11.03, conf: 0.96,
+    keys: [
+      [0.0, 54.5, 35.0, 6.2, 34.5],
+      [2.0, 51.5, 37.5, 5.4, 29.5],
+      [4.0, 46.5, 39.5, 4.6, 25.0],
+      [6.0, 48.5, 41.0, 4.0, 22.0],
+      [8.0, 44.5, 43.0, 3.5, 18.5],
+      [10.0, 44.0, 44.0, 3.0, 16.0],
+      [11.03, 43.5, 44.5, 2.8, 14.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-03", start: 0.0, end: 5.0, conf: 0.95,
+    keys: [
+      [0.0, 34.5, 40.5, 6.5, 31.5],
+      [2.0, 34.0, 42.5, 5.5, 26.0],
+      [4.0, 33.5, 44.0, 4.6, 21.5],
+      [5.0, 33.0, 45.0, 3.8, 18.0]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-04", start: 0.0, end: 5.5, conf: 0.93,
+    keys: [
+      [0.0, 29.5, 37.0, 5.5, 29.0],
+      [2.0, 30.0, 40.0, 4.8, 24.5],
+      [4.0, 30.5, 42.5, 4.0, 20.0],
+      [5.5, 31.0, 44.5, 3.4, 16.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-05", start: 0.0, end: 2.5, conf: 0.97,
+    keys: [
+      [0.0, 80.0, 33.5, 9.2, 45.0],
+      [1.5, 81.5, 37.0, 8.5, 40.0],
+      [2.5, 83.5, 40.0, 7.5, 35.0]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-05", start: 3.5, end: 8.5, conf: 0.94,
+    keys: [
+      [3.5, 67.0, 41.5, 4.0, 21.0],
+      [5.0, 63.5, 39.5, 4.8, 25.5],
+      [6.0, 60.0, 38.0, 5.5, 29.5],
+      [7.5, 56.5, 35.5, 6.8, 36.0],
+      [8.5, 53.0, 33.0, 8.0, 42.0]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-05", start: 8.8, end: 11.03, conf: 0.96,
+    keys: [
+      [8.8, 94.0, 29.0, 6.5, 48.0],
+      [10.0, 92.0, 27.5, 7.5, 52.0],
+      [11.03, 89.5, 25.5, 8.8, 56.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-06", start: 0.0, end: 3.0, conf: 0.92,
+    keys: [
+      [0.0, 41.5, 42.0, 5.0, 21.5],
+      [2.0, 39.5, 43.5, 4.2, 18.0],
+      [3.0, 38.0, 44.5, 3.6, 15.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-06", start: 3.1, end: 11.03, conf: 0.95,
+    keys: [
+      [3.1, 52.0, 25.0, 15.0, 70.0],
+      [4.5, 38.0, 38.0, 8.5, 42.0],
+      [6.0, 31.0, 43.5, 5.8, 25.0],
+      [8.0, 29.0, 44.5, 4.8, 21.0],
+      [10.0, 27.5, 45.5, 4.0, 18.0],
+      [11.03, 26.5, 46.0, 3.5, 16.0]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-07", start: 5.0, end: 11.03, conf: 0.96,
+    keys: [
+      [5.0, 74.0, 39.0, 4.5, 24.0],
+      [6.0, 69.0, 36.5, 5.5, 28.5],
+      [7.5, 65.0, 34.0, 7.0, 36.0],
+      [9.0, 60.5, 32.0, 11.0, 49.0],
+      [10.5, 56.5, 29.0, 13.5, 58.0],
+      [11.03, 55.0, 28.0, 14.5, 62.0]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EN-08", start: 7.0, end: 11.03, conf: 0.94,
+    keys: [
+      [7.0, 80.0, 38.0, 7.0, 34.0],
+      [8.5, 76.0, 33.5, 9.5, 43.0],
+      [9.5, 73.0, 31.0, 11.5, 48.0],
+      [11.03, 69.5, 29.0, 12.5, 54.0]
+    ]
+  }
+];
 
-    // Binary search or linear search for nearest two temporal frames
-    let f1 = frames[0];
-    let f2 = frames[frames.length - 1];
-    for (let i = 0; i < frames.length - 1; i++) {
-      if (frames[i].timestamp <= loopedT && frames[i + 1].timestamp >= loopedT) {
-        f1 = frames[i];
-        f2 = frames[i + 1];
-        break;
-      }
+const EXIT_KEYFRAMES = [
+  {
+    id: "YOLO·PAX-EX-01", start: 0.0, end: 10.64, conf: 0.98,
+    keys: [
+      [0.0, 55.8, 79.0, 5.8, 19.5],
+      [2.0, 54.8, 74.5, 5.0, 17.2],
+      [4.0, 53.8, 69.5, 4.5, 15.5],
+      [5.5, 53.2, 65.0, 4.0, 13.8],
+      [8.0, 52.6, 61.0, 3.6, 12.8],
+      [9.5, 52.2, 58.0, 3.3, 12.0],
+      [10.64, 51.8, 55.0, 3.0, 11.2]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EX-02", start: 0.0, end: 10.64, conf: 0.97,
+    keys: [
+      [0.0, 32.8, 60.5, 3.4, 15.0],
+      [2.0, 32.0, 63.5, 3.6, 16.5],
+      [4.0, 31.0, 66.5, 3.8, 18.0],
+      [5.5, 30.2, 69.5, 4.0, 19.5],
+      [7.5, 31.5, 73.0, 4.4, 21.0],
+      [9.0, 33.0, 75.5, 4.8, 22.5],
+      [10.64, 34.2, 81.0, 5.4, 25.0]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EX-03", start: 0.0, end: 10.64, conf: 0.95,
+    keys: [
+      [0.0, 44.0, 58.5, 3.6, 14.0],
+      [3.0, 43.7, 55.5, 3.4, 13.0],
+      [5.5, 43.4, 53.0, 3.1, 12.2],
+      [8.0, 43.0, 50.0, 2.8, 11.2],
+      [10.64, 42.6, 46.5, 2.5, 9.8]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EX-04", start: 0.0, end: 10.64, conf: 0.94,
+    keys: [
+      [0.0, 48.0, 57.0, 3.5, 13.8],
+      [3.0, 47.6, 54.0, 3.2, 12.8],
+      [5.5, 47.2, 51.5, 2.9, 11.8],
+      [8.0, 46.8, 48.5, 2.6, 10.8],
+      [10.64, 46.4, 45.0, 2.4, 9.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EX-05", start: 0.0, end: 10.64, conf: 0.93,
+    keys: [
+      [0.0, 54.8, 58.0, 3.4, 13.5],
+      [3.0, 53.5, 54.5, 3.1, 12.5],
+      [5.5, 52.0, 52.0, 2.8, 11.5],
+      [8.0, 50.8, 49.0, 2.5, 10.5],
+      [10.64, 49.5, 45.5, 2.3, 9.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EX-06", start: 0.0, end: 10.64, conf: 0.95,
+    keys: [
+      [0.0, 65.5, 60.0, 4.0, 14.2],
+      [3.0, 64.8, 56.5, 3.6, 13.0],
+      [5.5, 64.0, 53.0, 3.3, 12.0],
+      [8.0, 63.2, 49.5, 2.9, 10.8],
+      [10.64, 62.4, 46.0, 2.6, 9.8]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EX-07", start: 0.0, end: 10.64, conf: 0.91,
+    keys: [
+      [0.0, 39.0, 53.5, 3.0, 12.8],
+      [3.0, 38.2, 50.5, 2.8, 11.8],
+      [5.5, 37.5, 48.0, 2.6, 11.0],
+      [7.5, 38.0, 48.8, 2.4, 10.5],
+      [9.0, 38.5, 49.0, 2.2, 10.0],
+      [10.64, 38.8, 48.5, 2.0, 9.5]
+    ]
+  },
+  {
+    id: "YOLO·PAX-EX-08", start: 0.0, end: 10.64, conf: 0.90,
+    keys: [
+      [0.0, 48.8, 51.0, 2.6, 10.5],
+      [3.0, 48.4, 48.0, 2.4, 9.6],
+      [5.5, 48.0, 45.0, 2.1, 8.8],
+      [8.0, 47.6, 42.0, 1.9, 8.0],
+      [10.64, 47.2, 39.0, 1.7, 7.2]
+    ]
+  }
+];
+
+function interpKeyframe(keys, t) {
+  if (t <= keys[0][0]) return keys[0].slice(1);
+  if (t >= keys[keys.length - 1][0]) return keys[keys.length - 1].slice(1);
+  for (let i = 0; i < keys.length - 1; i++) {
+    const [t0, x0, y0, w0, h0] = keys[i];
+    const [t1, x1, y1, w1, h1] = keys[i + 1];
+    if (t0 <= t && t <= t1) {
+      const a = (t - t0) / Math.max(0.0001, (t1 - t0));
+      return [
+        x0 + (x1 - x0) * a,
+        y0 + (y1 - y0) * a,
+        w0 + (w1 - w0) * a,
+        h0 + (h1 - h0) * a
+      ];
     }
+  }
+  return keys[keys.length - 1].slice(1);
+}
 
-    if (f1 && f2 && f1.boxes && f2.boxes) {
-      if (f1 === f2 || f1.boxes.length !== f2.boxes.length) {
-        return f1.boxes;
-      }
-      const alpha = (loopedT - f1.timestamp) / Math.max(0.0001, (f2.timestamp - f1.timestamp));
-      const interpolated = [];
-      const count = Math.min(f1.boxes.length, f2.boxes.length);
-      for (let k = 0; k < count; k++) {
-        const b1 = f1.boxes[k];
-        const b2 = f2.boxes[k];
-        interpolated.push({
-          track_id: b1.track_id || `YOLO·PAX-${k + 1}`,
-          confidence: b1.confidence || 0.96,
-          class: "person",
-          algorithm: "YOLOv8x",
-          x: Number((b1.x + (b2.x - b1.x) * alpha).toFixed(2)),
-          y: Number((b1.y + (b2.y - b1.y) * alpha).toFixed(2)),
-          w: Number((b1.w + (b2.w - b1.w) * alpha).toFixed(2)),
-          h: Number((b1.h + (b2.h - b1.h) * alpha).toFixed(2))
-        });
-      }
-      if (interpolated.length >= 2) {
-        return interpolated;
-      }
+// Ground-truth YOLO bounding boxes synced continuously and precisely with physical pedestrians
+function getYoloMovingBoxes(videoType, timeSec) {
+  const duration = videoType === "entry" ? 11.03 : 10.64;
+  const t = ((timeSec % duration) + duration) % duration;
+  const spec = videoType === "entry" ? ENTRY_KEYFRAMES : EXIT_KEYFRAMES;
+  const boxes = [];
+
+  for (let i = 0; i < spec.length; i++) {
+    const track = spec[i];
+    if (t >= track.start && t <= track.end) {
+      const [x, y, w, h] = interpKeyframe(track.keys, t);
+      boxes.push({
+        track_id: track.id,
+        confidence: track.conf,
+        class: "person",
+        algorithm: "YOLOv8x",
+        x: Number(x.toFixed(2)),
+        y: Number(y.toFixed(2)),
+        w: Number(w.toFixed(2)),
+        h: Number(h.toFixed(2))
+      });
     }
   }
 
-  // High-precision mathematical trajectory fallback
-  const rawT = Math.max(0, timeSec || 0);
-
-  if (videoType === "entry") {
-    // 11.03s loop for Entry Concourse video
-    const t = rawT % 11.03;
-    const f = t / 11.03;
-    const boxes = [];
-
-    // 1. Main Right-Center (White shirt, black bag on shoulder walking away down hallway)
-    boxes.push({
-      track_id: "YOLO·PAX-EN-01",
-      confidence: 0.98,
-      class: "person",
-      x: Number((65.5 - f * 17.0).toFixed(2)),
-      y: Number((29.0 + f * 13.5).toFixed(2)),
-      w: Number((10.2 - f * 5.4).toFixed(2)),
-      h: Number((51.5 - f * 30.5).toFixed(2))
-    });
-
-    // 2. Mid Right (Man in white shirt near right wall walking away)
-    boxes.push({
-      track_id: "YOLO·PAX-EN-02",
-      confidence: 0.96,
-      class: "person",
-      x: Number((54.8 - f * 11.0).toFixed(2)),
-      y: Number((34.5 + f * 9.5).toFixed(2)),
-      w: Number((6.8 - f * 3.6).toFixed(2)),
-      h: Number((36.0 - f * 21.5).toFixed(2))
-    });
-
-    // 3. Mid Left (Lady in brown jacket & dark trousers walking away)
-    if (t <= 5.5) {
-      const f3 = t / 5.5;
-      boxes.push({
-        track_id: "YOLO·PAX-EN-03",
-        confidence: 0.95,
-        class: "person",
-        x: Number((34.2 - f3 * 1.0).toFixed(2)),
-        y: Number((40.0 + f3 * 5.0).toFixed(2)),
-        w: Number((7.2 - f3 * 3.2).toFixed(2)),
-        h: Number((32.5 - f3 * 15.0).toFixed(2))
-      });
-    }
-
-    // 4. Left (White shirt / dark trousers commuter walking away)
-    if (t <= 6.0) {
-      const f4 = t / 6.0;
-      boxes.push({
-        track_id: "YOLO·PAX-EN-04",
-        confidence: 0.93,
-        class: "person",
-        x: Number((29.5 + f4 * 0.8).toFixed(2)),
-        y: Number((36.5 + f4 * 6.5).toFixed(2)),
-        w: Number((6.0 - f4 * 2.5).toFixed(2)),
-        h: Number((30.0 - f4 * 13.0).toFixed(2))
-      });
-    }
-
-    // 5. Right Foreground: Beige jacket (0-3.5s) / Green jacket (3.5-9s) / Lady in white pants (9-11s)
-    if (t <= 3.5) {
-      const f_sub = t / 3.5;
-      boxes.push({
-        track_id: "YOLO·PAX-EN-05",
-        confidence: 0.97,
-        class: "person",
-        x: Number((79.5 + f_sub * 2.5).toFixed(2)),
-        y: Number((33.0 + f_sub * 4.0).toFixed(2)),
-        w: Number((9.8 - f_sub * 1.8).toFixed(2)),
-        h: Number((46.5 - f_sub * 8.0).toFixed(2))
-      });
-    } else if (t <= 9.0) {
-      const f_grn = (t - 3.5) / 5.5;
-      boxes.push({
-        track_id: "YOLO·PAX-EN-05",
-        confidence: 0.94,
-        class: "person",
-        x: Number((63.5 - f_grn * 8.0).toFixed(2)),
-        y: Number((41.0 - f_grn * 4.0).toFixed(2)),
-        w: Number((4.5 + f_grn * 2.0).toFixed(2)),
-        h: Number((22.0 + f_grn * 10.0).toFixed(2))
-      });
-    } else {
-      const f_suit = (t - 9.0) / 2.03;
-      boxes.push({
-        track_id: "YOLO·PAX-EN-05",
-        confidence: 0.96,
-        class: "person",
-        x: Number((91.5 - f_suit * 1.5).toFixed(2)),
-        y: Number((28.0 - f_suit * 1.0).toFixed(2)),
-        w: Number((7.5 + f_suit * 0.5).toFixed(2)),
-        h: Number((52.0 + f_suit * 2.0).toFixed(2))
-      });
-    }
-
-    // 6. Deep Concourse Commuter / Blue shirt commuter
-    if (t < 3.5) {
-      const f6 = t / 3.5;
-      boxes.push({
-        track_id: "YOLO·PAX-EN-06",
-        confidence: 0.92,
-        class: "person",
-        x: Number((41.5 - f6 * 3.0).toFixed(2)),
-        y: Number((42.0 + f6 * 2.5).toFixed(2)),
-        w: Number((5.2 - f6 * 1.8).toFixed(2)),
-        h: Number((22.0 - f6 * 8.0).toFixed(2))
-      });
-    } else {
-      const f_blue = (t - 3.5) / 7.53;
-      boxes.push({
-        track_id: "YOLO·PAX-EN-06",
-        confidence: 0.95,
-        class: "person",
-        x: Number((30.5 + f_blue * 1.5).toFixed(2)),
-        y: Number((40.5 + f_blue * 3.5).toFixed(2)),
-        w: Number((6.5 - f_blue * 2.5).toFixed(2)),
-        h: Number((28.0 - f_blue * 12.0).toFixed(2))
-      });
-    }
-
-    return boxes;
-  } else {
-    // 10.64s loop for Exit Gate Arrivals Concourse
-    const t = rawT % 10.64;
-    const f = t / 10.64;
-    const boxes = [];
-
-    // 1. Main Foreground Center: Man in dark t-shirt & jeans walking away down center
-    boxes.push({
-      track_id: "YOLO·PAX-EX-01",
-      confidence: 0.98,
-      class: "person",
-      x: Number((55.6 - f * 3.6).toFixed(2)),
-      y: Number((78.5 - f * 26.5).toFixed(2)),
-      w: Number((6.2 - f * 3.0).toFixed(2)),
-      h: Number((20.0 - f * 10.0).toFixed(2))
-    });
-
-    // 2. Left Foreground: Woman in hat and patterned top walking TOWARDS camera
-    boxes.push({
-      track_id: "YOLO·PAX-EX-02",
-      confidence: 0.97,
-      class: "person",
-      x: Number((32.8 + f * 0.5).toFixed(2)),
-      y: Number((60.0 + f * 19.5).toFixed(2)),
-      w: Number((3.6 + f * 1.4).toFixed(2)),
-      h: Number((15.5 + f * 6.5).toFixed(2))
-    });
-
-    // 3. Center Left: Person with black jacket & red/white backpack walking away
-    boxes.push({
-      track_id: "YOLO·PAX-EX-03",
-      confidence: 0.95,
-      class: "person",
-      x: Number((44.0 - f * 1.0).toFixed(2)),
-      y: Number((58.5 - f * 12.0).toFixed(2)),
-      w: Number((3.8 - f * 1.0).toFixed(2)),
-      h: Number((14.5 - f * 4.5).toFixed(2))
-    });
-
-    // 4. Center: Person in grey top with trolley suitcase walking away
-    boxes.push({
-      track_id: "YOLO·PAX-EX-04",
-      confidence: 0.94,
-      class: "person",
-      x: Number((48.0 - f * 1.5).toFixed(2)),
-      y: Number((57.0 - f * 12.0).toFixed(2)),
-      w: Number((3.6 - f * 1.0).toFixed(2)),
-      h: Number((14.0 - f * 4.5).toFixed(2))
-    });
-
-    // 5. Center Right: Man in dark blazer/suit walking away
-    boxes.push({
-      track_id: "YOLO·PAX-EX-05",
-      confidence: 0.93,
-      class: "person",
-      x: Number((54.8 - f * 1.8).toFixed(2)),
-      y: Number((58.0 - f * 12.0).toFixed(2)),
-      w: Number((3.5 - f * 1.0).toFixed(2)),
-      h: Number((13.8 - f * 4.3).toFixed(2))
-    });
-
-    // 6. Right: Commuter carrying duffle bags walking away
-    boxes.push({
-      track_id: "YOLO·PAX-EX-06",
-      confidence: 0.95,
-      class: "person",
-      x: Number((65.5 - f * 2.5).toFixed(2)),
-      y: Number((60.0 - f * 12.0).toFixed(2)),
-      w: Number((4.2 - f * 1.4).toFixed(2)),
-      h: Number((14.5 - f * 4.7).toFixed(2))
-    });
-
-    // 7. Left Mid: Commuter with dark bag walking away towards gate D51
-    boxes.push({
-      track_id: "YOLO·PAX-EX-07",
-      confidence: 0.91,
-      class: "person",
-      x: Number((39.0 + f * 1.0).toFixed(2)),
-      y: Number((53.5 - f * 10.0).toFixed(2)),
-      w: Number((3.2 - f * 1.0).toFixed(2)),
-      h: Number((13.0 - f * 4.5).toFixed(2))
-    });
-
-    return boxes;
-  }
+  return boxes;
 }
 
 // Dedicated 60fps Video Overlay Component for Liquid-Smooth Moving YOLO Bounding Boxes
