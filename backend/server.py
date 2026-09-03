@@ -337,7 +337,7 @@ async def startup():
     await write_test_credentials()
     global _sim_task
     _sim_task = asyncio.create_task(sim_loop())
-    logger.info("AeroFlow started. Origins=%s", origins)
+    logger.info("AeroFlow started. Origins=%s", valid_origins)
 
 async def write_test_credentials():
     codes = await db.staff_invite_codes.find({}, {"_id": 0}).to_list(50)
