@@ -118,6 +118,7 @@ async def _bag_stats():
 async def _curve():
     return await db.retrieval_curve.find({}, {"_id": 0}).to_list(100)
 
+@router.get("/flights")
 @router.get("/flights/search")
 async def search_flights(number: str | None = None, direction: str | None = None,
                          intl: bool | None = None, period: str | None = None,

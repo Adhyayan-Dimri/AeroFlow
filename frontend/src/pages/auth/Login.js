@@ -84,8 +84,21 @@ export default function Login() {
             <Link to="/forgot-password" className="text-xs text-aero-cyan hover:underline" data-testid="forgot-link">Forgot?</Link>
           </div>
           <div className="relative">
-            <Input data-testid="login-password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-aero-t3 hover:text-aero-t1">
+            <Input
+              data-testid="login-password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="••••••••"
+              className="font-sans text-sm tracking-normal pr-10"
+              style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-aero-t3 hover:text-aero-t1 p-1"
+            >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>

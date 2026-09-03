@@ -24,7 +24,7 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const containerRef = useRef(null);
 
