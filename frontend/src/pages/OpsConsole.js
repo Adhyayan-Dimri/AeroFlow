@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, Users2, Luggage, Bell, BarChart3, Layers, RefreshCw, TrendingUp, Plane } from "lucide-react";
+import { Activity, Users2, Luggage, Bell, BarChart3, Layers, RefreshCw, TrendingUp, Plane, Video } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import TerminalCongestionMap from "@/components/ops/TerminalCongestionMap";
@@ -9,11 +9,13 @@ import AlertsFeedCenter from "@/components/ops/AlertsFeedCenter";
 import HistoricalAnalyticsStudio from "@/components/ops/HistoricalAnalyticsStudio";
 import CarouselMasterManager from "@/components/ops/CarouselMasterManager";
 import FlightScheduleDelayManager from "@/components/ops/FlightScheduleDelayManager";
+import CctvFlowMonitor from "@/components/ops/CctvFlowMonitor";
 
 const HERO = "https://images.unsplash.com/photo-1522798120812-304f8819f4be?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTJ8MHwxfHNlYXJjaHw0fHxyYWRhciUyMHNjcmVlbiUyMGFpciUyMHRyYWZmaWN8ZW58MHx8fHwxNzg3ODA2MzI2fDA&ixlib=rb-4.1.0&q=85";
 
 const TABS = [
   { id: "congestion", label: "Congestion", icon: Users2 },
+  { id: "cctv", label: "CCTV AI Flow", icon: Video },
   { id: "flights", label: "Flight Delays", icon: Plane },
   { id: "baggage", label: "Baggage", icon: Luggage },
   { id: "alerts", label: "Alerts", icon: Bell },
@@ -110,6 +112,7 @@ export default function OpsConsole() {
       <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
           {tab === "congestion" && <><ImpactBanner impact={impact} /><TerminalCongestionMap zones={zones} onChanged={loadZones} canEdit={canDeployStaff} /></>}
+          {tab === "cctv" && <CctvFlowMonitor />}
           {tab === "flights" && <FlightScheduleDelayManager onFlightDelayed={() => { loadZones(); loadBaggage(); loadAlerts(); }} canEdit={canEdit} />}
           {tab === "baggage" && <CarouselAllocationBoard assignments={assignments} carousels={carousels} canEdit={canEdit} onChanged={loadBaggage} />}
           {tab === "alerts" && <AlertsFeedCenter alerts={alerts} filter={alertFilter} setFilter={setAlertFilter} onChanged={loadAlerts} canAct={canEdit} />}

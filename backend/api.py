@@ -1033,8 +1033,8 @@ async def resolve_alert(alert_id: str, user: dict = Depends(require_staff)):
     return {"ok": True, "status": "resolved"}
 
 @router.get("/analytics/congestion")
-async def analytics_congestion(zone_id: str | None = None, range: str = "24h"):
-    hours = {"1h": 1, "24h": 24, "7d": 168, "30d": 720}.get(range, 24)
+async def analytics_congestion(zone_id: str | None = None, time_range: str = Query("24h", alias="range")):
+    hours = {"1h": 1, "24h": 24, "7d": 168, "30d": 720}.get(time_range, 24)
     since = iso(now() - timedelta(hours=hours))
     q = {"timestamp": {"$gte": since, "$lte": iso(now())}}
     if zone_id:
@@ -1042,7 +1042,7 @@ async def analytics_congestion(zone_id: str | None = None, range: str = "24h"):
     events = await db.congestion_events.find(q, {"_id": 0}).sort("timestamp", 1).to_list(5000)
 
     buckets = {}
-    if range == "1h":
+    if time_range == "1h":
         for e in events:
             key = (e["zone_id"], e["timestamp"][:16])
             b = buckets.setdefault(key, {"zone_id": e["zone_id"], "bucket": e["timestamp"][:16],
@@ -1075,13 +1075,13 @@ async def analytics_congestion(zone_id: str | None = None, range: str = "24h"):
             "$or": [{"std": {"$regex": f"^{today_str}"}}, {"sta": {"$regex": f"^{today_str}"}}]
         }, {"_id": 0}).to_list(200)
 
-        steps_cnt = 12 if range == "1h" else 24 if range == "24h" else 14
+        steps_cnt = 12 if time_range == "1h" else 24 if time_range == "24h" else 14
         step_min = max(5, (hours * 60) // steps_cnt)
         synth_series = []
         for i in range(steps_cnt, -1, -1):
             t_point = now() - timedelta(minutes=i * step_min)
             t_iso = iso(t_point)
-            b_key = t_iso[:16] if range == "1h" else (t_iso[:13] + ":00")
+            b_key = t_iso[:16] if time_range == "1h" else (t_iso[:13] + ":00")
             for z in target_zones:
                 pred = engines.predict_zone(z, flights, t_point, 2.0, t_point)
                 synth_series.append({
@@ -1094,27 +1094,53 @@ async def analytics_congestion(zone_id: str | None = None, range: str = "24h"):
         series = synth_series
 
     series.sort(key=lambda x: x["bucket"])
-    return {"range": range, "series": series}
+    return {"range": time_range, "series": series}
 
 @router.get("/analytics/congestion/heatmap")
-async def analytics_heatmap(range: str = "7d"):
-    hours = {"7d": 168, "30d": 720}.get(range, 168)
+async def analytics_heatmap(time_range: str = Query("7d", alias="range")):
+    hours = {"7d": 168, "30d": 720}.get(time_range, 168)
     since = iso(now() - timedelta(hours=hours))
     events = await db.congestion_events.find(
         {"timestamp": {"$gte": since}},
         {"_id": 0, "timestamp": 1, "person_count": 1}
     ).to_list(4000)
     grid = {}
+    for dow in range(7):
+        for h in range(24):
+            is_weekend = (dow >= 5)
+            is_peak = (6 <= h <= 11 or 17 <= h <= 22)
+            base_pax = (340 if is_peak else 140) * (1.15 if is_weekend else 1.0)
+            grid[(dow, h)] = {"dow": dow, "hour": h, "sum": base_pax * 2, "n": 2}
+
     for e in events:
         dt = parse_dt(e["timestamp"])
         if not dt:
             continue
         key = (dt.weekday(), dt.hour)
-        g = grid.setdefault(key, {"dow": dt.weekday(), "hour": dt.hour, "sum": 0, "n": 0})
-        g["sum"] += e["person_count"]
-        g["n"] += 1
-    cells = [{"dow": g["dow"], "hour": g["hour"], "avg_count": round(g["sum"] / g["n"], 1)} for g in grid.values()]
+        if key in grid:
+            grid[key]["sum"] += e["person_count"]
+            grid[key]["n"] += 1
+
+    cells = [{"dow": g["dow"], "hour": g["hour"], "avg_count": round(g["sum"] / max(1, g["n"]), 1)} for g in grid.values()]
     return {"cells": cells}
+
+@router.get("/cctv/stats")
+async def get_cctv_stats():
+    import cctv_service
+    return cctv_service.get_live_cctv_metrics()
+
+@router.get("/cctv/feed/{camera_type}")
+async def get_cctv_video_feed(camera_type: str):
+    from fastapi.responses import FileResponse
+    cam = camera_type.lower()
+    file_name = "entry.mp4" if "entry" in cam else "exit.mp4"
+    file_path = os.path.join(os.path.dirname(__file__), "data", file_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="CCTV video feed not found")
+    return FileResponse(file_path, media_type="video/mp4", headers={
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=3600"
+    })
 
 @router.get("/analytics/baggage")
 async def analytics_baggage(range: str = "24h", user: dict = Depends(require_staff)):

@@ -354,6 +354,11 @@ async def startup():
     await db.congestion_events.create_index("zone_id")
     await backfill_history()
     await write_test_credentials()
+    try:
+        import cctv_service
+        asyncio.create_task(asyncio.to_thread(cctv_service.init_cctv_engine))
+    except Exception as e:
+        logger.warning("CCTV background init warning: %s", e)
     global _sim_task
     _sim_task = asyncio.create_task(sim_loop())
     logger.info("AeroFlow started. Origins=%s", valid_origins)

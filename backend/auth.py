@@ -108,16 +108,16 @@ def verify_password(pw: str, hashed: str) -> bool:
 
 def create_access_token(uid: str, email: str, role: str, ver: int = 0) -> str:
     payload = {"sub": uid, "email": email, "role": role, "ver": ver,
-               "exp": now() + timedelta(minutes=30), "type": "access"}
+               "exp": now() + timedelta(days=7), "type": "access"}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 def create_refresh_token(uid: str, ver: int = 0) -> str:
-    payload = {"sub": uid, "ver": ver, "exp": now() + timedelta(days=7), "type": "refresh"}
+    payload = {"sub": uid, "ver": ver, "exp": now() + timedelta(days=30), "type": "refresh"}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 def _set_cookies(resp: Response, access: str, refresh: str):
-    resp.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=1800, path="/")
-    resp.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+    resp.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+    resp.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000, path="/")
 
 def _public_user(u: dict) -> dict:
     phone = u.get("phone")
