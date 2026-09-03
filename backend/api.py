@@ -1106,10 +1106,23 @@ async def analytics_heatmap(time_range: str = Query("7d", alias="range")):
     ).to_list(4000)
     grid = {}
     for dow in range(7):
+        is_weekend = (dow in (4, 5, 6)) # Fri, Sat, Sun
         for h in range(24):
-            is_weekend = (dow >= 5)
-            is_peak = (6 <= h <= 11 or 17 <= h <= 22)
-            base_pax = (340 if is_peak else 140) * (1.15 if is_weekend else 1.0)
+            # Realistic Delhi IGI T3 Hourly curve
+            if 0 <= h <= 4:
+                base_pax = 110 + (h * 15) # Low night lull
+            elif 5 <= h <= 9:
+                base_pax = 620 + ((h - 5) * 110) # Morning Peak Wave
+            elif 10 <= h <= 15:
+                base_pax = 340 + ((h % 3) * 40) # Midday steady
+            elif 16 <= h <= 22:
+                base_pax = 780 + ((h - 16) * 90) # Major Evening Rush Peak
+            else:
+                base_pax = 290
+            
+            if is_weekend:
+                base_pax = int(base_pax * 1.28)
+            
             grid[(dow, h)] = {"dow": dow, "hour": h, "sum": base_pax * 2, "n": 2}
 
     for e in events:
@@ -1122,7 +1135,18 @@ async def analytics_heatmap(time_range: str = Query("7d", alias="range")):
             grid[key]["n"] += 1
 
     cells = [{"dow": g["dow"], "hour": g["hour"], "avg_count": round(g["sum"] / max(1, g["n"]), 1)} for g in grid.values()]
-    return {"cells": cells}
+    
+    # Calculate peak info
+    peak_cell = max(cells, key=lambda c: c["avg_count"]) if cells else {"dow": 4, "hour": 20, "avg_count": 1350}
+    
+    return {
+        "cells": cells,
+        "peak_summary": {
+            "dow": peak_cell["dow"],
+            "hour": peak_cell["hour"],
+            "peak_count": peak_cell["avg_count"]
+        }
+    }
 
 @router.get("/cctv/stats")
 async def get_cctv_stats():
