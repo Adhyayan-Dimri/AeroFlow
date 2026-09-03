@@ -50,19 +50,28 @@ def _airline_for_flight(flight_number: str) -> str:
     code = flight_number[:2].upper() if len(flight_number) >= 2 else "AI"
     return AIRLINES.get(code, "Air India")
 
-async def ensure_flights_for_date(date_str: str):
+async def ensure_flights_for_date(date_str: str, force: bool = False):
     if not date_str or len(date_str) < 10:
         return 0
     clean_date = date_str[:10]
 
-    count = await db.flights.count_documents({
+    # Check if updated v3 schedule already exists for this date
+    existing_v3 = await db.flights.count_documents({
+        "$and": [
+            {"$or": [{"std": {"$regex": f"^{clean_date}"}}, {"sta": {"$regex": f"^{clean_date}"}}]},
+            {"v": 3}
+        ]
+    })
+    if existing_v3 >= 15 and not force:
+        return existing_v3
+
+    # Clean out old unversioned / duplicate records for this date
+    await db.flights.delete_many({
         "$or": [
             {"std": {"$regex": f"^{clean_date}"}},
             {"sta": {"$regex": f"^{clean_date}"}}
         ]
     })
-    if count >= 10:
-        return count
 
     try:
         target_day = datetime.strptime(clean_date, "%Y-%m-%d").date()
@@ -75,7 +84,12 @@ async def ensure_flights_for_date(date_str: str):
         logger.warning("No master flights available in database to synthesize schedule")
         return 0
 
-    rng = random.Random(f"AeroFlow-{clean_date}")
+    rng = random.Random(f"AeroFlow-v3-{clean_date}")
+    
+    # Destination pools for dynamic daily variation
+    INTL_DESTINATIONS = ["Dubai", "London (LHR)", "Singapore", "New York (JFK)", "Frankfurt", "Tokyo (HND)", "Doha", "Paris (CDG)", "Bangkok", "Toronto", "Sydney", "Zurich"]
+    DOM_DESTINATIONS = ["Mumbai", "Bengaluru", "Goa", "Hyderabad", "Kolkata", "Chennai", "Ahmedabad", "Pune", "Jaipur", "Lucknow", "Kochi", "Srinagar"]
+
     by_hour = {}
     for mf in master_flights:
         try:
@@ -93,27 +107,35 @@ async def ensure_flights_for_date(date_str: str):
             sampled.extend(rng.sample(arrs, min(6, len(arrs))))
         if deps:
             sampled.extend(rng.sample(deps, min(10, len(deps))))
-    day_flights = sampled if sampled else master_flights
+    day_flights = sampled if sampled else list(master_flights)
     rng.shuffle(day_flights)
 
     docs = []
     import hashlib
-    for master in day_flights:
+    for idx, master in enumerate(day_flights):
         flight_number = master["flight_number"]
         flight_type = master["flight_type"]
         is_intl = master["is_international"]
         passengers = master["passengers"]
         luggage_kg = master["luggage_kg"]
-        endpoint = master["endpoint"]
         time_str = master["time"]
+
+        # Dynamically rotate and vary destinations across calendar days
+        if is_intl:
+            dest_pool = INTL_DESTINATIONS
+        else:
+            dest_pool = DOM_DESTINATIONS
+        
+        day_seed_val = int(hashlib.md5(f"{clean_date}-{idx}-{flight_number}".encode()).hexdigest(), 16)
+        endpoint = dest_pool[day_seed_val % len(dest_pool)]
 
         try:
             hour, minute = map(int, time_str.split(':'))
         except Exception:
             hour, minute = 12, 0
 
-        # Realistic date-based departure variation (+/- 20 mins)
-        day_offset_min = (int(hashlib.md5(f"{clean_date}-{flight_number}".encode()).hexdigest(), 16) % 35) - 17
+        # Apply distinct minute variations per date (+/- 25 mins) so each day has a unique timeline
+        day_offset_min = (day_seed_val % 45) - 20
         total_minutes = max(0, min(1439, hour * 60 + minute + day_offset_min))
         adj_hour, adj_minute = divmod(total_minutes, 60)
 
@@ -135,12 +157,13 @@ async def ensure_flights_for_date(date_str: str):
             "origin": endpoint if flight_type == "Arrival" else "Delhi (DEL)",
             "destination": endpoint if flight_type == "Departure" else "Delhi (DEL)",
             "aircraft_type": "Wide-body" if passengers > 260 else "Narrow-body",
-            "gate": f"{'B' if is_intl else 'A'}{random.randint(1, 28)}",
-            "stand": f"S{random.randint(1, 45)}",
+            "gate": f"{'B' if is_intl else 'A'}{((day_seed_val % 28) + 1)}",
+            "stand": f"S{((day_seed_val % 45) + 1)}",
             "terminal": "T3",
             "ground_handler": "AI SATS" if is_intl else "Celebi Ground Handling",
             "staff_added_delay_minutes": 0,
             "status": "Scheduled",
+            "v": 3
         }
 
         if flight_type == "Departure":
@@ -158,8 +181,7 @@ async def ensure_flights_for_date(date_str: str):
 
     if docs:
         await db.flights.insert_many(docs)
-        await recompute_baggage_and_carousels()
-        logger.info("Successfully synthesized and indexed %d flights for %s", len(docs), clean_date)
+        logger.info("Successfully synthesized and indexed %d dynamic v3 flights for %s", len(docs), clean_date)
     return len(docs)
 
 async def seed_from_master(specific_dates=None):

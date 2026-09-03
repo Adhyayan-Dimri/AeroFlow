@@ -339,9 +339,14 @@ async def sim_loop():
 @app.on_event("startup")
 async def startup():
     from seed import seed_all
+    from seed_from_master import ensure_flights_for_date
     await create_indexes()
     await seed_admin()
     await seed_all()
+    today = now().date()
+    for off in range(0, 8):
+        d_str = (today + timedelta(days=off)).strftime("%Y-%m-%d")
+        await ensure_flights_for_date(d_str)
     bmarker = await db.config.find_one({"_id": "baggage_v"})
     if not (bmarker and bmarker.get("value") == 5):
         await db.config.update_one({"_id": "baggage_v"}, {"$set": {"value": 5}}, upsert=True)
