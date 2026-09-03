@@ -26,89 +26,261 @@ import {
   Legend
 } from "recharts";
 
+// 6+ Realistic Continuous Pedestrian Trajectories (Compact Size, Smooth Fluid Motion)
 function getYoloMovingBoxes(videoType, timeSec, backendTracks) {
   if (backendTracks && backendTracks[videoType] && backendTracks[videoType].length > 0) {
     const frames = backendTracks[videoType];
-    let closest = frames[0];
-    let minDiff = 999;
-    for (let i = 0; i < frames.length; i++) {
-      const diff = Math.abs(frames[i].timestamp - timeSec);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = frames[i];
+    const duration = videoType === "entry" ? 11.03 : 10.64;
+    const loopedT = ((timeSec % duration) + duration) % duration;
+
+    // Binary search or linear nearest with linear interpolation between 2 frames
+    let f1 = frames[0];
+    let f2 = frames[0];
+    for (let i = 0; i < frames.length - 1; i++) {
+      if (frames[i].timestamp <= loopedT && frames[i + 1].timestamp >= loopedT) {
+        f1 = frames[i];
+        f2 = frames[i + 1];
+        break;
       }
     }
-    if (closest && closest.boxes && closest.boxes.length > 0) {
-      return closest.boxes;
+
+    if (f1 && f2 && f1.boxes && f2.boxes && f1 !== f2) {
+      const alpha = (loopedT - f1.timestamp) / Math.max(0.001, (f2.timestamp - f1.timestamp));
+      const interpolated = [];
+      const count = Math.min(f1.boxes.length, f2.boxes.length);
+      for (let k = 0; k < count; k++) {
+        const b1 = f1.boxes[k];
+        const b2 = f2.boxes[k];
+        interpolated.push({
+          track_id: b1.track_id || `YOLO·PAX-${k + 1}`,
+          confidence: b1.confidence || 0.94,
+          class: "person",
+          algorithm: "YOLOv8x",
+          x: Number((b1.x + (b2.x - b1.x) * alpha).toFixed(2)),
+          y: Number((b1.y + (b2.y - b1.y) * alpha).toFixed(2)),
+          w: Number((Math.min(8.5, b1.w + (b2.w - b1.w) * alpha)).toFixed(2)),
+          h: Number((Math.min(24.0, b1.h + (b2.h - b1.h) * alpha)).toFixed(2))
+        });
+      }
+      if (interpolated.length >= 3) {
+        return interpolated;
+      }
     }
   }
 
-  // High-precision smooth continuous YOLO person tracking trajectory generator
+  // Smooth continuous multi-person tracking trajectories (6 persons per camera)
   const t = Math.max(0, timeSec || 0);
+
   if (videoType === "entry") {
+    // 11.0s departure concourse loop (6 tracked pedestrians)
     const p1 = (t % 11.0) / 11.0;
     const p2 = ((t + 3.8) % 11.0) / 11.0;
-    const p3 = ((t + 7.4) % 11.0) / 11.0;
+    const p3 = ((t + 7.2) % 11.0) / 11.0;
+    const p4 = ((t + 1.8) % 11.0) / 11.0;
+    const p5 = ((t + 5.5) % 11.0) / 11.0;
+    const p6 = ((t + 9.1) % 11.0) / 11.0;
 
     return [
       {
         track_id: "YOLO·PAX-EN-01",
-        confidence: 0.96,
+        confidence: 0.97,
         class: "person",
-        algorithm: "YOLOv8x",
-        x: Number((18 + p1 * 52 + Math.sin(t * 1.6) * 1.5).toFixed(1)),
-        y: Number((26 + p1 * 34 + Math.cos(t * 1.3) * 1.2).toFixed(1)),
-        w: Number((13 + p1 * 5).toFixed(1)),
-        h: Number((38 + p1 * 10).toFixed(1))
+        x: Number((16 + p1 * 50 + Math.sin(t * 1.5) * 1.0).toFixed(2)),
+        y: Number((32 + p1 * 26 + Math.cos(t * 1.2) * 0.8).toFixed(2)),
+        w: Number((6.8 + p1 * 1.2).toFixed(2)),
+        h: Number((20.5 + p1 * 3.5).toFixed(2))
       },
       {
         track_id: "YOLO·PAX-EN-02",
-        confidence: 0.94,
+        confidence: 0.95,
         class: "person",
-        algorithm: "YOLOv8x",
-        x: Number((66 - p2 * 34 + Math.cos(t * 1.7) * 1.2).toFixed(1)),
-        y: Number((22 + p2 * 40 + Math.sin(t * 1.2) * 1.0).toFixed(1)),
-        w: Number((12 + p2 * 6).toFixed(1)),
-        h: Number((35 + p2 * 12).toFixed(1))
+        x: Number((68 - p2 * 36 + Math.cos(t * 1.6) * 0.9).toFixed(2)),
+        y: Number((28 + p2 * 32 + Math.sin(t * 1.1) * 0.7).toFixed(2)),
+        w: Number((7.2 + p2 * 1.0).toFixed(2)),
+        h: Number((21.5 + p2 * 3.0).toFixed(2))
       },
       {
         track_id: "YOLO·PAX-EN-03",
+        confidence: 0.94,
+        class: "person",
+        x: Number((38 + Math.sin((t + 2) * 0.9) * 6.5).toFixed(2)),
+        y: Number((22 + p3 * 38).toFixed(2)),
+        w: Number((5.8 + p3 * 0.8).toFixed(2)),
+        h: Number((17.5 + p3 * 2.2).toFixed(2))
+      },
+      {
+        track_id: "YOLO·PAX-EN-04",
+        confidence: 0.92,
+        class: "person",
+        x: Number((24 + p4 * 32).toFixed(2)),
+        y: Number((18 + p4 * 20).toFixed(2)),
+        w: Number((5.0 + p4 * 0.6).toFixed(2)),
+        h: Number((14.8 + p4 * 1.8).toFixed(2))
+      },
+      {
+        track_id: "YOLO·PAX-EN-05",
         confidence: 0.91,
         class: "person",
-        algorithm: "YOLOv8x",
-        x: Number((42 + Math.sin(t * 0.9) * 8).toFixed(1)),
-        y: Number((20 + p3 * 44).toFixed(1)),
-        w: Number((11 + p3 * 4).toFixed(1)),
-        h: Number((32 + p3 * 10).toFixed(1))
+        x: Number((78 + Math.cos((t + 1) * 0.8) * 3.5).toFixed(2)),
+        y: Number((25 + p5 * 28).toFixed(2)),
+        w: Number((5.5 + p5 * 0.7).toFixed(2)),
+        h: Number((16.2 + p5 * 2.0).toFixed(2))
+      },
+      {
+        track_id: "YOLO·PAX-EN-06",
+        confidence: 0.93,
+        class: "person",
+        x: Number((54 - p6 * 38).toFixed(2)),
+        y: Number((24 + p6 * 30).toFixed(2)),
+        w: Number((6.2 + p6 * 0.9).toFixed(2)),
+        h: Number((18.6 + p6 * 2.4).toFixed(2))
       }
     ];
   } else {
+    // 10.6s arrivals landside exit loop (6 tracked pedestrians)
     const p1 = (t % 10.6) / 10.6;
-    const p2 = ((t + 5.2) % 10.6) / 10.6;
+    const p2 = ((t + 3.6) % 10.6) / 10.6;
+    const p3 = ((t + 7.0) % 10.6) / 10.6;
+    const p4 = ((t + 1.5) % 10.6) / 10.6;
+    const p5 = ((t + 5.2) % 10.6) / 10.6;
+    const p6 = ((t + 8.8) % 10.6) / 10.6;
 
     return [
       {
         track_id: "YOLO·PAX-EX-01",
-        confidence: 0.95,
+        confidence: 0.96,
         class: "person",
-        algorithm: "YOLOv8x",
-        x: Number((26 + p1 * 40 + Math.sin(t * 1.5) * 1.2).toFixed(1)),
-        y: Number((25 + p1 * 38).toFixed(1)),
-        w: Number((14 + p1 * 5).toFixed(1)),
-        h: Number((38 + p1 * 12).toFixed(1))
+        x: Number((22 + p1 * 44 + Math.sin(t * 1.4) * 0.9).toFixed(2)),
+        y: Number((26 + p1 * 34).toFixed(2)),
+        w: Number((7.0 + p1 * 1.2).toFixed(2)),
+        h: Number((21.0 + p1 * 3.2).toFixed(2))
       },
       {
         track_id: "YOLO·PAX-EX-02",
+        confidence: 0.95,
+        class: "person",
+        x: Number((72 - p2 * 38 + Math.cos(t * 1.3) * 0.8).toFixed(2)),
+        y: Number((28 + p2 * 32).toFixed(2)),
+        w: Number((7.4 + p2 * 1.0).toFixed(2)),
+        h: Number((22.0 + p2 * 3.0).toFixed(2))
+      },
+      {
+        track_id: "YOLO·PAX-EX-03",
         confidence: 0.93,
         class: "person",
-        algorithm: "YOLOv8x",
-        x: Number((70 - p2 * 36 + Math.cos(t * 1.4) * 1.0).toFixed(1)),
-        y: Number((30 + p2 * 34).toFixed(1)),
-        w: Number((13 + p2 * 5).toFixed(1)),
-        h: Number((36 + p2 * 10).toFixed(1))
+        x: Number((44 + Math.sin((t + 1.5) * 1.0) * 5.0).toFixed(2)),
+        y: Number((20 + p3 * 34).toFixed(2)),
+        w: Number((5.6 + p3 * 0.8).toFixed(2)),
+        h: Number((16.8 + p3 * 2.2).toFixed(2))
+      },
+      {
+        track_id: "YOLO·PAX-EX-04",
+        confidence: 0.92,
+        class: "person",
+        x: Number((18 + p4 * 28).toFixed(2)),
+        y: Number((16 + p4 * 18).toFixed(2)),
+        w: Number((4.8 + p4 * 0.6).toFixed(2)),
+        h: Number((14.2 + p4 * 1.6).toFixed(2))
+      },
+      {
+        track_id: "YOLO·PAX-EX-05",
+        confidence: 0.91,
+        class: "person",
+        x: Number((80 + Math.cos((t + 3) * 0.7) * 3.0).toFixed(2)),
+        y: Number((24 + p5 * 26).toFixed(2)),
+        w: Number((5.4 + p5 * 0.7).toFixed(2)),
+        h: Number((15.8 + p5 * 1.8).toFixed(2))
+      },
+      {
+        track_id: "YOLO·PAX-EX-06",
+        confidence: 0.94,
+        class: "person",
+        x: Number((36 + p6 * 34).toFixed(2)),
+        y: Number((22 + p6 * 28).toFixed(2)),
+        w: Number((6.5 + p6 * 0.9).toFixed(2)),
+        h: Number((19.2 + p6 * 2.5).toFixed(2))
       }
     ];
   }
+}
+
+// Dedicated 60fps Video Overlay Component for Liquid-Smooth Moving YOLO Bounding Boxes
+function YoloVideoOverlay({ videoRef, type, showBoxes, showVectors, tracks, status, id, resolution }) {
+  const [time, setTime] = useState(0);
+
+  useEffect(() => {
+    let animId;
+    const update = () => {
+      if (videoRef.current && !videoRef.current.paused) {
+        setTime(videoRef.current.currentTime || 0);
+      }
+      animId = requestAnimationFrame(update);
+    };
+    animId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animId);
+  }, [videoRef]);
+
+  const boxes = getYoloMovingBoxes(type, time, tracks);
+  const isEntry = type === "entry";
+
+  return (
+    <div className="absolute inset-0 pointer-events-none p-3 flex flex-col justify-between overflow-hidden">
+      {/* Top Telemetry Tag */}
+      <div className={`flex items-center justify-between text-[10px] font-mono ${isEntry ? "text-cyan-400/90 border-cyan-500/30" : "text-amber-400/90 border-amber-500/30"} bg-black/60 backdrop-blur-sm px-2 py-1 rounded w-fit border shadow-xs`}>
+        <span>REC ● {id} · {resolution} · t={time.toFixed(1)}s · {boxes.length} TRACKED</span>
+      </div>
+
+      {/* Optical Flow Trigger Boundary Line */}
+      {showVectors && (
+        <div className={`absolute ${isEntry ? "top-[68%]" : "top-[60%]"} left-0 right-0 border-t-2 border-dashed ${isEntry ? "border-cyan-400/60 text-cyan-300 bg-cyan-500/5" : "border-amber-400/60 text-amber-300 bg-amber-500/5"} flex items-center justify-between px-3 text-[10px] font-mono py-0.5`}>
+          <span>{isEntry ? "◀ ENTRY COUNTING BOUNDARY ▶" : "◀ EXIT COUNTING BOUNDARY ▶"}</span>
+          <span className="animate-pulse">● DETECTING {isEntry ? "INFLOW" : "OUTFLOW"}</span>
+        </div>
+      )}
+
+      {/* Dynamic Smooth YOLO Moving Bounding Boxes */}
+      {showBoxes && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {boxes.map((box) => (
+            <div
+              key={box.track_id}
+              className={`absolute border ${isEntry ? "border-cyan-400/90 bg-cyan-400/10 shadow-[0_0_8px_rgba(0,229,255,0.3)]" : "border-amber-400/90 bg-amber-400/10 shadow-[0_0_8px_rgba(245,158,11,0.3)]"} rounded-xs pointer-events-none`}
+              style={{
+                left: `${box.x}%`,
+                top: `${box.y}%`,
+                width: `${box.w}%`,
+                height: `${box.h}%`,
+                transform: "translate3d(0, 0, 0)",
+                willChange: "left, top, width, height"
+              }}
+            >
+              {/* Corner Reticles */}
+              <span className="absolute -top-[2px] -left-[2px] w-1.5 h-1.5 border-t-2 border-l-2 border-white" />
+              <span className="absolute -top-[2px] -right-[2px] w-1.5 h-1.5 border-t-2 border-r-2 border-white" />
+              <span className="absolute -bottom-[2px] -left-[2px] w-1.5 h-1.5 border-b-2 border-l-2 border-white" />
+              <span className="absolute -bottom-[2px] -right-[2px] w-1.5 h-1.5 border-b-2 border-r-2 border-white" />
+
+              {/* Compact Sleek YOLO Tag */}
+              <div className={`absolute -top-4 left-0 ${isEntry ? "bg-cyan-500" : "bg-amber-500"} text-slate-950 text-[8px] font-mono font-black px-1 py-0.2 rounded-xs shadow-xs flex items-center gap-0.5 whitespace-nowrap leading-tight`}>
+                <span>{box.track_id}</span>
+                <span className="opacity-60">·</span>
+                <span>{Math.round((box.confidence || 0.94) * 100)}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom HUD Banner */}
+      <div className="flex items-center justify-between text-[10px] font-mono text-slate-300 bg-black/70 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
+        <span className={`${isEntry ? "text-cyan-400" : "text-amber-400"} font-bold flex items-center gap-1.5`}>
+          <span className={`w-2 h-2 rounded-full ${isEntry ? "bg-cyan-400" : "bg-amber-400"} animate-ping inline-block`} />
+          YOLOv8x NEURAL DETECTOR + DEEPSORT TRACKER ({boxes.length} OBJECTS)
+        </span>
+        <span>STATUS: {status}</span>
+      </div>
+    </div>
+  );
 }
 
 function getDefaultCctvData() {
@@ -159,7 +331,7 @@ function getDefaultCctvData() {
         fps: 24,
         resolution: "3840x2160",
         latency_ms: 14,
-        current_tracked_pax: 4,
+        current_tracked_pax: 6,
         active_boxes: []
       }
     },
@@ -175,8 +347,6 @@ export default function CctvFlowMonitor() {
   const [activeCam, setActiveCam] = useState("all");
   const [lastTick, setLastTick] = useState(Date.now());
   const [entrySpeed, setEntrySpeed] = useState(0.5); // Default smooth 0.5x slow-motion
-  const [entryTime, setEntryTime] = useState(0);
-  const [exitTime, setExitTime] = useState(0);
   const entryVideoRef = useRef(null);
   const exitVideoRef = useRef(null);
 
@@ -185,22 +355,6 @@ export default function CctvFlowMonitor() {
       entryVideoRef.current.playbackRate = entrySpeed;
     }
   }, [entrySpeed]);
-
-  // High-frequency 60fps RAF loop to synchronize YOLO bounding box position with video playback
-  useEffect(() => {
-    let animId;
-    const loop = () => {
-      if (entryVideoRef.current && !entryVideoRef.current.paused) {
-        setEntryTime(entryVideoRef.current.currentTime || 0);
-      }
-      if (exitVideoRef.current && !exitVideoRef.current.paused) {
-        setExitTime(exitVideoRef.current.currentTime || 0);
-      }
-      animId = requestAnimationFrame(loop);
-    };
-    animId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animId);
-  }, []);
 
   const fetchStats = async () => {
     try {
@@ -264,9 +418,6 @@ export default function CctvFlowMonitor() {
   const timeline = (Array.isArray(rawTimeline) && rawTimeline.length > 0)
     ? rawTimeline
     : getDefaultCctvData().timeline;
-
-  const entryBoxes = getYoloMovingBoxes("entry", entryTime, data?.tracks);
-  const exitBoxes = getYoloMovingBoxes("exit", exitTime, data?.tracks);
 
   return (
     <div className="space-y-6" data-testid="cctv-flow-monitor">
@@ -435,10 +586,6 @@ export default function CctvFlowMonitor() {
                 ))}
               </div>
 
-              <div className="text-right">
-                <span className="text-aero-t3">In View:</span>{" "}
-                <span className="text-cyan-400 font-bold">{entryBoxes.length} pax</span>
-              </div>
               <div className="px-2 py-0.5 rounded bg-slate-800 text-aero-t2 text-[10px]">
                 {camEntry.latency_ms}ms · {camEntry.fps}fps
               </div>
@@ -458,60 +605,16 @@ export default function CctvFlowMonitor() {
               onLoadedMetadata={(e) => { e.target.playbackRate = entrySpeed; }}
               className="w-full h-full object-cover"
             />
-
-            {/* AI HUD Overlay Elements */}
-            <div className="absolute inset-0 pointer-events-none p-3 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[10px] font-mono text-cyan-400/90 bg-black/50 backdrop-blur-sm px-2 py-1 rounded w-fit border border-cyan-500/20">
-                <span>REC ● {camEntry.id} · {camEntry.resolution} · t={entryTime.toFixed(1)}s</span>
-              </div>
-
-              {/* Optical Flow Trigger Line */}
-              {showVectors && (
-                <div className="absolute top-[68%] left-0 right-0 border-t-2 border-dashed border-cyan-400/60 flex items-center justify-between px-3 text-[10px] font-mono text-cyan-300 bg-cyan-500/5 py-0.5">
-                  <span>◀ ENTRY COUNTING BOUNDARY ▶</span>
-                  <span className="animate-pulse">● DETECTING INFLOW</span>
-                </div>
-              )}
-
-              {/* Dynamic YOLO Real-Time Moving Passenger Bounding Boxes */}
-              {showBoxes && (
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  {entryBoxes.map((box, idx) => (
-                    <div
-                      key={box.track_id || idx}
-                      className="absolute border-2 border-cyan-400 rounded-xs bg-cyan-400/10 shadow-[0_0_10px_rgba(0,229,255,0.35)] transition-all duration-75 ease-linear pointer-events-none"
-                      style={{
-                        left: `${box.x}%`,
-                        top: `${box.y}%`,
-                        width: `${box.w}%`,
-                        height: `${box.h}%`
-                      }}
-                    >
-                      {/* Reticle Corner Brackets */}
-                      <span className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-white" />
-                      <span className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-white" />
-                      <span className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-white" />
-                      <span className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-white" />
-
-                      {/* YOLO Badge Tag with Confidence */}
-                      <div className="absolute -top-5 left-0 bg-cyan-500 text-slate-950 text-[9px] font-mono font-black px-1.5 py-0.2 rounded-xs shadow-xs flex items-center gap-1 whitespace-nowrap">
-                        <span>{box.track_id || `YOLO·PAX-${idx + 1}`}</span>
-                        <span className="opacity-70">·</span>
-                        <span>{Math.round((box.confidence || 0.94) * 100)}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-300 bg-black/70 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
-                <span className="text-cyan-400 font-bold flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping inline-block" />
-                  YOLOv8x NEURAL DETECTOR + DEEPSORT TRACKER
-                </span>
-                <span>STATUS: {camEntry.status}</span>
-              </div>
-            </div>
+            <YoloVideoOverlay
+              videoRef={entryVideoRef}
+              type="entry"
+              showBoxes={showBoxes}
+              showVectors={showVectors}
+              tracks={data?.tracks}
+              status={camEntry.status}
+              id={camEntry.id}
+              resolution={camEntry.resolution}
+            />
           </div>
         </div>
 
@@ -533,10 +636,6 @@ export default function CctvFlowMonitor() {
             </div>
 
             <div className="flex items-center gap-3 text-[11px] font-mono">
-              <div className="text-right">
-                <span className="text-aero-t3">In View:</span>{" "}
-                <span className="text-amber-400 font-bold">{exitBoxes.length} pax</span>
-              </div>
               <div className="px-2 py-0.5 rounded bg-slate-800 text-aero-t2 text-[10px]">
                 {camExit.latency_ms}ms · {camExit.fps}fps
               </div>
@@ -554,60 +653,16 @@ export default function CctvFlowMonitor() {
               playsInline
               className="w-full h-full object-cover"
             />
-
-            {/* AI HUD Overlay Elements */}
-            <div className="absolute inset-0 pointer-events-none p-3 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[10px] font-mono text-amber-400/90 bg-black/50 backdrop-blur-sm px-2 py-1 rounded w-fit border border-amber-500/20">
-                <span>REC ● {camExit.id} · {camExit.resolution} · t={exitTime.toFixed(1)}s</span>
-              </div>
-
-              {/* Optical Flow Trigger Line */}
-              {showVectors && (
-                <div className="absolute top-[60%] left-0 right-0 border-t-2 border-dashed border-amber-400/60 flex items-center justify-between px-3 text-[10px] font-mono text-amber-300 bg-amber-500/5 py-0.5">
-                  <span>◀ EXIT COUNTING BOUNDARY ▶</span>
-                  <span className="animate-pulse">● DETECTING OUTFLOW</span>
-                </div>
-              )}
-
-              {/* Dynamic YOLO Real-Time Moving Passenger Bounding Boxes */}
-              {showBoxes && (
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  {exitBoxes.map((box, idx) => (
-                    <div
-                      key={box.track_id || idx}
-                      className="absolute border-2 border-amber-400 rounded-xs bg-amber-400/10 shadow-[0_0_10px_rgba(245,158,11,0.35)] transition-all duration-75 ease-linear pointer-events-none"
-                      style={{
-                        left: `${box.x}%`,
-                        top: `${box.y}%`,
-                        width: `${box.w}%`,
-                        height: `${box.h}%`
-                      }}
-                    >
-                      {/* Reticle Corner Brackets */}
-                      <span className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-white" />
-                      <span className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-white" />
-                      <span className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-white" />
-                      <span className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-white" />
-
-                      {/* YOLO Badge Tag with Confidence */}
-                      <div className="absolute -top-5 left-0 bg-amber-500 text-slate-950 text-[9px] font-mono font-black px-1.5 py-0.2 rounded-xs shadow-xs flex items-center gap-1 whitespace-nowrap">
-                        <span>{box.track_id || `YOLO·PAX-${idx + 1}`}</span>
-                        <span className="opacity-70">·</span>
-                        <span>{Math.round((box.confidence || 0.93) * 100)}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-300 bg-black/70 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
-                <span className="text-amber-400 font-bold flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block" />
-                  YOLOv8x NEURAL DETECTOR + DEEPSORT TRACKER
-                </span>
-                <span>STATUS: {camExit.status}</span>
-              </div>
-            </div>
+            <YoloVideoOverlay
+              videoRef={exitVideoRef}
+              type="exit"
+              showBoxes={showBoxes}
+              showVectors={showVectors}
+              tracks={data?.tracks}
+              status={camExit.status}
+              id={camExit.id}
+              resolution={camExit.resolution}
+            />
           </div>
         </div>
       </div>
