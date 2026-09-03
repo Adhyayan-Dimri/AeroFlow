@@ -11,11 +11,18 @@ export function AuthProvider({ children }) {
   const [checked, setChecked] = useState(false);
 
   const refresh = useCallback(async () => {
+    const token = localStorage.getItem("aero_token");
+    if (!token) {
+      setUser(null);
+      setChecked(true);
+      return;
+    }
     try {
       const { data } = await api.get("/auth/me");
       setUser(data.user);
     } catch {
-      setUser(false);
+      try { localStorage.removeItem("aero_token"); } catch {}
+      setUser(null);
     } finally {
       setChecked(true);
     }
@@ -46,7 +53,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("aero_token");
       await api.post("/auth/logout");
     } catch {}
-    setUser(false);
+    setUser(null);
   };
 
   const isStaff = user && STAFF_ROLES.includes(user.role);

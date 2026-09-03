@@ -338,8 +338,8 @@ async def login(body: LoginIn, request: Request, response: Response):
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
+    response.delete_cookie("access_token", path="/", samesite="none", secure=True, httponly=True)
+    response.delete_cookie("refresh_token", path="/", samesite="none", secure=True, httponly=True)
     return {"ok": True}
 
 @router.get("/me")
