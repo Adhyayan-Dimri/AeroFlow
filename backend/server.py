@@ -41,14 +41,22 @@ BOT_USER_AGENTS = {
 }
 
 @app.middleware("http")
-async def bot_protection_middleware(request: Request, call_next):
-    if request.method == "OPTIONS" or request.url.path == "/health":
-        return await call_next(request)
-    user_agent = request.headers.get("user-agent", "").lower()
-    if any(bot in user_agent for bot in ["sqlmap", "nikto", "masscan"]):
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=403, content={"detail": "Access denied"})
-    return await call_next(request)
+async def cors_and_security_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    
+    if request.method == "OPTIONS":
+        response = Response(status_code=204)
+    else:
+        response = await call_next(request)
+        
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, X-Requested-With, aero_token"
+        response.headers["Vary"] = "Origin"
+        
+    return response
 
 @app.get("/health")
 async def health_check():
