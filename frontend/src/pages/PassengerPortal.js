@@ -81,7 +81,7 @@ export default function PassengerPortal() {
             loadFlight(matched);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
 
   }, [params]);
@@ -90,10 +90,10 @@ export default function PassengerPortal() {
     if (user) {
       api.get("/user/preferences").then(({ data }) => {
         setUserPrefs(data);
-      }).catch(() => {});
+      }).catch(() => { });
       api.get("/user/recently-viewed").then(({ data }) => {
         setRecentFlights(data.flights || []);
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [user]);
 
@@ -171,7 +171,7 @@ export default function PassengerPortal() {
         api.post("/user/recently-viewed", { flight_id: f.flight_id })
           .then(() => api.get("/user/recently-viewed"))
           .then(({ data }) => { if (data?.flights) setRecentFlights(data.flights); })
-          .catch(() => {  });
+          .catch(() => { });
       }
       window.scrollTo({ top: 380, behavior: "smooth" });
     } catch (e) {
@@ -216,7 +216,7 @@ export default function PassengerPortal() {
       <div className="absolute top-12 right-4 sm:right-6 hidden lg:block z-10">
         <WeatherWidget />
       </div>
-      {}
+      { }
       <section className="relative overflow-hidden aero-grain">
         <div className="absolute inset-0">
           <img src={HERO_IMG} alt="runway" className="w-full h-full object-cover opacity-30" />
@@ -227,7 +227,7 @@ export default function PassengerPortal() {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <div className="inline-flex items-center gap-2 rounded-full border border-aero-cyan/30 bg-aero-cyan/[0.07] px-3 py-1 mb-5">
               <Sparkles className="w-3.5 h-3.5 text-aero-cyan" />
-              <span className="overline text-aero-cyan text-[10px]">Indira Gandhi International Airport · Terminal 3</span>
+              <span className="overline text-aero-cyan text-[10px]">International Airport · Terminal 3</span>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05] max-w-3xl">
               Know your airport <span className="text-aero-cyan">before you go.</span>
@@ -350,7 +350,7 @@ export default function PassengerPortal() {
                 )}
               </AnimatePresence>
 
-              {}
+              { }
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur-md">
                 <div className="flex items-center gap-2 pl-1">
                   <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 grid place-items-center">
@@ -365,22 +365,20 @@ export default function PassengerPortal() {
                   <button
                     data-testid="switch-view-timeline"
                     onClick={() => setJourneyViewMode("timeline")}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      journeyViewMode === "timeline"
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${journeyViewMode === "timeline"
                         ? "bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200 dark:border-slate-700 scale-[1.02]"
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                    }`}
+                      }`}
                   >
                     Standard Timeline
                   </button>
                   <button
                     data-testid="switch-view-story"
                     onClick={() => setJourneyViewMode("story")}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      journeyViewMode === "story"
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${journeyViewMode === "story"
                         ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20 scale-[1.02]"
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                    }`}
+                      }`}
                   >
                     Terminal Journey Story
                   </button>
@@ -450,7 +448,7 @@ export default function PassengerPortal() {
         </div>
       </section>
 
-      {}
+      { }
       <section className="max-w-[1100px] mx-auto px-4 sm:px-6 pb-24 -mt-2">
         {!loading && !forecast && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pt-16">
@@ -470,7 +468,7 @@ export default function PassengerPortal() {
         </button>
       )}
 
-      {}
+      { }
       <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
         <AnimatePresence>
           {planes.map((p) => (
@@ -515,36 +513,36 @@ export default function PassengerPortal() {
                   justifyContent: "center",
                 }}
               >
-                {}
+                { }
                 <div className="relative flex items-center justify-center">
-                  {}
+                  { }
                   <div className="absolute right-[52%] top-[34%] -translate-y-1/2 w-[180px] h-[3px] bg-gradient-to-l from-cyan-400 via-cyan-400/50 to-transparent blur-[1px] pointer-events-none -z-10" />
                   <div className="absolute right-[52%] top-[66%] -translate-y-1/2 w-[180px] h-[3px] bg-gradient-to-l from-cyan-400 via-cyan-400/50 to-transparent blur-[1px] pointer-events-none -z-10" />
 
-                  {}
+                  { }
                   <div className="absolute -left-4 w-10 h-10 rounded-full bg-cyan-400/30 blur-md pointer-events-none" />
 
-                  {}
+                  { }
                   <svg width="74" height="74" viewBox="0 0 64 64" fill="none" className="drop-shadow-[0_0_24px_rgba(0,229,255,0.95)]">
-                    {}
+                    { }
                     <path d="M34 26 L16 5 L10 6 L22 26 Z" fill="#0A1E34" stroke="#00E5FF" strokeWidth="1.5" strokeLinejoin="round" />
-                    {}
+                    { }
                     <path d="M34 38 L16 59 L10 58 L22 38 Z" fill="#0A1E34" stroke="#00E5FF" strokeWidth="1.5" strokeLinejoin="round" />
-                    {}
+                    { }
                     <rect x="22" y="13" width="10" height="4.5" rx="2" fill="#00E5FF" />
                     <rect x="22" y="46.5" width="10" height="4.5" rx="2" fill="#00E5FF" />
-                    {}
+                    { }
                     <path d="M58 32 C55 28 42 26 26 26 L12 26 C7 26 3 28 2 32 C3 36 7 38 12 38 L26 38 C42 38 55 36 58 32 Z" fill="#071526" stroke="#00E5FF" strokeWidth="1.8" />
-                    {}
+                    { }
                     <path d="M52 30.5 C50 29 47 29 45 30 L45 34 C47 35 50 35 52 33.5 Z" fill="#00E5FF" />
-                    {}
+                    { }
                     <path d="M10 26 L3 13 L0.5 13 L4 26 Z" fill="#0A1E34" stroke="#00E5FF" strokeWidth="1.2" />
                     <path d="M10 38 L3 51 L0.5 51 L4 38 Z" fill="#0A1E34" stroke="#00E5FF" strokeWidth="1.2" />
-                    {}
+                    { }
                     {[38, 33, 28, 23, 18, 13].map((cx, i) => (
                       <circle key={i} cx={cx} cy="32" r="1" fill="#E2E8F0" />
                     ))}
-                    {}
+                    { }
                     <circle cx="56" cy="32" r="1.5" fill="#FFFFFF" />
                   </svg>
                 </div>
@@ -568,7 +566,7 @@ function FlightDossier({ flight, forecast, onNotify, onClose }) {
       api.get("/user/preferences").then(({ data }) => {
         setUserPrefs(data);
         setIsSaved(data.saved_flights.includes(flight.flight_id));
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [user, flight.flight_id]);
 
@@ -605,7 +603,7 @@ function FlightDossier({ flight, forecast, onNotify, onClose }) {
 
   return (
     <Spotlight className="aero-card p-4 sm:p-6 rounded-2xl space-y-4">
-      {}
+      { }
       {isDelayed && (
         <div className="p-3 rounded-xl border border-amber-400 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-xs flex items-start sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-300">
           <div className="flex items-start sm:items-center gap-2">
@@ -648,7 +646,7 @@ function FlightDossier({ flight, forecast, onNotify, onClose }) {
           </div>
         </div>
 
-        {}
+        { }
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 sm:gap-5 pt-2 sm:pt-0 border-t sm:border-t-0 border-aero-border/60">
           <Stat
             label={isDep ? "Departs" : "Arrives"}
@@ -748,7 +746,7 @@ function HowItWorks() {
             whileHover={{ y: -6, scale: 1.02 }}
             className="aero-card p-6 rounded-2xl border border-aero-border hover:border-aero-cyan/50 transition-all duration-300 relative group overflow-hidden shadow-md hover:shadow-[0_12px_30px_rgba(0,229,255,0.15)] flex flex-col justify-between"
           >
-            {}
+            { }
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-aero-cyan/10 via-transparent to-transparent rounded-bl-full pointer-events-none group-hover:from-aero-cyan/20 transition-all duration-500" />
 
             <div>
@@ -773,7 +771,7 @@ function HowItWorks() {
               </div>
             </div>
 
-            {}
+            { }
             <div className="mt-6 pt-4 border-t border-aero-border/50 flex items-center gap-2 text-xs font-mono text-aero-t3 group-hover:text-aero-cyan transition-colors">
               <span className="w-1.5 h-1.5 rounded-full bg-aero-cyan/50 group-hover:bg-aero-cyan group-hover:animate-ping" />
               <span>Step {i + 1} of 3</span>
@@ -788,7 +786,7 @@ function HowItWorks() {
 function FlightDossierSkeleton() {
   return (
     <div className="rounded-3xl overflow-hidden bg-white/80 dark:bg-[#071318]/80 border-2 border-slate-200 dark:border-slate-800 shadow-xl backdrop-blur-xl animate-pulse p-6 sm:p-7 space-y-6">
-      {}
+      { }
       <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-slate-300/70 dark:bg-slate-800" />
@@ -800,7 +798,7 @@ function FlightDossierSkeleton() {
         <div className="w-28 h-7 rounded-full bg-slate-200 dark:bg-slate-800" />
       </div>
 
-      {}
+      { }
       <div className="flex items-center justify-between py-2">
         <div className="space-y-1.5">
           <div className="w-12 h-3 bg-slate-200 dark:bg-slate-800 rounded" />
@@ -813,7 +811,7 @@ function FlightDossierSkeleton() {
         </div>
       </div>
 
-      {}
+      { }
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-4 border-t border-slate-200 dark:border-slate-800">
         {Array.from({ length: 4 }).map((_, idx) => (
           <div key={idx} className="space-y-2">

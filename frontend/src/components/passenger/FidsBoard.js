@@ -42,7 +42,7 @@ export default function FidsBoard() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl font-black">Flight Information Display</h2>
-          <p className="text-sm text-aero-t2">Live flight status for Indira Gandhi International Airport (T3)</p>
+          <p className="text-sm text-aero-t2">Live flight status for International Airport (T3)</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

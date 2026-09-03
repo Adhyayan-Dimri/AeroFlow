@@ -122,7 +122,7 @@ export default function TerminalJourneyStory({ forecast }) {
           estimatedMinutes: 3,
           walkMinutes: 0,
           crowdLevel: "normal",
-          narrative: `Your aircraft touches down at Indira Gandhi International Airport and taxies to Stand ${String(flight.stand || "44")}. The aerobridge docks automatically, initiating passenger deboarding.`,
+          narrative: `Your aircraft touches down at International Airport and taxies to Stand ${String(flight.stand || "44")}. The aerobridge docks automatically, initiating passenger deboarding.`,
           proTip: "Keep seatbelts fastened until the aircraft comes to a complete halt and the seatbelt sign turns off.",
           highlights: [
             { label: "Deboarding Door", value: "Aerobridge Dock" },
