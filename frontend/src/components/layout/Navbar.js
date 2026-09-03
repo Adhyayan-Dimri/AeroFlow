@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Sun, Moon, Radar, LogOut, UserCircle2, LayoutDashboard, Info, Menu, X, ShieldAlert, Sparkles, Plane } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
@@ -19,11 +19,6 @@ function Clock() {
   );
 }
 
-const SCROLL_THRESHOLD_DOWN = 60;
-const SCROLL_THRESHOLD_UP = 20;
-const LERP_SPEED = 0.12;
-const SCROLL_END_MS = 120;
-
 export default function Navbar() {
   const { theme, toggle } = useTheme();
   const { user, isStaff, logout } = useAuth();
@@ -32,86 +27,23 @@ export default function Navbar() {
   const [, forceUpdate] = useState({});
   const [aboutOpen, setAboutOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const onOps = loc.pathname.startsWith("/ops");
 
-  const headerRef = useRef(null);
-  const innerRef = useRef(null);
-  const rafId = useRef(0);
-  const currentScale = useRef(1);
-  const targetScale = useRef(1);
-  const scrollEndTimer = useRef(null);
-  const isAnimating = useRef(false);
-
-  const [scrolled, setScrolled] = useState(false);
-
-  const SCALE_FULL = 1;
-  const SCALE_SHRUNK = 0.98;
-
-  const animate = useCallback(() => {
-    if (window.innerWidth < 768) return;
-    const diff = targetScale.current - currentScale.current;
-    if (Math.abs(diff) < 0.001) {
-      currentScale.current = targetScale.current;
-      isAnimating.current = false;
-    } else {
-      currentScale.current += diff * LERP_SPEED;
-      rafId.current = requestAnimationFrame(animate);
-    }
-
-    if (innerRef.current) {
-      const s = currentScale.current;
-      innerRef.current.style.transform = `scale(${s})`;
-      innerRef.current.style.transformOrigin = "center center";
-    }
-
-    if (headerRef.current) {
-      const shrunk = currentScale.current < (SCALE_FULL + SCALE_SHRUNK) / 2;
-      headerRef.current.style.boxShadow = shrunk
-        ? "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)"
-        : "0 1px 2px 0 rgba(0,0,0,0.05)";
-    }
-  }, []);
-
-  const startAnimating = useCallback(() => {
-    if (window.innerWidth < 768) return;
-    if (!isAnimating.current) {
-      isAnimating.current = true;
-      rafId.current = requestAnimationFrame(animate);
-    }
-  }, [animate]);
-
   useEffect(() => {
+    let ticking = false;
     const onScroll = () => {
-      const sy = window.scrollY;
-      if (sy > SCROLL_THRESHOLD_DOWN) {
-        targetScale.current = SCALE_SHRUNK;
-        setScrolled(true);
-      } else if (sy < SCROLL_THRESHOLD_UP) {
-        targetScale.current = SCALE_FULL;
-        setScrolled(false);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
       }
-
-      startAnimating();
-
-      clearTimeout(scrollEndTimer.current);
-      scrollEndTimer.current = setTimeout(() => {
-        currentScale.current = targetScale.current;
-        if (innerRef.current && window.innerWidth >= 768) {
-          innerRef.current.style.transform = `scale(${targetScale.current})`;
-          innerRef.current.style.transformOrigin = "center center";
-        }
-        isAnimating.current = false;
-        cancelAnimationFrame(rafId.current);
-      }, SCROLL_END_MS);
     };
-
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(rafId.current);
-      clearTimeout(scrollEndTimer.current);
-    };
-  }, [startAnimating]);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     forceUpdate({});
@@ -120,19 +52,17 @@ export default function Navbar() {
 
   return (
     <header
-      ref={headerRef}
-      className="sticky top-0 z-[99999] backdrop-blur-xl bg-white/95 dark:bg-[#071318]/95 border-b border-slate-200 dark:border-slate-800 py-1.5 sm:py-2.5 shadow-xs"
+      className={`sticky top-0 z-[99999] backdrop-blur-xl bg-white/95 dark:bg-[#071318]/95 border-b border-slate-200 dark:border-slate-800 transition-shadow duration-200 ${
+        scrolled ? "py-1.5 shadow-md" : "py-2 sm:py-3 shadow-xs"
+      }`}
       data-testid="navbar"
     >
-      <div
-        ref={innerRef}
-        className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-14 sm:h-18"
-      >
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-14 sm:h-18">
         <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0" data-testid="nav-logo">
           <img
             src="/logo.png"
             alt="AeroFlow Logo"
-            className="object-contain w-9 h-9 sm:w-14 sm:h-14 transition-transform duration-300 ease-out group-hover:scale-105"
+            className="object-contain w-9 h-9 sm:w-14 sm:h-14 transition-transform duration-200 ease-out group-hover:scale-105"
           />
           <div className="leading-tight">
             <div className="font-display font-black tracking-tight text-slate-900 dark:text-white text-base sm:text-2xl">
@@ -145,8 +75,8 @@ export default function Navbar() {
         </Link>
 
         <div
-          className={`hidden md:flex items-center gap-1 rounded-full border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 shadow-inner transition-all duration-300 ${
-            scrolled ? "p-0.5" : "p-1.5"
+          className={`hidden md:flex items-center gap-1 rounded-full border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 shadow-inner transition-all duration-200 ${
+            scrolled ? "p-1" : "p-1.5"
           }`}
         >
           <NavLink

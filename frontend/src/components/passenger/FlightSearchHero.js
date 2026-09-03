@@ -250,8 +250,8 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
         </motion.div>
       )}
 
-      {focused && results.length > 0 && !isDateBeyondLimit && (
-        <div className="mt-3 aero-card divide-y divide-aero-border max-h-[360px] overflow-auto relative z-40" data-testid="flight-results">
+      {results.length > 0 && !isDateBeyondLimit && (
+        <div className="mt-3 aero-card divide-y divide-aero-border max-h-[380px] overflow-auto relative z-40" data-testid="flight-results">
           {results.map((f) => {
             const Dir = f.direction === "departure" ? PlaneTakeoff : PlaneLanding;
             const isDelayed = f.status === "delayed" || (f.flight_delay_minutes && f.flight_delay_minutes > 0);
@@ -262,7 +262,7 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
 
             return (
               <button key={f.flight_id} data-testid={`flight-result-${f.flight_number}`}
-                onMouseDown={() => { onSelect(f, location, true); setFocused(false); }}
+                onClick={() => { onSelect(f, location, true); setFocused(false); }}
                 className={`w-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 text-left hover:bg-aero-elevated/60 transition-all group ${isDelayed ? "bg-amber-500/[0.03]" : ""}`}>
                 <div className={`w-10 h-10 rounded-xl ${theme.accentBg} border ${theme.accentBorder} grid place-items-center shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>
                   <Dir className={`w-5 h-5 ${theme.accentText}`} />
