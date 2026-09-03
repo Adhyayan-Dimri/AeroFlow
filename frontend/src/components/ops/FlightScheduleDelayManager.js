@@ -61,7 +61,7 @@ export default function FlightScheduleDelayManager({ onFlightDelayed, canEdit = 
       loadFlights();
     }, 150);
     return () => clearTimeout(timer);
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, dirFilter, statusFilter, dateFilter]);
 
   const handleApplyDelay = async () => {

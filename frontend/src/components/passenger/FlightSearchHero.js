@@ -139,6 +139,13 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
               setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && results.length > 0) {
+                e.preventDefault();
+                onSelect(results[0], location, true);
+                setIsOpen(false);
+              }
+            }}
             placeholder="Search flight number e.g. AI102, 6E2341, EK512"
             className="flex-1 bg-transparent outline-none text-base placeholder:text-aero-t3 font-medium"
           />

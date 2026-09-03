@@ -59,7 +59,22 @@ export default function PassengerPortal() {
   const [userPrefs, setUserPrefs] = useState({ saved_flights: [], recently_viewed: [] });
   const [recentFlights, setRecentFlights] = useState([]);
   const [dossierOpen, setDossierOpen] = useState(true);
+  const detailsRef = useRef(null);
   const { user } = useAuth();
+
+  const scrollToDetails = () => {
+    if (detailsRef.current) {
+      const navOffset = 75;
+      const elementPosition = detailsRef.current.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - navOffset;
+      window.scrollTo({
+        top: Math.max(0, offsetPosition),
+        behavior: "smooth"
+      });
+    } else {
+      window.scrollTo({ top: 460, behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -83,7 +98,7 @@ export default function PassengerPortal() {
         })
         .catch(() => { });
     }
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
   useEffect(() => {
@@ -156,6 +171,10 @@ export default function PassengerPortal() {
     setSelected(f);
     setLoading(true);
     setUserLocation(loc);
+
+    // Smoothly scroll down immediately so user lands right on the loading card
+    setTimeout(scrollToDetails, 40);
+
     try {
       const params = loc ? { user_location: loc } : {};
       const { data } = await api.get(`/flights/${f.flight_id}/journey-forecast`, { params });
@@ -173,7 +192,8 @@ export default function PassengerPortal() {
           .then(({ data }) => { if (data?.flights) setRecentFlights(data.flights); })
           .catch(() => { });
       }
-      window.scrollTo({ top: 380, behavior: "smooth" });
+      // Re-adjust smooth scroll once all recommendation widgets finish mounting
+      setTimeout(scrollToDetails, 120);
     } catch (e) {
       console.error("Error loading flight:", e);
       toast.error(e.response?.data?.detail || "Failed to load flight details");
@@ -277,21 +297,22 @@ export default function PassengerPortal() {
             </motion.div>
           )}
 
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="mt-8"
-            >
-              <FlightDossierSkeleton />
-            </motion.div>
-          )}
+          <div ref={detailsRef} id="flight-details-view" className="scroll-mt-20">
+            {loading && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="mt-8"
+              >
+                <FlightDossierSkeleton />
+              </motion.div>
+            )}
 
-          {!loading && forecast && (
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mt-8 space-y-6">
-              <AnimatePresence mode="wait">
+            {!loading && forecast && (
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="mt-8 space-y-6">
+                <AnimatePresence mode="wait">
                 {dossierOpen ? (
                   <motion.div
                     key="dossier-card"
@@ -417,6 +438,7 @@ export default function PassengerPortal() {
               </AnimatePresence>
             </motion.div>
           )}
+          </div>
 
           {showFids && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
