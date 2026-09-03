@@ -72,28 +72,45 @@ export default function HistoricalAnalyticsStudio() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [c, h, b, a] = await Promise.all([
-        api.get("/analytics/congestion", { params: { range } }),
-        api.get("/analytics/congestion/heatmap", { params: { range: "7d" } }),
-        api.get("/analytics/baggage", { params: { range } }),
-        api.get("/analytics/alerts", { params: { range: "7d" } }),
-      ]);
-      if (!alive) return;
-      const byBucket = {};
-      c.data.series.forEach((s) => {
-        const key = s.bucket;
-        byBucket[key] = byBucket[key] || { key, count: 0, wait: 0, n: 0 };
-        byBucket[key].count += s.avg_count;
-        byBucket[key].wait += s.avg_wait_min;
-        byBucket[key].n += 1;
-      });
-      const label = (k) => (range === "1h" || range === "24h") ? k.slice(11, 16) : `${k.slice(5, 10)} ${k.slice(11, 13)}h`;
-      setCong(Object.values(byBucket).sort((a, b) => a.key.localeCompare(b.key))
-        .map((x) => ({ t: label(x.key), count: Math.round(x.count), wait: +(x.wait / x.n).toFixed(1) })));
-      setHeat(h.data.cells);
-      setBag(b.data);
-      setAlerts(a.data);
-      setLoading(false);
+      try {
+        const [cRes, hRes, bRes, aRes] = await Promise.allSettled([
+          api.get("/analytics/congestion", { params: { range } }),
+          api.get("/analytics/congestion/heatmap", { params: { range: "7d" } }),
+          api.get("/analytics/baggage", { params: { range } }),
+          api.get("/analytics/alerts", { params: { range: "7d" } }),
+        ]);
+        if (!alive) return;
+
+        if (cRes.status === "fulfilled" && cRes.value?.data?.series) {
+          const byBucket = {};
+          cRes.value.data.series.forEach((s) => {
+            const key = s.bucket;
+            byBucket[key] = byBucket[key] || { key, count: 0, wait: 0, n: 0 };
+            byBucket[key].count += s.avg_count;
+            byBucket[key].wait += s.avg_wait_min;
+            byBucket[key].n += 1;
+          });
+          const label = (k) => (range === "1h" || range === "24h") ? k.slice(11, 16) : `${k.slice(5, 10)} ${k.slice(11, 13)}h`;
+          setCong(Object.values(byBucket).sort((a, b) => a.key.localeCompare(b.key))
+            .map((x) => ({ t: label(x.key), count: Math.round(x.count), wait: +(x.wait / x.n).toFixed(1) })));
+        }
+
+        if (hRes.status === "fulfilled" && hRes.value?.data?.cells) {
+          setHeat(hRes.value.data.cells);
+        }
+
+        if (bRes.status === "fulfilled" && bRes.value?.data) {
+          setBag(bRes.value.data);
+        }
+
+        if (aRes.status === "fulfilled" && aRes.value?.data) {
+          setAlerts(aRes.value.data);
+        }
+      } catch (err) {
+        console.warn("Analytics load error:", err);
+      } finally {
+        if (alive) setLoading(false);
+      }
     })();
     return () => { alive = false; };
   }, [range]);

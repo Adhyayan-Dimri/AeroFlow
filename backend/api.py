@@ -458,14 +458,21 @@ async def congestion_zones(target_time: Optional[str] = None, date: Optional[str
     elif target_time:
         await ensure_flights_for_date(target_time[:10])
 
-    zones = await db.zones.find({}, {"_id": 0}).to_list(100)
-    flights = await db.flights.find({}, {"_id": 0}).to_list(3000)
     if target_time:
         t = parse_dt(target_time) or now()
     elif date:
         t = parse_dt(f"{date}T12:00:00Z") or now()
     else:
         t = now()
+
+    target_date = t.strftime("%Y-%m-%d")
+    zones = await db.zones.find({}, {"_id": 0}).to_list(100)
+    flights = await db.flights.find({
+        "$or": [{"std": {"$regex": f"^{target_date}"}}, {"sta": {"$regex": f"^{target_date}"}}]
+    }, {"_id": 0}).to_list(300)
+    if not flights:
+        flights = await db.flights.find({}, {"_id": 0}).to_list(100)
+
     out = []
     for z in zones:
         pred = engines.predict_zone(z, flights, t, 2.0, t)
@@ -477,7 +484,13 @@ async def zone_forecast(zone_id: str, horizon: int = Query(30, description="minu
     z = await db.zones.find_one({"zone_id": zone_id}, {"_id": 0})
     if not z:
         raise HTTPException(status_code=404, detail="Zone not found")
-    flights = await db.flights.find({}, {"_id": 0}).to_list(2000)
+    today_str = now().strftime("%Y-%m-%d")
+    flights = await db.flights.find({
+        "$or": [{"std": {"$regex": f"^{today_str}"}}, {"sta": {"$regex": f"^{today_str}"}}]
+    }, {"_id": 0}).to_list(300)
+    if not flights:
+        flights = await db.flights.find({}, {"_id": 0}).to_list(100)
+
     series = []
     for m in range(-30, horizon + 1, 5):
         t = now() + timedelta(minutes=m)
@@ -1046,10 +1059,15 @@ async def analytics_congestion(zone_id: str | None = None, range: str = "24h"):
 async def analytics_heatmap(range: str = "7d"):
     hours = {"7d": 168, "30d": 720}.get(range, 168)
     since = iso(now() - timedelta(hours=hours))
-    events = await db.congestion_events.find({"timestamp": {"$gte": since}}, {"_id": 0}).to_list(20000)
+    events = await db.congestion_events.find(
+        {"timestamp": {"$gte": since}},
+        {"_id": 0, "timestamp": 1, "person_count": 1}
+    ).to_list(4000)
     grid = {}
     for e in events:
         dt = parse_dt(e["timestamp"])
+        if not dt:
+            continue
         key = (dt.weekday(), dt.hour)
         g = grid.setdefault(key, {"dow": dt.weekday(), "hour": dt.hour, "sum": 0, "n": 0})
         g["sum"] += e["person_count"]
@@ -1060,7 +1078,7 @@ async def analytics_heatmap(range: str = "7d"):
 @router.get("/analytics/baggage")
 async def analytics_baggage(range: str = "24h", user: dict = Depends(require_staff)):
     carousels = await db.carousels.find({}, {"_id": 0}).to_list(100)
-    asg = await db.carousel_assignments.find({}, {"_id": 0}).to_list(3000)
+    asg = await db.carousel_assignments.find({}, {"_id": 0}).to_list(500)
     util = {}
     for c in carousels:
         util[c["carousel_id"]] = {
@@ -1079,7 +1097,6 @@ async def analytics_baggage(range: str = "24h", user: dict = Depends(require_sta
         if u["status"] == "maintenance":
             u["utilization_pct"] = 0.0
         else:
-
             target_cap = max(max_asg * 1.15, 8)
             u["utilization_pct"] = min(96.0, round((u["assignments"] / target_cap) * 100, 1))
 
@@ -1091,7 +1108,7 @@ async def analytics_baggage(range: str = "24h", user: dict = Depends(require_sta
 async def analytics_alerts(range: str = "7d", user: dict = Depends(require_staff)):
     hours = {"24h": 24, "7d": 168, "30d": 720}.get(range, 168)
     since = iso(now() - timedelta(hours=hours))
-    alerts = await db.alerts.find({"triggered_at": {"$gte": since}}, {"_id": 0}).to_list(5000)
+    alerts = await db.alerts.find({"triggered_at": {"$gte": since}}, {"_id": 0}).to_list(2000)
     by_type, by_sev, by_day = {}, {}, {}
     ack_times = []
     for a in alerts:
@@ -1110,7 +1127,13 @@ async def analytics_alerts(range: str = "7d", user: dict = Depends(require_staff
 @router.get("/analytics/impact-timeline")
 async def analytics_impact_timeline():
     zones = await db.zones.find({}, {"_id": 0}).to_list(100)
-    flights = await db.flights.find({}, {"_id": 0}).to_list(3000)
+    today_str = now().strftime("%Y-%m-%d")
+    flights = await db.flights.find({
+        "$or": [{"std": {"$regex": f"^{today_str}"}}, {"sta": {"$regex": f"^{today_str}"}}]
+    }, {"_id": 0}).to_list(300)
+    if not flights:
+        flights = await db.flights.find({}, {"_id": 0}).to_list(100)
+
     base = now().replace(minute=0, second=0, microsecond=0)
     out = []
     for h in range(24):
@@ -1118,30 +1141,37 @@ async def analytics_impact_timeline():
         wn = wo = saved = 0.0
         for z in zones:
             cur_pred = engines.predict_zone(z, flights, t, 2.0, t)
-            opt_z = dict(z)
-            opt_z["counters_open"] = cur_pred["recommended_counters"]
-            opt_pred = engines.predict_zone(opt_z, flights, t, 2.0, t)
             cw = cur_pred["predicted_wait_seconds"] / 60.0
-            ow = min(opt_pred["predicted_wait_seconds"] / 60.0, cw)
-            wn += cw; wo += ow; saved += max(0.0, cw - ow) * cur_pred["predicted_count"]
-        out.append({"hour": h, "avg_wait_now": round(wn / len(zones), 1),
-                    "avg_wait_opt": round(wo / len(zones), 1), "pax_min_saved": round(saved)})
+            # Optimized counter wait projection
+            rec = cur_pred["recommended_counters"]
+            cur_counters = max(1, z.get("counters_open", 1))
+            ow = max(0.5, cw * (cur_counters / max(1, rec))) if rec > cur_counters else cw
+            wn += cw
+            wo += ow
+            saved += max(0.0, cw - ow) * cur_pred["predicted_count"]
+        out.append({"hour": h, "avg_wait_now": round(wn / max(1, len(zones)), 1),
+                    "avg_wait_opt": round(wo / max(1, len(zones)), 1), "pax_min_saved": round(saved)})
     peak = max(out, key=lambda x: x["pax_min_saved"]) if out else None
     return {"timeline": out, "peak_hour": peak["hour"] if peak else 0}
 
 @router.get("/analytics/impact")
 async def analytics_impact():
     zones = await db.zones.find({}, {"_id": 0}).to_list(100)
-    flights = await db.flights.find({}, {"_id": 0}).to_list(2000)
+    today_str = now().strftime("%Y-%m-%d")
+    flights = await db.flights.find({
+        "$or": [{"std": {"$regex": f"^{today_str}"}}, {"sta": {"$regex": f"^{today_str}"}}]
+    }, {"_id": 0}).to_list(300)
+    if not flights:
+        flights = await db.flights.find({}, {"_id": 0}).to_list(100)
+
     rows = []
     total_saved = 0.0
     for z in zones:
         cur_pred = engines.predict_zone(z, flights, now(), 2.0, now())
-        opt_z = dict(z)
-        opt_z["counters_open"] = cur_pred["recommended_counters"]
-        opt_pred = engines.predict_zone(opt_z, flights, now(), 2.0, now())
         cw = cur_pred["predicted_wait_seconds"] / 60.0
-        ow = min(opt_pred["predicted_wait_seconds"] / 60.0, cw)
+        rec = cur_pred["recommended_counters"]
+        cur_counters = max(1, z.get("counters_open", 1))
+        ow = max(0.5, cw * (cur_counters / max(1, rec))) if rec > cur_counters else cw
         pax = cur_pred["predicted_count"]
         saved = max(0.0, cw - ow)
         total_saved += saved * pax
