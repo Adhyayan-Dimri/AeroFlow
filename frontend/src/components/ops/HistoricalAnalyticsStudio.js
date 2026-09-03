@@ -161,7 +161,6 @@ export default function HistoricalAnalyticsStudio() {
   const [alerts, setAlerts] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [hour, setHour] = useState(new Date().getHours());
-  const [hoveredHeatCell, setHoveredHeatCell] = useState(null);
 
   useEffect(() => {
     api.get("/analytics/impact-timeline").then((r) => {
@@ -268,106 +267,7 @@ export default function HistoricalAnalyticsStudio() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         {}
-        <div className="aero-card p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <div>
-                <div className="overline text-aero-t3 flex items-center gap-1.5 font-bold">
-                  <Flame className="w-4 h-4 text-amber-500" />
-                  Busiest Hour Heatmap · 7-Day Terminal Profile
-                </div>
-                <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                  Hourly Passenger Load Analysis (Delhi IGI T3)
-                </div>
-              </div>
-
-              <div className="text-[11px] font-mono">
-                {hoveredHeatCell ? (
-                  <span className="px-2.5 py-1 rounded-md bg-slate-900 border border-cyan-500/40 text-cyan-300 font-bold shadow-sm inline-flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                    {hoveredHeatCell.day} @ {hoveredHeatCell.hour}:00 IST · <span className="text-white font-black">{hoveredHeatCell.pax} pax/h</span> ({hoveredHeatCell.category})
-                  </span>
-                ) : (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                    🔥 Peak Rush: 18:00–22:00 IST
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="overflow-x-auto pb-2">
-              <div className="min-w-[580px]">
-                {/* Time Axis Header */}
-                <div className="grid gap-1 mb-2 items-center" style={{ gridTemplateColumns: "42px repeat(24, minmax(20px, 1fr))" }}>
-                  <div className="text-[10px] text-slate-400 font-bold font-mono uppercase">Day</div>
-                  {Array.from({ length: 24 }).map((_, h) => (
-                    <div key={h} className="text-[9px] text-slate-400 dark:text-slate-500 text-center font-mono font-bold">
-                      {h % 3 === 0 ? `${h}h` : "·"}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Heatmap Rows (Mon - Sun) */}
-                <div className="space-y-1.5">
-                  {DOW.map((d, di) => (
-                    <div key={d} className="grid gap-1 items-center" style={{ gridTemplateColumns: "42px repeat(24, minmax(20px, 1fr))" }}>
-                      <div className="text-[11px] text-slate-300 dark:text-slate-200 font-mono font-black">{d}</div>
-                      {Array.from({ length: 24 }).map((_, h) => {
-                        const cell = heat.find((c) => c.dow === di && c.hour === h);
-                        const paxCount = cell ? Math.round(cell.avg_count) : 0;
-                        const style = getHeatStyle(paxCount, maxHeat);
-                        return (
-                          <div
-                            key={h}
-                            onMouseEnter={() =>
-                              setHoveredHeatCell({
-                                day: d,
-                                hour: String(h).padStart(2, "0"),
-                                pax: paxCount,
-                                category: style.category
-                              })
-                            }
-                            onMouseLeave={() => setHoveredHeatCell(null)}
-                            title={`${d} ${String(h).padStart(2, "0")}:00 IST · ${paxCount} passengers/hr (${style.category})`}
-                            className="h-6 rounded transition-transform duration-150 cursor-pointer hover:scale-125 hover:z-30 hover:ring-2 hover:ring-white relative"
-                            style={{
-                              backgroundColor: style.bg,
-                              border: `1px solid ${style.border}`,
-                              boxShadow: style.glow
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 4-Tier Visual Contrast Legend */}
-          <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/80 dark:border-slate-800 text-[10px] font-mono text-slate-400 flex-wrap gap-2">
-            <span className="font-bold">Intensity Scale:</span>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-cyan-900/60 border border-cyan-500/50 inline-block" />
-                <span className="text-cyan-400">Low Lull</span> (&lt; 350)
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-emerald-500/70 border border-emerald-400 inline-block" />
-                <span className="text-emerald-400">Moderate</span> (350–650)
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-amber-500/90 border border-amber-300 inline-block shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
-                <span className="text-amber-300">Heavy</span> (650–950)
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded bg-rose-500 border border-white inline-block shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-                <span className="text-rose-400 font-bold">Peak Surge</span> (950+)
-              </span>
-            </div>
-          </div>
-        </div>
+        <BusiestHourHeatmap heat={heat} maxHeat={maxHeat} />
 
         {}
         <div className="aero-card p-5">
@@ -450,6 +350,116 @@ export default function HistoricalAnalyticsStudio() {
             <Bar dataKey="info" stackId="s" fill="#38BDF8" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function BusiestHourHeatmap({ heat, maxHeat }) {
+  const [hoveredCell, setHoveredCell] = useState(null);
+
+  return (
+    <div className="aero-card p-5 flex flex-col justify-between" data-testid="busiest-hour-heatmap">
+      <div>
+        <div className="flex items-center justify-between mb-3 min-h-[44px]">
+          <div>
+            <div className="overline text-aero-t3 flex items-center gap-1.5 font-bold">
+              <Flame className="w-4 h-4 text-amber-500" />
+              Busiest Hour Heatmap · 7-Day Terminal Profile
+            </div>
+            <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+              Hourly Passenger Load Analysis (Delhi IGI T3)
+            </div>
+          </div>
+
+          <div className="text-[11px] font-mono h-8 flex items-center justify-end shrink-0">
+            {hoveredCell ? (
+              <span className="px-2.5 py-1 rounded-md bg-slate-900 border border-cyan-500/40 text-cyan-300 font-bold shadow-sm inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                {hoveredCell.day} @ {hoveredCell.hour}:00 IST · <span className="text-white font-black">{hoveredCell.pax} pax/h</span> ({hoveredCell.category})
+              </span>
+            ) : (
+              <span className="text-xs px-2.5 py-1 rounded-md font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold inline-flex items-center gap-1">
+                🔥 Peak Rush: 18:00–22:00 IST
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto pb-2">
+          <div className="min-w-[580px]">
+            {/* Time Axis Header */}
+            <div className="grid gap-1 mb-2 items-center select-none" style={{ gridTemplateColumns: "42px repeat(24, minmax(20px, 1fr))" }}>
+              <div className="text-[10px] text-slate-400 font-bold font-mono uppercase">Day</div>
+              {Array.from({ length: 24 }).map((_, h) => (
+                <div key={h} className="text-[9px] text-slate-400 dark:text-slate-500 text-center font-mono font-bold">
+                  {h % 3 === 0 ? `${h}h` : "·"}
+                </div>
+              ))}
+            </div>
+
+            {/* Heatmap Rows (Mon - Sun) */}
+            <div className="space-y-1.5">
+              {DOW.map((d, di) => (
+                <div key={d} className="grid gap-1 items-center" style={{ gridTemplateColumns: "42px repeat(24, minmax(20px, 1fr))" }}>
+                  <div className="text-[11px] text-slate-300 dark:text-slate-200 font-mono font-black select-none">{d}</div>
+                  {Array.from({ length: 24 }).map((_, h) => {
+                    const cell = heat.find((c) => c.dow === di && c.hour === h);
+                    const paxCount = cell ? Math.round(cell.avg_count) : 0;
+                    const style = getHeatStyle(paxCount, maxHeat);
+                    const isHovered = hoveredCell && hoveredCell.day === d && hoveredCell.hour === String(h).padStart(2, "0");
+                    return (
+                      <div
+                        key={h}
+                        onMouseEnter={() =>
+                          setHoveredCell({
+                            day: d,
+                            hour: String(h).padStart(2, "0"),
+                            pax: paxCount,
+                            category: style.category
+                          })
+                        }
+                        onMouseLeave={() => setHoveredCell(null)}
+                        title={`${d} ${String(h).padStart(2, "0")}:00 IST · ${paxCount} passengers/hr (${style.category})`}
+                        className={`h-6 rounded cursor-pointer relative transition-all duration-75 ${
+                          isHovered ? "ring-2 ring-white brightness-125 z-10" : "hover:brightness-110"
+                        }`}
+                        style={{
+                          backgroundColor: style.bg,
+                          border: `1px solid ${style.border}`,
+                          boxShadow: style.glow
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4-Tier Visual Contrast Legend */}
+      <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/80 dark:border-slate-800 text-[10px] font-mono text-slate-400 flex-wrap gap-2 select-none">
+        <span className="font-bold">Intensity Scale:</span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-cyan-900/60 border border-cyan-500/50 inline-block" />
+            <span className="text-cyan-400">Low Lull</span> (&lt; 350)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-emerald-500/70 border border-emerald-400 inline-block" />
+            <span className="text-emerald-400">Moderate</span> (350–650)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-amber-500/90 border border-amber-300 inline-block shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
+            <span className="text-amber-300">Heavy</span> (650–950)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-rose-500 border border-white inline-block shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+            <span className="text-rose-400 font-bold">Peak Surge</span> (950+)
+          </span>
+        </div>
       </div>
     </div>
   );
