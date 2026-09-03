@@ -44,13 +44,40 @@ api.interceptors.response.use(
   }
 );
 
-export function formatApiError(detail) {
-  if (detail == null) return "Something went wrong. Please try again.";
+export function formatApiError(errOrDetail) {
+  if (!errOrDetail) return "Unable to complete request. Please verify your details and try again.";
+
+  // If passed an axios error object directly
+  if (errOrDetail?.response?.data?.detail) {
+    return formatApiError(errOrDetail.response.data.detail);
+  }
+  if (errOrDetail?.response?.data?.message) {
+    return String(errOrDetail.response.data.message);
+  }
+  if (errOrDetail?.code === "ERR_NETWORK" || errOrDetail?.message?.includes("Network Error")) {
+    return "Connecting to AeroFlow cloud servers. Please try again in a few seconds.";
+  }
+  if (errOrDetail?.code === "ECONNABORTED" || errOrDetail?.message?.includes("timeout")) {
+    return "Request timed out. Please check your internet connection and try again.";
+  }
+
+  const detail = errOrDetail;
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail))
     return detail.map((e) => (e && typeof e.msg === "string" ? e.msg : JSON.stringify(e))).filter(Boolean).join(" ");
   if (detail && typeof detail.msg === "string") return detail.msg;
+  if (detail && typeof detail.detail === "string") return detail.detail;
+  if (detail?.message) return String(detail.message);
   return String(detail);
 }
+
+// Background pre-warming ping to ensure zero-latency first interactions
+try {
+  if (typeof window !== "undefined") {
+    setTimeout(() => {
+      fetch(`${API}/health`, { method: "GET", mode: "cors" }).catch(() => {});
+    }, 100);
+  }
+} catch {}
 
 export default api;
