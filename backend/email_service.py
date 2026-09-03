@@ -88,45 +88,85 @@ def _assert_safe_email(subject: str, html: str) -> None:
             if not _same_site(m.group(1).lower(), real):
                 raise ValueError(f"Anchor text {m.group(1)!r} != host {real!r} (G3)")
 
+def _get_gmail_config():
+    enabled_str = os.environ.get("GMAIL_ENABLED", "").lower().strip()
+    email = os.environ.get("GMAIL_EMAIL", "").strip()
+    password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
+    enabled = enabled_str in ("true", "1", "yes") or (bool(email) and bool(password))
+    return enabled, email, password
+
+def _get_resend_config():
+    key = os.environ.get("RESEND_API_KEY", "").strip()
+    from_addr = os.environ.get("RESEND_FROM_ADDRESS", "").strip() or "onboarding@resend.dev"
+    name = os.environ.get("EMAIL_FROM_NAME", "").strip() or "AeroFlow"
+    return key, from_addr, name
+
 def _configured() -> bool:
-    return bool(EMAIL_KEY) and not EMAIL_KEY.startswith("{") or (GMAIL_ENABLED and GMAIL_EMAIL and GMAIL_APP_PASSWORD)
-
-async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
-    try:
-        message = EmailMessage()
-        message["From"] = f"{EMAIL_FROM_NAME} <{GMAIL_EMAIL}>"
-        message["To"] = to_email
-        message["Subject"] = subject
-        message.set_content(html, subtype="html")
-
-        await aiosmtplib.send(
-            message,
-            hostname="smtp.gmail.com",
-            port=587,
-            username=GMAIL_EMAIL,
-            password=GMAIL_APP_PASSWORD,
-            start_tls=True,
-        )
-        logger.info("Email sent via Gmail to %s", to_email)
-        return True
-    except Exception as e:
-        logger.error("Gmail send failed: %s", e)
-        return False
+    g_enabled, g_email, g_pass = _get_gmail_config()
+    r_key, _, _ = _get_resend_config()
+    return (g_enabled and bool(g_email) and bool(g_pass)) or (bool(r_key) and not r_key.startswith("{"))
 
 def configured() -> bool:
     return _configured()
 
+async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
+    _, gmail_email, gmail_pass = _get_gmail_config()
+    from_name = os.environ.get("EMAIL_FROM_NAME", "").strip() or "AeroFlow"
+
+    if not gmail_email or not gmail_pass:
+        logger.error("Cannot send email: GMAIL_EMAIL or GMAIL_APP_PASSWORD is not set")
+        return False
+
+    message = EmailMessage()
+    message["From"] = f"{from_name} <{gmail_email}>"
+    message["To"] = to_email
+    message["Subject"] = subject
+    message.set_content(html, subtype="html")
+
+    # Primary attempt: Port 587 with STARTTLS
+    try:
+        await aiosmtplib.send(
+            message,
+            hostname="smtp.gmail.com",
+            port=587,
+            username=gmail_email,
+            password=gmail_pass,
+            start_tls=True,
+            timeout=12,
+        )
+        logger.info("Email successfully sent via Gmail (port 587) to %s", to_email)
+        return True
+    except Exception as e587:
+        logger.warning("Gmail port 587 send failed (%s); attempting SSL port 465 fallback...", e587)
+        # Fallback attempt: Port 465 with direct SSL (standard for cloud hostings like Render)
+        try:
+            await aiosmtplib.send(
+                message,
+                hostname="smtp.gmail.com",
+                port=465,
+                username=gmail_email,
+                password=gmail_pass,
+                use_tls=True,
+                timeout=12,
+            )
+            logger.info("Email successfully sent via Gmail (port 465 SSL) to %s", to_email)
+            return True
+        except Exception as e465:
+            logger.error("Gmail send failed on both ports 587 and 465. Port 587: %s | Port 465: %s", e587, e465)
+            return False
+
 async def _send_via_resend(to_email: str, subject: str, html: str) -> bool:
+    key, from_addr, name = _get_resend_config()
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
                 f"{EMAIL_BASE_URL}/emails",
                 headers={
-                    "Authorization": f"Bearer {EMAIL_KEY}",
+                    "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json"
                 },
                 json={
-                    "from": f"{EMAIL_FROM_NAME} <{EMAIL_FROM_ADDRESS}>",
+                    "from": f"{name} <{from_addr}>",
                     "to": [to_email],
                     "subject": subject,
                     "html": html
@@ -148,16 +188,15 @@ async def _send(to_email: str, subject: str, html: str) -> bool:
         logger.error("Email safety validation failed: %s", se)
         return False
 
-    if not _configured():
-        logger.warning("⚠️ No email provider configured (Set RESEND_API_KEY or GMAIL_EMAIL/GMAIL_APP_PASSWORD in environment variables). Skipping email to %s", to_email)
-        return False
+    g_enabled, g_email, g_pass = _get_gmail_config()
+    r_key, _, _ = _get_resend_config()
 
-    if GMAIL_ENABLED and GMAIL_EMAIL and GMAIL_APP_PASSWORD:
+    if g_enabled and g_email and g_pass:
         return await _send_via_gmail(to_email, subject, html)
-    elif EMAIL_KEY and not EMAIL_KEY.startswith("{"):
+    elif r_key and not r_key.startswith("{"):
         return await _send_via_resend(to_email, subject, html)
     else:
-        logger.warning("No valid email provider configured")
+        logger.warning("⚠️ No email provider configured (Set GMAIL_EMAIL & GMAIL_APP_PASSWORD, or RESEND_API_KEY). Skipping send to %s", to_email)
         return False
 
 def _wrap(inner: str) -> str:
