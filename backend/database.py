@@ -1,4 +1,5 @@
 import os
+import ssl
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 import certifi
@@ -11,13 +12,15 @@ db_name = os.environ.get("DB_NAME", "aeroflow")
 
 def get_client(url):
     kwargs = {
-        "serverSelectionTimeoutMS": 15000,
-        "connectTimeoutMS": 15000,
-        "socketTimeoutMS": 20000,
+        "serverSelectionTimeoutMS": 20000,
+        "connectTimeoutMS": 20000,
+        "socketTimeoutMS": 30000,
     }
     if "mongodb+srv" in url or "tls" in url.lower() or "ssl" in url.lower():
-        kwargs["tls"] = True
-        kwargs["tlsCAFile"] = certifi.where()
+        try:
+            kwargs["tlsCAFile"] = certifi.where()
+        except Exception:
+            pass
         kwargs["tlsAllowInvalidCertificates"] = True
     return AsyncIOMotorClient(url, **kwargs)
 
