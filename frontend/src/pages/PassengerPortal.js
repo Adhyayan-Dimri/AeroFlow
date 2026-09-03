@@ -350,7 +350,12 @@ export default function PassengerPortal() {
                 )}
               </AnimatePresence>
 
-              { }
+              {/* 1. Smart Departure Plan (Departure) or Baggage Claim Forecast (Arrival) */}
+              {forecast.direction === "departure"
+                ? <TimeRecommendationCard forecast={forecast} userLocation={userLocation} />
+                : <BaggageTrackerCard baggage={forecast.baggage} flight={forecast.flight} />}
+
+              {/* 2. Terminal Journey Experience (Path Through The Terminal) */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur-md">
                 <div className="flex items-center gap-2 pl-1">
                   <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 grid place-items-center">
@@ -365,20 +370,22 @@ export default function PassengerPortal() {
                   <button
                     data-testid="switch-view-timeline"
                     onClick={() => setJourneyViewMode("timeline")}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${journeyViewMode === "timeline"
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      journeyViewMode === "timeline"
                         ? "bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-sm border border-slate-200 dark:border-slate-700 scale-[1.02]"
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
+                    }`}
                   >
                     Standard Timeline
                   </button>
                   <button
                     data-testid="switch-view-story"
                     onClick={() => setJourneyViewMode("story")}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${journeyViewMode === "story"
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      journeyViewMode === "story"
                         ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20 scale-[1.02]"
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
+                    }`}
                   >
                     Terminal Journey Story
                   </button>
@@ -408,9 +415,6 @@ export default function PassengerPortal() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              {forecast.direction === "departure"
-                ? <TimeRecommendationCard forecast={forecast} userLocation={userLocation} />
-                : <BaggageTrackerCard baggage={forecast.baggage} flight={forecast.flight} />}
             </motion.div>
           )}
 
