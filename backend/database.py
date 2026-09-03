@@ -10,9 +10,15 @@ mongo_url = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 db_name = os.environ.get("DB_NAME", "aeroflow")
 
 def get_client(url):
-    kwargs = {}
+    kwargs = {
+        "serverSelectionTimeoutMS": 15000,
+        "connectTimeoutMS": 15000,
+        "socketTimeoutMS": 20000,
+    }
     if "mongodb+srv" in url or "tls" in url.lower() or "ssl" in url.lower():
+        kwargs["tls"] = True
         kwargs["tlsCAFile"] = certifi.where()
+        kwargs["tlsAllowInvalidCertificates"] = True
     return AsyncIOMotorClient(url, **kwargs)
 
 class DBProxy:
