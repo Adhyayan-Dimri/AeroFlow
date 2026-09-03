@@ -34,21 +34,13 @@ export default function CctvFlowMonitor() {
   const [activeCam, setActiveCam] = useState("all");
   const [lastTick, setLastTick] = useState(Date.now());
   const [entrySpeed, setEntrySpeed] = useState(0.5); // Default smooth 0.5x slow-motion
-  const [exitSpeed, setExitSpeed] = useState(1.0); // Original full speed as it was
   const entryVideoRef = useRef(null);
-  const exitVideoRef = useRef(null);
 
   useEffect(() => {
     if (entryVideoRef.current) {
       entryVideoRef.current.playbackRate = entrySpeed;
     }
   }, [entrySpeed]);
-
-  useEffect(() => {
-    if (exitVideoRef.current) {
-      exitVideoRef.current.playbackRate = exitSpeed;
-    }
-  }, [exitSpeed]);
 
   const fetchStats = async () => {
     try {
@@ -369,25 +361,7 @@ export default function CctvFlowMonitor() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] font-mono flex-wrap">
-              {/* Playback Speed Controller */}
-              <div className="flex items-center gap-1 bg-slate-800/90 rounded px-1.5 py-0.5 border border-slate-700/80">
-                <span className="text-[9px] text-slate-400 font-mono">Speed:</span>
-                {[0.35, 0.5, 0.75, 1.0].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setExitSpeed(s)}
-                    className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold transition-colors ${
-                      exitSpeed === s
-                        ? "bg-amber-500 text-slate-950 font-black shadow-xs"
-                        : "text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {s}x
-                  </button>
-                ))}
-              </div>
-
+            <div className="flex items-center gap-3 text-[11px] font-mono">
               <div className="text-right">
                 <span className="text-aero-t3">In View:</span>{" "}
                 <span className="text-amber-400 font-bold">{camExit.current_tracked_pax} pax</span>
@@ -401,14 +375,11 @@ export default function CctvFlowMonitor() {
           {/* Video Container with Real-Time Vision Overlay */}
           <div className="relative aspect-video bg-black overflow-hidden flex items-center justify-center">
             <video
-              ref={exitVideoRef}
               src={`${API}/cctv/feed/exit`}
               autoPlay
               loop
               muted
               playsInline
-              onPlay={(e) => { e.target.playbackRate = exitSpeed; }}
-              onLoadedMetadata={(e) => { e.target.playbackRate = exitSpeed; }}
               className="w-full h-full object-cover"
             />
 
