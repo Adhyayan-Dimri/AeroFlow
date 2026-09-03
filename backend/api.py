@@ -221,7 +221,13 @@ async def journey_forecast(flight_id: str, user_location: Optional[str] = None):
         raise HTTPException(status_code=404, detail="Flight not found")
     zones = await db.zones.find({}, {"_id": 0}).to_list(100)
     zmap = {z["zone_id"]: z for z in zones}
-    all_flights = await db.flights.find({}, {"_id": 0}).to_list(2000)
+
+    f_date = (f.get("std") or f.get("sta") or now().strftime("%Y-%m-%d"))[:10]
+    all_flights = await db.flights.find({
+        "$or": [{"std": {"$regex": f"^{f_date}"}}, {"sta": {"$regex": f"^{f_date}"}}]
+    }, {"_id": 0}).to_list(300)
+    if not all_flights:
+        all_flights = [f]
     cutoff = 2.0
 
     if f["direction"] == "arrival":
@@ -237,7 +243,7 @@ async def journey_forecast(flight_id: str, user_location: Optional[str] = None):
     total_walk = 0
     for zid in seq:
         z = zmap[zid]
-        pred = engines.predict_zone(z, all_flights, std - timedelta(minutes=45), cutoff, now())
+        pred = engines.predict_zone(z, all_flights, std - timedelta(minutes=45) if std else now(), cutoff, now())
         walk_m = max(0, z["distance_from_entry_meters"] - prev_dist)
         walk_min = round(walk_m / engines.WALK_SPEED_MPS / 60.0, 1)
         prev_dist = z["distance_from_entry_meters"]
@@ -255,23 +261,13 @@ async def journey_forecast(flight_id: str, user_location: Optional[str] = None):
     travel_time_info = None
     travel_time_min = 45
     if user_location:
-        logger.info("Calculating travel time for user location: %s", user_location)
         try:
             travel_time_info = await maps_service.get_travel_time(user_location)
-            logger.info("Travel time result: %s", travel_time_info)
-            if travel_time_info["status"] == "OK":
-                travel_time_min = round(travel_time_info["duration_seconds"] / 60.0, 1)
-                logger.info("Using calculated travel time: %s minutes", travel_time_min)
-            elif travel_time_info["status"] == "TOO_FAR":
-                travel_time_min = round(travel_time_info["duration_seconds"] / 60.0, 1)
-                logger.warning("User appears to be in a different city, using fallback travel time: %s minutes", travel_time_min)
-            else:
-                logger.warning("Travel time calculation failed with status: %s", travel_time_info["status"])
+            if travel_time_info.get("status") in ("OK", "TOO_FAR"):
+                travel_time_min = round(travel_time_info.get("duration_seconds", 2700) / 60.0, 1)
         except Exception as e:
-            logger.error("Maps service failed for journey forecast: %s", e)
+            logger.debug("Travel time error: %s", e)
             travel_time_info = {"status": "ERROR", "error": str(e)}
-    else:
-        logger.info("No user location provided, using default 45 minutes")
 
     entry_wait = 4
     total_needed = entry_wait + total_wait + total_walk + travel_time_min + BOARDING_BUFFER_MIN
@@ -285,13 +281,11 @@ async def journey_forecast(flight_id: str, user_location: Optional[str] = None):
         "travel_time_minutes": travel_time_min,
         "travel_time_info": travel_time_info,
         "total_journey_minutes": round(total_needed, 1),
-        "suggested_airport_arrival": iso(suggested_arrival),
+        "suggested_airport_arrival": iso(suggested_arrival) if suggested_arrival else None,
         "std": f.get("std"), "etd": f.get("etd"),
     }
 
 async def _arrival_forecast(f, zmap, all_flights, cutoff):
-    bag_stats = await _bag_stats()
-    p = engines.predict_baggage(f, bag_stats)
     imm = zmap["immigration-arr"]
     imm_pred = None
     steps = []
@@ -315,6 +309,18 @@ async def _arrival_forecast(f, zmap, all_flights, cutoff):
             "bag_count": bag.get("bag_count"),
             "confidence": bag.get("confidence"),
         }
+    else:
+        stats_doc = await db.config.find_one({"_id": "bag_stats"})
+        bag_stats = stats_doc["value"] if stats_doc else {"DOM": {"first_p50": 11, "last_p50": 26}, "INT": {"first_p50": 12, "last_p50": 27}}
+        p = engines.predict_baggage(f, bag_stats)
+        if p:
+            baggage = {
+                "first_bag_time": iso(p["predicted_first_bag_time"]),
+                "last_bag_time": iso(p["predicted_last_bag_time"]),
+                "staff_added_delay_minutes": 0,
+                "bag_count": p.get("bag_count", 240),
+                "confidence": p.get("confidence", "High (ML GBR)"),
+            }
     return {"flight": f, "direction": "arrival", "is_international": f["is_international"],
             "steps": steps, "baggage": baggage, "sta": f.get("sta"), "ata": f.get("ata")}
 
