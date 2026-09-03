@@ -1,75 +1,74 @@
 # AeroFlow — Frontend Web Application
 
-The client-side web interface for the AeroFlow Airport Operations & Passenger Experience Platform, built with **React 18**, **Tailwind CSS**, and modern UI primitives.
+The client-side web application for the **AeroFlow Airport Operations & Passenger Intelligence Platform**, built with **React 18**, **Tailwind CSS**, **Framer Motion**, and accessible **Radix UI** primitives.
 
 ---
 
-## 1. Architecture & Component Structure
+## 🏛 Architecture & Component Structure
 
 ```
 frontend/src/
 ├── components/
-│   ├── layout/              # Navigation bar, footers, command menus
-│   ├── ops/                 # Operations Console modules
-│   │   ├── TerminalCongestionMap.js
-│   │   ├── CarouselAllocationBoard.js
-│   │   ├── LiveAlertFeed.js
-│   │   └── CheckpointThroughputChart.js
+│   ├── layout/              # Navbar, ThemeToggle, MobileDrawer, CommandMenu, Footer
+│   ├── ops/                 # Staff Operations Console modules
+│   │   ├── TerminalCongestionMap.js      # Zone occupancy & wait time visualizer
+│   │   ├── CarouselAllocationBoard.js    # AI carousel sizing & reassignment board
+│   │   ├── LiveAlertFeed.js              # Operational incident telemetry stream
+│   │   └── CheckpointThroughputChart.js  # Counter staffing & capacity metrics
 │   ├── passenger/           # Passenger Experience modules
-│   │   ├── AeroJourneyTimeline.js
-│   │   ├── BaggageTrackerCard.js
-│   │   ├── BoardingPassDossier.js
-│   │   └── TerminalJourneyStory.js
-│   └── ui/                  # Reusable atomic UI components (Radix primitives)
-├── pages/                   # Top-level view routes
-│   ├── OpsConsole.js        # Real-time operational dashboard
-│   ├── PassengerPortal.js   # Flight search and journey tracker
-│   ├── Login.js             # Authentication & role-based sign-in
-│   └── Register.js          # Passenger and staff onboarding
-└── App.js                   # Root router, query clients, and theme providers
+│   │   ├── AeroJourneyTimeline.js        # Standard milestone timeline
+│   │   ├── TerminalJourneyStory.js       # Interactive step-by-step journey narrative
+│   │   ├── TimeRecommendationCard.js     # Intelligent "Leave Home By" door-to-gate planner
+│   │   ├── BaggageTrackerCard.js         # Baggage claim countdown & belt tracking
+│   │   ├── BoardingPassDossier.js        # Digital boarding pass & barcode renderer
+│   │   ├── FidsBoard.js                  # Flight Information Display System board
+│   │   └── FlightSearchHero.js           # Flight discovery search hero
+│   └── ui/                  # Reusable atomic design components (Radix UI primitives)
+├── pages/                   # Top-level application view routes
+│   ├── PassengerPortal.js   # Passenger journey dashboard & flight explorer
+│   ├── OpsConsole.js        # Staff real-time operations console
+│   └── auth/
+│       ├── Login.js         # Role-based credential authentication & 2FA entry
+│       └── Register.js      # Passenger & staff invite onboarding
+├── lib/                     # Axios API client, date/time formatters, and utility functions
+└── App.js                   # Application router, theme provider, and state management
 ```
 
 ---
 
-## 2. Development Scripts
+## 🚀 Development Scripts
 
-In the `frontend` directory, execute:
+```bash
+# Install dependencies
+npm install
 
-### `npm start`
-Runs the application in local development mode with hot-module reloading at `http://localhost:3000`.
+# Start development server on port 3000
+npm start
 
-### `npm run build`
-Compiles and bundles the application for production into the `build/` directory using CRACO and PostCSS. Files are minified and optimized with content hashes for browser caching.
+# Compile production bundle into build/
+npm run build
 
-### `npm test`
-Launches the test runner in interactive watch mode.
+# Run unit tests
+npm test
+```
 
 ---
 
-## 3. Environment Configuration
+## 🌐 Environment Variables
 
 Create `.env` in the `frontend/` directory:
 
 ```ini
-# Backend API Base URL (default: http://localhost:8001)
-REACT_APP_BACKEND_URL=http://localhost:8001
+# Backend API Base URL
+REACT_APP_BACKEND_URL=http://localhost:8000
+
+# Optional Features
+ENABLE_HEALTH_CHECK=true
 ```
 
 ---
 
-## 4. Production Deployment
+## 🚢 Deployment
 
-### Multi-Stage Docker Container
-The frontend contains a multi-stage build using Alpine Nginx:
-```bash
-docker build -t aeroflow-frontend:latest .
-docker run -d -p 3000:80 aeroflow-frontend:latest
-```
-
-### Vercel Deployment
-1. Push the repository to GitHub.
-2. Import the repository into the Vercel dashboard.
-3. Set the **Root Directory** to `frontend`.
-4. Configure the environment variable:
-   - `REACT_APP_BACKEND_URL`: `https://your-backend-api-domain.com`
-5. Click **Deploy**.
+- **Vercel (Recommended)**: Set Root Directory to `frontend` and inject `REACT_APP_BACKEND_URL`.
+- **Docker Nginx**: Use the provided multi-stage `Dockerfile` to build an optimized static Alpine Nginx image.

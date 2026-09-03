@@ -1,0 +1,53 @@
+# Environment variables & secrets
+.env
+.env.*
+*.env
+!.env.example
+!.env.*.example
+*.key
+*.pem
+*.crt
+*.pfx
+*.p12
+*token.json*
+*credentials.json*
+.credentials
+credentials.json
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+.ipynb_checkpoints/
+
+# Data and database files
+*.xlsx
+*.xls
+*.csv
+data/*.xlsx
+data/*.xls
+data/*.csv
+*.parquet
+*.feather
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# Logs
+*.log
