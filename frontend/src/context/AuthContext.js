@@ -4,7 +4,7 @@ import api, { formatApiError } from "@/lib/api";
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
-const STAFF_ROLES = ["ops_manager", "security_lead", "baggage_ops", "admin"];
+const STAFF_ROLES = ["ops_manager", "security_lead", "baggage_ops", "admin", "ground_staff"];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -25,16 +25,27 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
+    if (data.access_token) {
+      try { localStorage.setItem("aero_token", data.access_token); } catch {}
+    }
     setUser(data.user);
     return data.user;
   };
+
   const verifyOtp = async (email, otp) => {
     const { data } = await api.post("/auth/otp/verify", { email, otp });
+    if (data.access_token) {
+      try { localStorage.setItem("aero_token", data.access_token); } catch {}
+    }
     setUser(data.user);
     return data.user;
   };
+
   const logout = async () => {
-    try { await api.post("/auth/logout"); } catch {}
+    try {
+      localStorage.removeItem("aero_token");
+      await api.post("/auth/logout");
+    } catch {}
     setUser(false);
   };
 

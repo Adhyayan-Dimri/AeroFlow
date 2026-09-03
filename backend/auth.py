@@ -101,8 +101,8 @@ def create_refresh_token(uid: str, ver: int = 0) -> str:
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 def _set_cookies(resp: Response, access: str, refresh: str):
-    resp.set_cookie("access_token", access, httponly=True, secure=True, samesite="lax", max_age=1800, path="/")
-    resp.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
+    resp.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=1800, path="/")
+    resp.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=604800, path="/")
 
 def _public_user(u: dict) -> dict:
     phone = u.get("phone")
@@ -420,6 +420,7 @@ async def seed_admin():
             await db.users.update_one({"_id": existing["_id"]}, {"$set": upd})
 
     await db.users.delete_many({"role": "admin", "email": {"$ne": admin_email}})
+    await db.login_attempts.delete_many({"email": admin_email})
 
 async def create_indexes():
     await db.users.create_index("email", unique=True)

@@ -186,3 +186,4 @@ async def recompute_baggage_and_carousels():
 async def seed_all(force=False):
     await seed_static(force=force)
     await seed_flights_for_today(force=force)
+    await recompute_baggage_and_carousels()

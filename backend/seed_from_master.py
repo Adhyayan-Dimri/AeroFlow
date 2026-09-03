@@ -1,8 +1,10 @@
 import asyncio
+import json
 import uuid
 import sys
 import random
 import logging
+from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,15 +14,43 @@ from seed import recompute_baggage_and_carousels, AIRLINES
 
 logger = logging.getLogger(__name__)
 
+async def _get_master_flights():
+    master = await db.master_flights.find({}, {"_id": 0}).to_list(300000)
+    if not master:
+        seed_path = Path(__file__).parent / "seed_data.json"
+        if seed_path.exists():
+            try:
+                with open(seed_path, "r", encoding="utf-8") as f:
+                    sdata = json.load(f)
+                raw_flights = sdata.get("flights_day", [])
+                master = []
+                for rf in raw_flights:
+                    direction = rf.get("direction", "departure")
+                    ftype = "Departure" if direction.lower() == "departure" else "Arrival"
+                    master.append({
+                        "flight_number": rf["flight_number"],
+                        "flight_type": ftype,
+                        "is_international": rf.get("is_international", False),
+                        "passengers": rf.get("passengers", 180),
+                        "luggage_kg": rf.get("luggage_kg", 3000.0),
+                        "endpoint": rf.get("endpoint", "Mumbai"),
+                        "time": rf.get("time", "12:00"),
+                        "date": "2026-09-03"
+                    })
+                if master:
+                    try:
+                        await db.master_flights.insert_many(master)
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning("Could not parse seed_data.json: %s", e)
+    return master
+
 def _airline_for_flight(flight_number: str) -> str:
     code = flight_number[:2].upper() if len(flight_number) >= 2 else "AI"
     return AIRLINES.get(code, "Air India")
 
 async def ensure_flights_for_date(date_str: str):
-    """
-    Guarantees that full realistic flight schedules, baggage predictions,
-    and carousel assignments exist for any requested date (past, present, or future).
-    """
     if not date_str or len(date_str) < 10:
         return 0
     clean_date = date_str[:10]
@@ -40,35 +70,30 @@ async def ensure_flights_for_date(date_str: str):
         logger.warning("Invalid date string for flight generation: %s", date_str)
         return 0
 
-    master_flights = await db.master_flights.find({}, {"_id": 0}).to_list(300000)
+    master_flights = await _get_master_flights()
     if not master_flights:
         logger.warning("No master flights available in database to synthesize schedule")
         return 0
 
-    year = target_day.year
-    day_month = f"{target_day.month:02d}-{target_day.day:02d}"
-    day_flights = [f for f in master_flights if str(f.get('date')).startswith(str(year)) and str(f.get('date'))[5:] == day_month]
+    rng = random.Random(f"AeroFlow-{clean_date}")
+    by_hour = {}
+    for mf in master_flights:
+        try:
+            h = int(str(mf.get("time", "12:00")).split(":")[0])
+        except Exception:
+            h = 12
+        by_hour.setdefault(h, []).append(mf)
 
-    if len(day_flights) < 300:
-        rng = random.Random(f"AeroFlow-{clean_date}")
-        by_hour = {}
-        for mf in master_flights:
-            try:
-                h = int(str(mf.get("time", "12:00")).split(":")[0])
-            except Exception:
-                h = 12
-            by_hour.setdefault(h, []).append(mf)
-
-        sampled = []
-        for h in range(24):
-            h_pool = by_hour.get(h, master_flights)
-            arrs = [f for f in h_pool if f.get("flight_type") == "Arrival"]
-            deps = [f for f in h_pool if f.get("flight_type") == "Departure"]
-            if arrs:
-                sampled.extend(rng.sample(arrs, min(6, len(arrs))))
-            if deps:
-                sampled.extend(rng.sample(deps, min(10, len(deps))))
-        day_flights = sampled
+    sampled = []
+    for h in range(24):
+        h_pool = by_hour.get(h, master_flights)
+        arrs = [f for f in h_pool if f.get("flight_type") == "Arrival"]
+        deps = [f for f in h_pool if f.get("flight_type") == "Departure"]
+        if arrs:
+            sampled.extend(rng.sample(arrs, min(6, len(arrs))))
+        if deps:
+            sampled.extend(rng.sample(deps, min(10, len(deps))))
+    day_flights = sampled if sampled else master_flights
 
     docs = []
     for master in day_flights:
@@ -136,40 +161,35 @@ async def seed_from_master(specific_dates=None):
     else:
         today = now().date()
         date_list = [today + timedelta(days=off) for off in range(-1, 7)]
-    print(f'Dates to seed: {len(date_list)} days')
+
+    master_flights = await _get_master_flights()
+    if not master_flights:
+        logger.warning("No master flights available to seed from master")
+        return
 
     await db.flights.delete_many({})
-
-    master_flights = await db.master_flights.find({}, {"_id": 0}).to_list(300000)
-    print(f'Loaded {len(master_flights)} master flights')
-
     docs = []
     for day in date_list:
         clean_date = day.strftime("%Y-%m-%d")
-        year = day.year
-        day_month = f"{day.month:02d}-{day.day:02d}"
-        day_flights = [f for f in master_flights if str(f.get('date')).startswith(str(year)) and str(f.get('date'))[5:] == day_month]
+        rng = random.Random(f"AeroFlow-{clean_date}")
+        by_hour = {}
+        for mf in master_flights:
+            try:
+                h = int(str(mf.get("time", "12:00")).split(":")[0])
+            except Exception:
+                h = 12
+            by_hour.setdefault(h, []).append(mf)
 
-        if len(day_flights) < 300:
-            rng = random.Random(f"AeroFlow-{clean_date}")
-            by_hour = {}
-            for mf in master_flights:
-                try:
-                    h = int(str(mf.get("time", "12:00")).split(":")[0])
-                except Exception:
-                    h = 12
-                by_hour.setdefault(h, []).append(mf)
-
-            sampled = []
-            for h in range(24):
-                h_pool = by_hour.get(h, master_flights)
-                arrs = [f for f in h_pool if f.get("flight_type") == "Arrival"]
-                deps = [f for f in h_pool if f.get("flight_type") == "Departure"]
-                if arrs:
-                    sampled.extend(rng.sample(arrs, min(6, len(arrs))))
-                if deps:
-                    sampled.extend(rng.sample(deps, min(10, len(deps))))
-            day_flights = sampled
+        sampled = []
+        for h in range(24):
+            h_pool = by_hour.get(h, master_flights)
+            arrs = [f for f in h_pool if f.get("flight_type") == "Arrival"]
+            deps = [f for f in h_pool if f.get("flight_type") == "Departure"]
+            if arrs:
+                sampled.extend(rng.sample(arrs, min(6, len(arrs))))
+            if deps:
+                sampled.extend(rng.sample(deps, min(10, len(deps))))
+        day_flights = sampled if sampled else master_flights
 
         for master in day_flights:
             flight_number = master["flight_number"]
@@ -224,23 +244,10 @@ async def seed_from_master(specific_dates=None):
 
             docs.append(doc)
 
-    print(f'Generated {len(docs)} flight documents')
     if docs:
-        result = await db.flights.insert_many(docs)
-        print(f'Inserted {len(result.inserted_ids)} flights')
+        await db.flights.insert_many(docs)
+        await recompute_baggage_and_carousels()
+        logger.info("Successfully seeded %d flights across %d rolling days", len(docs), len(date_list))
 
-    await recompute_baggage_and_carousels()
-    print('Baggage predictions and carousel assignments recomputed')
-
-    flights = await db.flights.find({}, {'_id': 0, 'std': 1, 'sta': 1}).to_list(5000)
-    dates = set()
-    for f in flights:
-        date_str = (f.get('std') or f.get('sta') or '')[:10]
-        if date_str:
-            dates.add(date_str)
-    print(f'Dates in DB: {sorted(dates)}')
-    print(f'Total unique dates: {len(dates)}')
-
-if __name__ == "__main__":
-    dates = sys.argv[1:] if len(sys.argv) > 1 else None
-    asyncio.run(seed_from_master(dates))
+if __name__ == '__main__':
+    asyncio.run(seed_from_master())

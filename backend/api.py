@@ -124,6 +124,8 @@ async def search_flights(number: str | None = None, direction: str | None = None
                          date: str | None = None, limit: int = 40):
     if date:
         await ensure_flights_for_date(date)
+    else:
+        await ensure_flights_for_date(now().strftime("%Y-%m-%d"))
 
     q = {}
     if number:
