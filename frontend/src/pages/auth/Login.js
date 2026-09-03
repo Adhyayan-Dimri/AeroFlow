@@ -5,55 +5,112 @@ import AuthShell from "./AuthShell";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/api";
 import { toast } from "sonner";
 
 export default function Login() {
-  const { login, formatApiError } = useAuth();
+  const { login, verifyOtp, formatApiError } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const loginType = params.get("type") || (params.get("next")?.startsWith("/ops") ? "staff" : "passenger");
   const next = params.get("next") || (loginType === "staff" ? "/ops" : "/");
   const isStaffFlow = loginType === "staff" || next.startsWith("/ops");
 
+  const [step, setStep] = useState("form");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const handlePostLogin = async (u) => {
+    toast.success(`Welcome back, ${u.name}`);
+    const pendingSave = sessionStorage.getItem("pending_save_flight") || params.get("save_flight");
+    if (pendingSave) {
+      sessionStorage.removeItem("pending_save_flight");
+      let fid = pendingSave;
+      let fnum = "";
+      try {
+        const parsed = JSON.parse(pendingSave);
+        fid = parsed.flight_id;
+        fnum = parsed.flight_number;
+      } catch {}
+      try {
+        await api.post("/users/me/saved-flights", { flight_id: fid });
+        toast.success(`Flight ${fnum || ''} saved to your account!`);
+      } catch {}
+    }
+
+    if (u.role === "passenger") {
+      nav(next && !next.startsWith("/ops") ? next : "/");
+    } else {
+      nav(next.startsWith("/ops") ? next : "/ops");
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true); setErr("");
     try {
-      const u = await login(email, password);
-      toast.success(`Welcome back, ${u.name}`);
-
-      const pendingSave = sessionStorage.getItem("pending_save_flight") || params.get("save_flight");
-      if (pendingSave) {
-        sessionStorage.removeItem("pending_save_flight");
-        let fid = pendingSave;
-        let fnum = "";
-        try {
-          const parsed = JSON.parse(pendingSave);
-          fid = parsed.flight_id;
-          fnum = parsed.flight_number;
-        } catch {}
-        try {
-          await api.post("/users/me/saved-flights", { flight_id: fid });
-          toast.success(`Flight ${fnum || ''} saved to your account!`);
-        } catch {}
+      const res = await login(email, password);
+      if (res?.otp_required) {
+        setStep("otp");
+        toast.info("Please enter the 6-digit verification code sent to your email.");
+        return;
       }
-
-      if (u.role === "passenger") {
-        nav(next && !next.startsWith("/ops") ? next : "/");
-      } else {
-        nav(next.startsWith("/ops") ? next : "/ops");
-      }
+      await handlePostLogin(res);
     } catch (e2) {
       setErr(formatApiError(e2.response?.data?.detail) || e2.message);
     } finally { setBusy(false); }
   };
+
+  const verify = async () => {
+    setBusy(true); setErr("");
+    try {
+      const u = await verifyOtp(email, otp);
+      await handlePostLogin(u);
+    } catch (e2) {
+      setErr(formatApiError(e2.response?.data?.detail) || e2.message);
+    } finally { setBusy(false); }
+  };
+
+  const resend = async () => {
+    setBusy(true); setErr("");
+    try {
+      await api.post("/auth/otp/resend", { email });
+      toast.success("A new verification code was sent to your email");
+    } catch (e2) {
+      setErr(formatApiError(e2.response?.data?.detail) || e2.message);
+    } finally { setBusy(false); }
+  };
+
+  if (step === "otp") {
+    return (
+      <AuthShell title="Verify your email" subtitle={`Enter the 6-digit code sent to ${email}.`}>
+        <div className="space-y-5" data-testid="otp-form">
+          <InputOTP maxLength={6} value={otp} onChange={setOtp} data-testid="otp-input">
+            <InputOTPGroup className="w-full justify-between">
+              {[0,1,2,3,4,5].map((i) => <InputOTPSlot key={i} index={i} className="w-12 h-12 text-lg" />)}
+            </InputOTPGroup>
+          </InputOTP>
+          {err && <div className="text-sm text-aero-rose" data-testid="otp-error">{err}</div>}
+          <Button data-testid="otp-verify-btn" disabled={busy || otp.length < 6} onClick={verify}
+            className="w-full bg-aero-cyan text-[#041014] hover:bg-aero-cyan/90 font-semibold">
+            {busy ? "Verifying…" : "Verify & Continue"}
+          </Button>
+          <div className="flex items-center justify-between text-sm">
+            <button type="button" onClick={() => setStep("form")} className="text-aero-t2 hover:text-aero-t1">← Back</button>
+            <button type="button" onClick={resend} disabled={busy} className="text-aero-cyan hover:underline disabled:opacity-50" data-testid="otp-resend-btn">
+              Resend code
+            </button>
+          </div>
+        </div>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell

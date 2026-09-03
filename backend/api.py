@@ -161,6 +161,18 @@ async def search_flights(number: str | None = None, direction: str | None = None
     flights = await db.flights.find(q, {"_id": 0}).to_list(5000)
     current_time = now()
 
+    ranges = {"early": (0, 6), "morning": (6, 12), "afternoon": (12, 17), "evening": (17, 21), "night": (21, 24)}
+    if period and period != "any" and period in ranges:
+        lo, hi = ranges[period]
+        flights = [f for f in flights if (dt := parse_dt(f.get("std") or f.get("sta"))) and lo <= dt.hour < hi]
+    elif not date and not number:
+        def is_relevant(f):
+            dt = parse_dt(f.get("std") or f.get("sta"))
+            if not dt:
+                return False
+            return dt >= current_time
+        flights = [f for f in flights if is_relevant(f)]
+
     if date:
         flights.sort(key=lambda f: f.get("std") or f.get("sta") or "")
     elif number:
@@ -181,7 +193,6 @@ async def search_flights(number: str | None = None, direction: str | None = None
                 else:
                     return (2, -delta)
             else:
-                # Future dates sorted chronologically ahead of past dates
                 if delta > 0:
                     return (3, delta)
                 else:
@@ -189,21 +200,7 @@ async def search_flights(number: str | None = None, direction: str | None = None
 
         flights.sort(key=search_rank)
     else:
-        ranges = {"early": (0, 6), "morning": (6, 12), "afternoon": (12, 17), "evening": (17, 21), "night": (21, 24)}
-        if period and period != "any" and period in ranges:
-            lo, hi = ranges[period]
-            flights = [f for f in flights if (dt := parse_dt(f.get("std") or f.get("sta"))) and lo <= dt.hour < hi]
-            flights.sort(key=lambda f: f.get("std") or f.get("sta") or "")
-        else:
-
-            def is_relevant(f):
-                dt = parse_dt(f.get("std") or f.get("sta"))
-                if not dt:
-                    return False
-                return dt >= current_time
-
-            flights = [f for f in flights if is_relevant(f)]
-            flights.sort(key=lambda f: f.get("std") or f.get("sta") or "")
+        flights.sort(key=lambda f: f.get("std") or f.get("sta") or "")
 
     return {"flights": flights[:limit], "count": len(flights)}
 

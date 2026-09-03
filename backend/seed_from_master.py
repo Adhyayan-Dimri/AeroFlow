@@ -94,8 +94,10 @@ async def ensure_flights_for_date(date_str: str):
         if deps:
             sampled.extend(rng.sample(deps, min(10, len(deps))))
     day_flights = sampled if sampled else master_flights
+    rng.shuffle(day_flights)
 
     docs = []
+    import hashlib
     for master in day_flights:
         flight_number = master["flight_number"]
         flight_type = master["flight_type"]
@@ -110,7 +112,12 @@ async def ensure_flights_for_date(date_str: str):
         except Exception:
             hour, minute = 12, 0
 
-        base = datetime.combine(target_day, time(hour, minute)).replace(tzinfo=now().tzinfo)
+        # Realistic date-based departure variation (+/- 20 mins)
+        day_offset_min = (int(hashlib.md5(f"{clean_date}-{flight_number}".encode()).hexdigest(), 16) % 35) - 17
+        total_minutes = max(0, min(1439, hour * 60 + minute + day_offset_min))
+        adj_hour, adj_minute = divmod(total_minutes, 60)
+
+        base = datetime.combine(target_day, time(adj_hour, adj_minute)).replace(tzinfo=now().tzinfo)
         airline_code = flight_number[:2].upper() if len(flight_number) >= 2 else "AI"
         airline_name = AIRLINES.get(airline_code, "Air India")
 

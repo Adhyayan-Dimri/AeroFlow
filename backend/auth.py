@@ -220,7 +220,7 @@ def _gen_otp() -> str:
     return f"{secrets.randbelow(1000000):06d}"
 
 @router.post("/register")
-@limiter.limit("5/hour")
+@limiter.limit("60/minute")
 async def register(body: RegisterIn, background: BackgroundTasks, request: Request):
     email = body.email.lower().strip()
     if await db.users.find_one({"email": email}):
@@ -319,11 +319,11 @@ async def _locked(identifier_email: str, ip: str) -> bool:
     since = now() - timedelta(minutes=15)
     cnt = await db.login_attempts.count_documents(
         {"email": identifier_email, "at": {"$gte": since}})
-    return cnt >= 5
+    return cnt >= 15
 
 @router.post("/login")
-@limiter.limit("10/minute")
-async def login(body: LoginIn, request: Request, response: Response):
+@limiter.limit("60/minute")
+async def login(body: LoginIn, request: Request, response: Response, background: BackgroundTasks):
     email = body.email.lower().strip()
     ip = request.client.host if request.client else "?"
     user = await db.users.find_one({"email": email})
@@ -333,7 +333,13 @@ async def login(body: LoginIn, request: Request, response: Response):
         await db.login_attempts.insert_one({"identifier": f"{ip}:{email}", "email": email, "at": now()})
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if user.get("otp_verified_at") is None:
-        raise HTTPException(status_code=403, detail="Account not verified. Please verify the code sent to your email.")
+        otp = _gen_otp()
+        await db.users.update_one({"_id": user["_id"]}, {"$set": {
+            "otp_hash": hashlib.sha256(otp.encode()).hexdigest(), "otp_expires": now() + timedelta(minutes=10)}})
+        if not email_service.configured():
+            logger.warning("📧 [EMAIL NOT CONFIGURED] Login verification code for %s is: %s", email, otp)
+        background.add_task(email_service.send_otp_email, email, otp)
+        return {"otp_required": True, "email": email, "role": user.get("role", "passenger"), "detail": "Account verification required. A new verification code has been dispatched."}
     await db.login_attempts.delete_many({"email": email})
     access = create_access_token(str(user["_id"]), user["email"], user["role"], user.get("token_version", 0))
     refresh = create_refresh_token(str(user["_id"]), user.get("token_version", 0))
