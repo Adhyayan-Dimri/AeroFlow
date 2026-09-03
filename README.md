@@ -1,4 +1,5 @@
-# AeroFlow — Next-Gen AI Airport Operations & Passenger Experience Platform
+# AeroFlow - Next-Gen AI Airport Operations & Passenger Experience Platform
+From Curb to gate, no need to wait.
 
 [![React](https://img.shields.io/badge/Frontend-React%2018%20%7C%20TailwindCSS-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%7C%20Python%203.11+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
