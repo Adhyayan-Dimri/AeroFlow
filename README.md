@@ -174,7 +174,7 @@ Where $\rho = \frac{\lambda}{c \mu} < 1$ is counter utilization.
 ### 2. Gradient Boosting Baggage Delivery Model
 Baggage arrival times are predicted using a trained Gradient Boosting Regressor:
 
-$$\hat{T}_{\text{first}}, \hat{T}_{\text{last}} = f_{\text{GBR}}\left(\text{pax}, \text{luggage\_kg}, \text{is\_intl}, \text{hour}, \sin(\text{hour}), \cos(\text{hour}), \text{ground\_handler}\right)$$
+$$\hat{T}_{\text{first}}, \hat{T}_{\text{last}} = f_{\text{GBR}}\Big(\text{Passengers}, \text{LuggageKg}, \text{IsInternational}, \text{Hour}, \sin(\text{Hour}), \cos(\text{Hour}), \text{GroundHandler}\Big)$$
 
 ### 3. Conveyor Retrieval Curves
 The instantaneous luggage count on a claim carousel $c$ at minute $m$ post-first-bag is governed by empirical passenger retrieval curves:
