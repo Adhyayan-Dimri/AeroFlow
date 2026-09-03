@@ -24,7 +24,6 @@ export default function Navbar() {
   const { user, isStaff, logout } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
-  const [, forceUpdate] = useState({});
   const [aboutOpen, setAboutOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -35,7 +34,8 @@ export default function Navbar() {
     const onScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          setScrolled(window.scrollY > 20);
+          const isScrolled = window.scrollY > 15;
+          setScrolled((prev) => (prev !== isScrolled ? isScrolled : prev));
           ticking = false;
         });
         ticking = true;
@@ -46,18 +46,17 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    forceUpdate({});
     setMobileMenuOpen(false);
   }, [loc.pathname]);
 
   return (
     <header
-      className={`sticky top-0 z-[99999] backdrop-blur-xl bg-white/95 dark:bg-[#071318]/95 border-b border-slate-200 dark:border-slate-800 transition-shadow duration-200 ${
-        scrolled ? "py-1.5 shadow-md" : "py-2 sm:py-3 shadow-xs"
+      className={`sticky top-0 z-[99999] backdrop-blur-xl bg-white/95 dark:bg-[#071318]/95 border-b border-slate-200/80 dark:border-slate-800/80 transition-shadow duration-300 transform-gpu ${
+        scrolled ? "shadow-md dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)]" : "shadow-none"
       }`}
       data-testid="navbar"
     >
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-14 sm:h-18">
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-16 sm:h-20">
         <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0" data-testid="nav-logo">
           <img
             src="/logo.png"
@@ -75,17 +74,13 @@ export default function Navbar() {
         </Link>
 
         <div
-          className={`hidden md:flex items-center gap-1 rounded-full border border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 shadow-inner transition-all duration-200 ${
-            scrolled ? "p-1" : "p-1.5"
-          }`}
+          className="hidden md:flex items-center gap-1 rounded-full border border-slate-300/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/80 shadow-inner p-1.5"
         >
           <NavLink
             to="/"
             data-testid="nav-mode-passenger-toggle"
             className={({ isActive }) =>
-              `rounded-full font-semibold transition-all ${
-                scrolled ? "px-4 py-1 text-xs sm:text-sm" : "px-4 sm:px-5 py-1.5 text-xs sm:text-sm"
-              } ${
+              `rounded-full font-semibold transition-all px-4 sm:px-5 py-1.5 text-xs sm:text-sm ${
                 isActive && !onOps
                   ? "bg-cyan-500 text-slate-950 shadow-sm font-bold scale-[1.02]"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
@@ -98,9 +93,7 @@ export default function Navbar() {
             to={isStaff ? "/ops" : "/login?type=staff&next=/ops"}
             data-testid="nav-mode-ops-toggle"
             className={({ isActive }) =>
-              `rounded-full font-semibold transition-all ${
-                scrolled ? "px-4 py-1 text-xs sm:text-sm" : "px-4 sm:px-5 py-1.5 text-xs sm:text-sm"
-              } ${
+              `rounded-full font-semibold transition-all px-4 sm:px-5 py-1.5 text-xs sm:text-sm ${
                 onOps
                   ? "bg-cyan-500 text-slate-950 shadow-sm font-bold scale-[1.02]"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
