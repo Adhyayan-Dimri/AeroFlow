@@ -34,7 +34,7 @@ export default function CctvFlowMonitor() {
   const [activeCam, setActiveCam] = useState("all");
   const [lastTick, setLastTick] = useState(Date.now());
   const [entrySpeed, setEntrySpeed] = useState(0.5); // Default smooth 0.5x slow-motion
-  const [exitSpeed, setExitSpeed] = useState(0.6); // Default 0.6x smooth playback
+  const [exitSpeed, setExitSpeed] = useState(1.0); // Original full speed as it was
   const entryVideoRef = useRef(null);
   const exitVideoRef = useRef(null);
 
