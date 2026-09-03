@@ -42,32 +42,31 @@ BOT_USER_AGENTS = {
 
 @app.middleware("http")
 async def bot_protection_middleware(request: Request, call_next):
+    if request.method == "OPTIONS" or request.url.path == "/health":
+        return await call_next(request)
     user_agent = request.headers.get("user-agent", "").lower()
-
-    if any(bot in user_agent for bot in BOT_USER_AGENTS):
-        if request.url.path not in ["/health", "/api/auth/login", "/api/auth/register"]:
-            logger.warning(f"Blocked bot request: {user_agent} from {request.client.host}")
-            from fastapi.responses import JSONResponse
-            return JSONResponse(status_code=403, content={"detail": "Bot access denied"})
-
-    response = await call_next(request)
-    return response
+    if any(bot in user_agent for bot in ["sqlmap", "nikto", "masscan"]):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=403, content={"detail": "Access denied"})
+    return await call_next(request)
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": iso(now())}
 
-frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+frontend_url = os.environ.get("FRONTEND_URL", "https://aeroflow-hub.vercel.app")
 origins = list({
     frontend_url,
+    "https://aeroflow-hub.vercel.app",
+    "https://aero-flow.vercel.app",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
 })
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
