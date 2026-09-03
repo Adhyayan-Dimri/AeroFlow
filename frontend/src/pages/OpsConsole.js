@@ -48,7 +48,8 @@ export default function OpsConsole() {
   useEffect(() => { loadAlerts(); }, [loadAlerts, tick]);
   useEffect(() => { const iv = setInterval(() => setTick((t) => t + 1), 15000); return () => clearInterval(iv); }, []);
   useEffect(() => {
-    const url = (process.env.REACT_APP_BACKEND_URL || "").replace(/^http/, "ws") + "/api/ws/live";
+    const rawBackend = process.env.REACT_APP_BACKEND_URL || "https://aeroflow-j4ga.onrender.com";
+    const url = rawBackend.replace(/^http/, "ws") + "/api/ws/live";
     let ws;
     try {
       ws = new WebSocket(url);
