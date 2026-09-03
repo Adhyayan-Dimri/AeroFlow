@@ -36,30 +36,40 @@ export function fmtDateTimeWithNextDay(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return "—";
 
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
+    return `${day}/${month}/${year}, ${time}`;
+  } catch { return "—"; }
+}
+
+export function fmtDateLabel(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+
     const now = new Date();
-    const flightDate = new Date(d);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
 
-    const isNextDay = flightDate.getHours() < 12 &&
-                     (flightDate.getDate() !== now.getDate() ||
-                      flightDate.getMonth() !== now.getMonth() ||
-                      flightDate.getFullYear() !== now.getFullYear());
+    const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+    const monthName = d.toLocaleDateString("en-US", { month: "short" });
+    const day = d.getDate();
+    const year = d.getFullYear();
 
-    const day = String(flightDate.getDate()).padStart(2, "0");
-    const month = String(flightDate.getMonth() + 1).padStart(2, "0");
-    const year = flightDate.getFullYear();
-    const time = flightDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-
-    let dateStr = `${day}/${month}/${year}`;
-    if (isNextDay) {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tDay = String(tomorrow.getDate()).padStart(2, "0");
-      const tMonth = String(tomorrow.getMonth() + 1).padStart(2, "0");
-      const tYear = tomorrow.getFullYear();
-      dateStr = `${tDay}/${tMonth}/${tYear}`;
+    if (diffDays === 0) {
+      return `Today · ${day} ${monthName}`;
+    } else if (diffDays === 1) {
+      return `Tomorrow · ${day} ${monthName}`;
+    } else if (diffDays === -1) {
+      return `Yesterday · ${day} ${monthName}`;
+    } else {
+      return `${dayName}, ${day} ${monthName} ${year}`;
     }
-
-    return `${dateStr}, ${time}`;
   } catch { return "—"; }
 }
 

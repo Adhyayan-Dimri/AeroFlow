@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Plane, ArrowRight, Bookmark, Bell, X, Clock, MapPin, ShieldCheck, Sparkles, Navigation, Luggage, CheckCircle2, Compass } from "lucide-react";
+import { Plane, ArrowRight, Bookmark, Bell, X, Clock, MapPin, ShieldCheck, Sparkles, Navigation, Luggage, CheckCircle2, Compass, Calendar as CalendarIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
-import { fmtTime, fmtDateTime } from "@/lib/format";
+import { fmtTime, fmtDateTime, fmtDate, fmtDateLabel } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 
 export const AIRLINE_THEMES = {
@@ -363,7 +363,12 @@ export default function BoardingPassDossier({ flight, forecast, onNotify, onClos
         </div>
 
         {}
-        <div className="flex items-center gap-2 z-10 self-start sm:self-auto">
+        <div className="flex items-center gap-2 z-10 self-start sm:self-auto flex-wrap">
+          <div className="px-3 py-1 rounded-full text-xs font-mono font-extrabold flex items-center gap-1.5 shadow-sm border bg-white/20 border-white/30 text-white backdrop-blur-md">
+            <CalendarIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span>{fmtDateLabel(schedTime)}</span>
+          </div>
+
           <div className={`px-3 py-1 rounded-full text-xs font-mono font-extrabold flex items-center gap-1.5 shadow-sm border ${
             isDelayed
               ? "bg-amber-400/90 text-amber-950 border-amber-300"
@@ -373,7 +378,7 @@ export default function BoardingPassDossier({ flight, forecast, onNotify, onClos
             {isDelayed ? `DELAYED +${flight.flight_delay_minutes}M` : "ON SCHEDULE"}
           </div>
 
-          <div className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-white/15 border border-white/25 text-white/90">
+          <div className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-white/15 border border-white/25 text-white/90 hidden sm:block">
             FLIGHT DOSSIER
           </div>
         </div>
@@ -594,6 +599,16 @@ export default function BoardingPassDossier({ flight, forecast, onNotify, onClos
 
             {}
             <div className="p-3.5 rounded-2xl bg-white dark:bg-black/50 border border-slate-200 dark:border-slate-800 space-y-3 shadow-inner">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-800/80">
+                <span className="text-[11px] text-aero-t2 font-medium flex items-center gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5 text-amber-500" />
+                  Flight Date
+                </span>
+                <span className="font-mono font-bold text-xs text-amber-700 dark:text-amber-400">
+                  {fmtDateLabel(schedTime)}
+                </span>
+              </div>
+
               <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-800/80">
                 <span className="text-[11px] text-aero-t2 font-medium flex items-center gap-1.5">
                   <Compass className="w-3.5 h-3.5 text-cyan-500" />

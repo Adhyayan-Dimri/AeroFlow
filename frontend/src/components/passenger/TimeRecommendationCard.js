@@ -16,7 +16,7 @@ import {
   Compass,
   CheckCircle2
 } from "lucide-react";
-import { fmtTime } from "@/lib/format";
+import { fmtTime, fmtDateLabel } from "@/lib/format";
 
 export default function TimeRecommendationCard({ forecast, userLocation }) {
   const [countdownText, setCountdownText] = useState("");
@@ -47,9 +47,14 @@ export default function TimeRecommendationCard({ forecast, userLocation }) {
       if (diffMs <= 0) {
         setCountdownText("Departure window active");
       } else {
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const days = Math.floor(totalHours / 24);
+        const hours = totalHours % 24;
         const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        if (hours > 0) {
+
+        if (days > 0) {
+          setCountdownText(`Leave in ${days}d ${hours}h ${mins}m`);
+        } else if (hours > 0) {
           setCountdownText(`Leave in ${hours}h ${mins}m`);
         } else {
           setCountdownText(`Leave in ${mins}m`);
@@ -118,7 +123,7 @@ export default function TimeRecommendationCard({ forecast, userLocation }) {
           )}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-300">
             <Clock className="w-3.5 h-3.5 text-cyan-500" />
-            <span>STD {fmtTime(departureTime)}</span>
+            <span>{fmtDateLabel(departureTime)} · STD {fmtTime(departureTime)}</span>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { Search, Plane, ArrowRight, PlaneTakeoff, PlaneLanding, MapPin, Calendar
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import api from "@/lib/api";
-import { fmtTime, fmtDateTime } from "@/lib/format";
+import { fmtTime, fmtDateTime, fmtDate, fmtDateLabel } from "@/lib/format";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -317,15 +317,18 @@ export default function FlightSearchHero({ onSelect, onLocationChange }) {
                   </div>
                   <div className="text-xs sm:text-sm text-aero-t2 truncate mt-0.5">{f.origin} <ArrowRight className="w-3 h-3 inline text-aero-t3" /> {f.destination}</div>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 flex flex-col items-end">
                   <div className={`font-mono font-bold tabular text-sm sm:text-base ${isDelayed ? "text-amber-700 dark:text-amber-400" : "text-slate-900 dark:text-white"}`}>
                     {fmtTime(expTime)}
                   </div>
-                  {isDelayed ? (
-                    <div className="text-[10px] text-aero-t3 line-through font-mono">{fmtTime(schedTime)}</div>
-                  ) : (
-                    <div className="text-[10px] text-aero-t3">{fmtDateTime(schedTime).split(",")[0]}</div>
-                  )}
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {isDelayed && (
+                      <span className="text-[10px] text-aero-t3 line-through font-mono mr-1">{fmtTime(schedTime)}</span>
+                    )}
+                    <span className="text-[10px] font-semibold font-mono text-cyan-700 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-500/20 px-1.5 py-0.5 rounded border border-cyan-500/25">
+                      {fmtDateLabel(schedTime)}
+                    </span>
+                  </div>
                 </div>
               </button>
             );

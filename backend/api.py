@@ -161,13 +161,14 @@ async def search_flights(number: str | None = None, direction: str | None = None
     flights = await db.flights.find(q, {"_id": 0}).to_list(5000)
     current_time = now()
 
-    if number:
-
+    if date:
+        flights.sort(key=lambda f: f.get("std") or f.get("sta") or "")
+    elif number:
         today_str = current_time.strftime("%Y-%m-%d")
         def search_rank(f):
             dt = parse_dt(f.get("std") or f.get("sta"))
             if not dt:
-                return (4, 0)
+                return (5, 0)
             delta = (dt - current_time).total_seconds()
             f_date = dt.strftime("%Y-%m-%d")
             is_today = (f_date == today_str)
@@ -180,11 +181,13 @@ async def search_flights(number: str | None = None, direction: str | None = None
                 else:
                     return (2, -delta)
             else:
-                return (3, abs(delta))
+                # Future dates sorted chronologically ahead of past dates
+                if delta > 0:
+                    return (3, delta)
+                else:
+                    return (4, -delta)
 
         flights.sort(key=search_rank)
-    elif date:
-        flights.sort(key=lambda f: f.get("std") or f.get("sta") or "")
     else:
         ranges = {"early": (0, 6), "morning": (6, 12), "afternoon": (12, 17), "evening": (17, 21), "night": (21, 24)}
         if period and period != "any" and period in ranges:
