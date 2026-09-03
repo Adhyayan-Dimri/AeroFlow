@@ -252,13 +252,111 @@ def pct_retrieved_at(curve, minutes_since_first):
         prev = p
     return 100.0
 
+WIDE_BODY_TYPES = {"B777", "B787", "A350", "A380", "A330", "B747", "777", "787", "350", "380", "330"}
+NARROW_BODY_TYPES = {"A320", "A321", "A319", "B737", "737", "320", "321", "319", "A220", "E190"}
+
+def classify_aircraft(flight):
+    ac = str(flight.get("aircraft_type") or "").upper()
+    pax = flight.get("passengers", 150)
+    is_intl = bool(flight.get("is_international", False))
+    
+    for w in WIDE_BODY_TYPES:
+        if w in ac:
+            return {"category": "wide_body", "label": "Wide-Body Aircraft", "name": ac or "Wide-Body Jet"}
+    for n in NARROW_BODY_TYPES:
+        if n in ac:
+            return {"category": "narrow_body", "label": "Narrow-Body Aircraft", "name": ac or "Narrow-Body Jet"}
+            
+    if pax >= 230 or is_intl:
+        return {"category": "wide_body", "label": "High-Capacity / Wide-Body", "name": ac or "Wide-Body Jet"}
+    elif pax >= 100:
+        return {"category": "narrow_body", "label": "Standard Narrow-Body", "name": ac or "Narrow-Body Jet"}
+    else:
+        return {"category": "regional", "label": "Regional Aircraft", "name": ac or "Regional Aircraft"}
+
+def get_ai_carousel_recommendation(flight, carousels, current_assignment=None, now_dt=None):
+    from database import now as db_now
+    current_time = now_dt or db_now()
+    
+    ac_info = classify_aircraft(flight)
+    pax = flight.get("passengers", 150)
+    is_intl = bool(flight.get("is_international", False))
+    bags = round(pax * (1.4 if is_intl else 0.95))
+    
+    # Needs 105m long belt if wide-body or passengers >= 230 or heavy baggage load
+    requires_long_belt = (ac_info["category"] == "wide_body" or pax >= 230 or bags >= 280)
+    
+    active_carousels = [c for c in carousels if c.get("status") != "maintenance"]
+    
+    scored = []
+    for c in active_carousels:
+        cid = c.get("carousel_id")
+        cnum = c.get("carousel_number", "")
+        length = float(c.get("length_m", 88.0))
+        is_reserve = bool(c.get("is_emergency_reserve", False) or cnum in ("AC-13", "AC-14"))
+        
+        if requires_long_belt:
+            if length >= 100.0:
+                length_score = 100
+                fit_desc = "Optimal 105m High-Capacity Belt"
+            else:
+                length_score = 40
+                fit_desc = "Undersized 88m Belt (Potential Baggage Backlog)"
+        else:
+            if length <= 90.0:
+                length_score = 95
+                fit_desc = "Optimal 88m Standard Belt (Energy & Flow Efficient)"
+            else:
+                length_score = 65
+                fit_desc = "Oversized Belt (105m belt preferable for Wide-body arrivals)"
+                
+        if is_reserve:
+            length_score -= 15
+            
+        scored.append({
+            "carousel_id": cid,
+            "carousel_number": cnum,
+            "length_m": length,
+            "score": length_score,
+            "fit_desc": fit_desc,
+            "is_reserve": is_reserve
+        })
+        
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    best = scored[0] if scored else None
+    
+    if requires_long_belt:
+        reason = f"{ac_info['label']} carrying {pax} passengers (~{bags} bags) requires a 105m high-capacity belt ({best['carousel_number'] if best else 'AC-01'}) to prevent belt accumulation and crowd congestion."
+    else:
+        reason = f"{ac_info['label']} carrying {pax} passengers (~{bags} bags) is ideally matched for an 88m standard belt ({best['carousel_number'] if best else 'AC-02'}), reserving 105m carousels for heavy wide-body arrivals."
+        
+    current_cid = current_assignment.get("carousel_id") if current_assignment else flight.get("carousel_id")
+    current_match = next((s for s in scored if s["carousel_id"] == current_cid), None)
+    is_optimal = bool(current_match and current_match["score"] >= 90)
+    
+    return {
+        "flight_number": flight.get("flight_number"),
+        "aircraft_category": ac_info["category"],
+        "aircraft_label": ac_info["label"],
+        "aircraft_name": ac_info["name"],
+        "passengers": pax,
+        "estimated_bags": bags,
+        "is_international": is_intl,
+        "requires_long_belt": requires_long_belt,
+        "recommended_carousel_id": best["carousel_id"] if best else None,
+        "recommended_carousel_number": best["carousel_number"] if best else "AC-01",
+        "recommended_length_m": best["length_m"] if best else 105.0,
+        "reason": reason,
+        "is_current_optimal": is_optimal,
+        "all_carousel_scores": scored
+    }
+
 def allocate_carousels(arrivals, carousels, buffer_min=10, now_dt=None):
     from database import now as db_now
 
     current_time = now_dt or db_now()
 
     active_carousels = [c for c in carousels if c.get("status") != "maintenance"]
-
     sorted_carousels = sorted(active_carousels, key=lambda c: c.get("carousel_number", ""))
 
     emergency_cids = set()
@@ -276,7 +374,6 @@ def allocate_carousels(arrivals, carousels, buffer_min=10, now_dt=None):
     c_asg_count = {c["carousel_id"]: 0 for c in allocatable}
 
     assignments = []
-
     sorted_arrivals = sorted(arrivals, key=lambda x: parse_dt(x.get("window_start")) or current_time)
 
     for a in sorted_arrivals:
@@ -307,16 +404,26 @@ def allocate_carousels(arrivals, carousels, buffer_min=10, now_dt=None):
         else:
             st = "scheduled"
 
+        # AI-guided selection factoring aircraft type, pax count, and carousel length
+        pax = a.get("passengers", 150)
+        is_wide = (pax >= 230 or a.get("is_international"))
+
+        def carousel_penalty(cid):
+            c_obj = next((x for x in allocatable if x["carousel_id"] == cid), None)
+            length = float(c_obj.get("length_m", 88.0)) if c_obj else 88.0
+            if is_wide:
+                return 0 if length >= 100 else 40
+            else:
+                return 0 if length <= 90 else 15
+
         available = [cid for cid, ft in c_free_time.items() if ft <= ws]
         if available:
-
-            best_cid = min(available, key=lambda cid: (c_asg_count[cid], cid))
+            best_cid = min(available, key=lambda cid: (carousel_penalty(cid), c_asg_count[cid], cid))
             c_free_time[best_cid] = we
             c_asg_count[best_cid] += 1
             assignments.append({**a, "carousel_id": best_cid, "status": st})
         else:
-
-            earliest_cid = min(c_free_time.keys(), key=lambda cid: c_free_time[cid])
+            earliest_cid = min(c_free_time.keys(), key=lambda cid: (c_free_time[cid], carousel_penalty(cid)))
             c_free_time[earliest_cid] = we
             c_asg_count[earliest_cid] += 1
             assignments.append({**a, "carousel_id": earliest_cid, "status": st})

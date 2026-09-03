@@ -730,10 +730,14 @@ async def list_assignments(status: str | None = None, date: str | None = None):
     asg = await db.carousel_assignments.find(q, {"_id": 0}).to_list(1000)
     fids = [a["flight_id"] for a in asg]
     flights = {f["flight_id"]: f for f in await db.flights.find({"flight_id": {"$in": fids}}, {"_id": 0}).to_list(1000)}
+    carousels = await db.carousels.find({}, {"_id": 0}).to_list(100)
     for a in asg:
-        a["flight"] = flights.get(a["flight_id"])
+        f_obj = flights.get(a["flight_id"])
+        a["flight"] = f_obj
         if not a.get("carousel_number") and not a.get("carousel_id"):
             a["carousel_number"] = "TBD"
+        if f_obj:
+            a["ai_recommendation"] = engines.get_ai_carousel_recommendation(f_obj, carousels, a, current_time)
 
     def asg_sort_key(a):
         a_dt = parse_dt(a.get("window_start"))
@@ -745,6 +749,18 @@ async def list_assignments(status: str | None = None, date: str | None = None):
 
     asg.sort(key=asg_sort_key)
     return {"assignments": asg}
+
+@router.get("/baggage/assignments/{assignment_id}/ai-recommendation")
+async def get_assignment_ai_recommendation(assignment_id: str, user: dict = Depends(require_staff)):
+    a = await db.carousel_assignments.find_one({"id": assignment_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    flight = await db.flights.find_one({"flight_id": a["flight_id"]}, {"_id": 0})
+    if not flight:
+        raise HTTPException(status_code=404, detail="Flight not found")
+    carousels = await db.carousels.find({}, {"_id": 0}).to_list(100)
+    rec = engines.get_ai_carousel_recommendation(flight, carousels, a, now())
+    return {"recommendation": rec}
 
 class ReassignIn(BaseModel):
     carousel_id: str
