@@ -170,7 +170,7 @@ export default function CctvFlowMonitor() {
             <Radio className="w-3.5 h-3.5 text-aero-cyan animate-pulse" />
             Computer Vision Telemetry · Real-Time Passenger Counting
           </div>
-          <h2 className="font-display text-2xl font-black text-white flex items-center gap-2.5">
+          <h2 className="font-display text-2xl font-black text-aero-t1 flex items-center gap-2.5">
             CCTV AI Passenger Flow Vision
             <span className="text-xs px-2.5 py-0.5 rounded-full font-mono font-bold bg-aero-cyan/15 text-aero-cyan border border-aero-cyan/30">
               Live Edge ML
@@ -217,54 +217,54 @@ export default function CctvFlowMonitor() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="aero-card p-5 relative overflow-hidden border-cyan-500/20">
           <div className="flex items-center justify-between text-xs text-aero-t2 mb-1.5 font-mono">
-            <span className="flex items-center gap-1 text-cyan-400">
+            <span className="flex items-center gap-1 text-cyan-500 dark:text-cyan-400 font-semibold">
               <UserCheck className="w-4 h-4" /> Passengers Entering
             </span>
-            <span className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+            <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
               Cam 01
             </span>
           </div>
-          <div className="text-3xl font-mono font-black text-white">
+          <div className="text-3xl font-mono font-black text-aero-t1">
             {metrics.total_entered_today.toLocaleString()}
           </div>
           <div className="text-[11px] text-aero-t3 font-mono mt-1 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-cyan-400 font-bold">+{metrics.instant_entering_flow_hr} pax/hr</span> rate
+            <TrendingUp className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
+            <span className="text-cyan-600 dark:text-cyan-400 font-bold">+{metrics.instant_entering_flow_hr} pax/hr</span> rate
           </div>
         </div>
 
         <div className="aero-card p-5 relative overflow-hidden border-amber-500/20">
           <div className="flex items-center justify-between text-xs text-aero-t2 mb-1.5 font-mono">
-            <span className="flex items-center gap-1 text-amber-400">
+            <span className="flex items-center gap-1 text-amber-500 dark:text-amber-400 font-semibold">
               <UserMinus className="w-4 h-4" /> Passengers Exiting
             </span>
-            <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+            <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
               Cam 04
             </span>
           </div>
-          <div className="text-3xl font-mono font-black text-white">
+          <div className="text-3xl font-mono font-black text-aero-t1">
             {metrics.total_exited_today.toLocaleString()}
           </div>
           <div className="text-[11px] text-aero-t3 font-mono mt-1 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-amber-400 font-bold">+{metrics.instant_exiting_flow_hr} pax/hr</span> rate
+            <TrendingUp className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            <span className="text-amber-600 dark:text-amber-400 font-bold">+{metrics.instant_exiting_flow_hr} pax/hr</span> rate
           </div>
         </div>
 
-        <div className="aero-card p-5 relative overflow-hidden border-emerald-500/30 bg-gradient-to-br from-aero-card via-aero-card to-emerald-950/20">
+        <div className="aero-card p-5 relative overflow-hidden border-emerald-500/30 bg-gradient-to-br from-aero-card via-aero-card to-emerald-950/10 dark:to-emerald-950/20">
           <div className="flex items-center justify-between text-xs text-aero-t2 mb-1.5 font-mono">
-            <span className="flex items-center gap-1 text-emerald-400 font-bold">
+            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
               <Users className="w-4 h-4" /> Net Inside Terminal
             </span>
-            <span className="text-[10px] uppercase font-black text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/40">
+            <span className="text-[10px] uppercase font-black text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/40">
               Entering − Exiting
             </span>
           </div>
-          <div className="text-3xl font-mono font-black text-emerald-400">
+          <div className="text-3xl font-mono font-black text-emerald-600 dark:text-emerald-400">
             {metrics.net_inside_terminal.toLocaleString()}
           </div>
           <div className="text-[11px] text-aero-t3 font-mono mt-1 flex items-center gap-1.5">
-            <span className="text-emerald-400 font-bold">
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
               {metrics.terminal_occupancy_pct}% capacity
             </span>
             <span>({metrics.density_status})</span>
@@ -273,14 +273,14 @@ export default function CctvFlowMonitor() {
 
         <div className="aero-card p-5 relative overflow-hidden border-aero-border">
           <div className="flex items-center justify-between text-xs text-aero-t2 mb-1.5 font-mono">
-            <span className="flex items-center gap-1 text-aero-t1">
+            <span className="flex items-center gap-1 text-aero-t1 font-semibold">
               <Activity className="w-4 h-4 text-aero-cyan" /> Net Flow Delta
             </span>
             <span className="text-[10px] uppercase font-bold text-aero-cyan bg-aero-cyan/10 px-1.5 py-0.5 rounded">
               Throughput
             </span>
           </div>
-          <div className="text-3xl font-mono font-black text-white">
+          <div className="text-3xl font-mono font-black text-aero-t1">
             {metrics.net_flow_delta_hr > 0 ? `+${metrics.net_flow_delta_hr}` : metrics.net_flow_delta_hr}
             <span className="text-sm font-normal text-aero-t3 ml-1">pax/h</span>
           </div>
@@ -498,7 +498,7 @@ export default function CctvFlowMonitor() {
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div>
             <div className="overline text-aero-t3">Real-Time Inflow vs Outflow Dynamics</div>
-            <h3 className="font-display text-lg font-bold text-white">
+            <h3 className="font-display text-lg font-bold text-aero-t1">
               Hourly Passenger Velocity & Net Airport Occupancy
             </h3>
           </div>
