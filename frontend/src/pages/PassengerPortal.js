@@ -252,7 +252,7 @@ export default function PassengerPortal() {
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/[0.08] px-3.5 py-1 backdrop-blur-md text-[11px] font-medium text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="font-display font-bold tracking-wide">"From Curb to Gate, No Need to Wait"</span>
+                <span className="font-display font-medium tracking-wide">From Curb to Gate, No Need to Wait</span>
               </div>
             </div>
 

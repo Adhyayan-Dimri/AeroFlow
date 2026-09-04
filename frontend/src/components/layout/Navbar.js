@@ -67,8 +67,8 @@ export default function Navbar() {
             <div className="font-display font-black tracking-tight text-slate-900 dark:text-white text-base sm:text-2xl">
               AERO<span className="text-cyan-600 dark:text-cyan-400">FLOW</span>
             </div>
-            <div className="overline text-slate-500 dark:text-slate-400 font-bold text-[8px] sm:text-[10px] tracking-wider hidden xs:block">
-              DELHI · IGI T3
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal hidden xs:block">
+              From Curb to Gate, No Need to Wait
             </div>
           </div>
         </Link>
@@ -270,8 +270,8 @@ export default function Navbar() {
               </div>
               <div>
                 <span>AeroFlow</span>
-                <span className="text-xs block text-cyan-600 dark:text-cyan-400 font-display font-semibold italic">
-                  "From Curb to Gate, No Need to Wait"
+                <span className="text-xs block text-cyan-600 dark:text-cyan-400 font-display font-medium">
+                  From Curb to Gate, No Need to Wait
                 </span>
               </div>
             </DialogTitle>
