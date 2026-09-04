@@ -619,15 +619,15 @@ export default function CctvFlowMonitor() {
       {/* Dual Video Stream CCTV Feed Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Feed 01: Entry Concourse */}
-        <div className="aero-card overflow-hidden border border-cyan-500/20 shadow-xl flex flex-col">
+        <div className="aero-card bg-white dark:bg-slate-900 overflow-hidden border border-aero-border shadow-lg flex flex-col">
           {/* Feed Header */}
-          <div className="p-3.5 bg-slate-900/90 border-b border-aero-border flex items-center justify-between">
+          <div className="p-3.5 bg-white dark:bg-slate-900/90 border-b border-aero-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+              <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-ping" />
               <div>
-                <div className="text-xs font-mono font-black text-white flex items-center gap-2">
+                <div className="text-xs font-mono font-black text-aero-t1 flex items-center gap-2">
                   {camEntry.name}
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 bg-cyan-500/10 text-cyan-400 rounded border border-cyan-500/30">
+                  <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-aero-t1 rounded border border-aero-border font-bold">
                     ENTRY GATE
                   </span>
                 </div>
@@ -637,8 +637,8 @@ export default function CctvFlowMonitor() {
 
             <div className="flex items-center gap-2 text-[11px] font-mono flex-wrap">
               {/* Playback Speed Controller */}
-              <div className="flex items-center gap-1 bg-slate-800/90 rounded px-1.5 py-0.5 border border-slate-700/80">
-                <span className="text-[9px] text-slate-400 font-mono">Speed:</span>
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 rounded px-1.5 py-0.5 border border-slate-200 dark:border-slate-700/80">
+                <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">Speed:</span>
                 {[0.35, 0.5, 0.75, 1.0].map((s) => (
                   <button
                     key={s}
@@ -646,7 +646,7 @@ export default function CctvFlowMonitor() {
                     className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold transition-colors ${
                       entrySpeed === s
                         ? "bg-cyan-500 text-slate-950 font-black shadow-xs"
-                        : "text-slate-400 hover:text-white"
+                        : "text-slate-500 dark:text-slate-400 hover:text-aero-t1"
                     }`}
                   >
                     {s}x
@@ -654,7 +654,7 @@ export default function CctvFlowMonitor() {
                 ))}
               </div>
 
-              <div className="px-2 py-0.5 rounded bg-slate-800 text-aero-t2 text-[10px]">
+              <div className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-aero-t2 border border-aero-border text-[10px]">
                 {camEntry.latency_ms}ms · {camEntry.fps}fps
               </div>
             </div>
@@ -687,15 +687,15 @@ export default function CctvFlowMonitor() {
         </div>
 
         {/* Feed 02: Exit Gate */}
-        <div className="aero-card overflow-hidden border border-amber-500/20 shadow-xl flex flex-col">
+        <div className="aero-card bg-white dark:bg-slate-900 overflow-hidden border border-aero-border shadow-lg flex flex-col">
           {/* Feed Header */}
-          <div className="p-3.5 bg-slate-900/90 border-b border-aero-border flex items-center justify-between">
+          <div className="p-3.5 bg-white dark:bg-slate-900/90 border-b border-aero-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 dark:bg-amber-400 animate-ping" />
               <div>
-                <div className="text-xs font-mono font-black text-white flex items-center gap-2">
+                <div className="text-xs font-mono font-black text-aero-t1 flex items-center gap-2">
                   {camExit.name}
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 bg-amber-500/10 text-amber-400 rounded border border-amber-500/30">
+                  <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-aero-t1 rounded border border-aero-border font-bold">
                     EXIT GATE
                   </span>
                 </div>
@@ -704,7 +704,7 @@ export default function CctvFlowMonitor() {
             </div>
 
             <div className="flex items-center gap-3 text-[11px] font-mono">
-              <div className="px-2 py-0.5 rounded bg-slate-800 text-aero-t2 text-[10px]">
+              <div className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-aero-t2 border border-aero-border text-[10px]">
                 {camExit.latency_ms}ms · {camExit.fps}fps
               </div>
             </div>
