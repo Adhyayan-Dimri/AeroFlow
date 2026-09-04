@@ -152,7 +152,7 @@ async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
             password=gmail_pass,
             use_tls=True,
             tls_context=_get_ssl_context(verify=True),
-            timeout=15,
+            timeout=3,
         )
         logger.info("Email successfully sent via Gmail (port 465 verified SSL) to %s", to_email)
         return True
@@ -169,7 +169,7 @@ async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
             password=gmail_pass,
             use_tls=True,
             tls_context=_get_ssl_context(verify=False),
-            timeout=15,
+            timeout=3,
         )
         logger.info("Email successfully sent via Gmail (port 465 fallback SSL) to %s", to_email)
         return True
@@ -186,13 +186,65 @@ async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
             password=gmail_pass,
             start_tls=True,
             tls_context=_get_ssl_context(verify=False),
-            timeout=15,
+            timeout=3,
         )
         logger.info("Email successfully sent via Gmail (port 587 STARTTLS) to %s", to_email)
         return True
     except Exception as e587:
-        logger.error("All Gmail SMTP strategies failed for %s. Port 465: %s | Port 587: %s", to_email, e465_unver, e587)
+        logger.warning("Gmail SMTP connections blocked on this host (Port 465/587 blocked by cloud firewall): %s", e587)
         return False
+
+async def _send_via_http_bridge(to_email: str, subject: str, html: str) -> bool:
+    bridge_url = os.environ.get("GMAIL_HTTP_BRIDGE_URL", "").strip() or os.environ.get("EMAIL_WEBHOOK_URL", "").strip()
+    if not bridge_url:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                bridge_url,
+                json={
+                    "to": to_email,
+                    "subject": subject,
+                    "html": html,
+                    "from_name": os.environ.get("EMAIL_FROM_NAME", "AeroFlow")
+                }
+            )
+            if resp.status_code < 400:
+                logger.info("Email successfully sent via HTTP Bridge to %s", to_email)
+                return True
+    except Exception as be:
+        logger.warning("HTTP Bridge delivery failed: %s", be)
+    return False
+
+async def _send_via_brevo(to_email: str, subject: str, html: str) -> bool:
+    brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
+    if not brevo_key:
+        return False
+    from_name = os.environ.get("EMAIL_FROM_NAME", "").strip() or "AeroFlow"
+    sender_email = os.environ.get("GMAIL_EMAIL", "").strip() or "aeroflow2026@gmail.com"
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                "https://api.brevo.com/v3/smtp/email",
+                headers={
+                    "api-key": brevo_key,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                json={
+                    "sender": {"name": from_name, "email": sender_email},
+                    "to": [{"email": to_email}],
+                    "subject": subject,
+                    "htmlContent": html
+                }
+            )
+            if resp.status_code < 400:
+                logger.info("Email successfully sent via Brevo HTTPS API to %s", to_email)
+                return True
+            logger.error("Brevo API responded with %d: %s", resp.status_code, resp.text)
+    except Exception as be:
+        logger.error("Brevo API delivery failed: %s", be)
+    return False
 
 async def _send_via_resend(to_email: str, subject: str, html: str) -> bool:
     key, from_addr, name = _get_resend_config()
@@ -227,29 +279,34 @@ async def _send(to_email: str, subject: str, html: str) -> bool:
         logger.error("Email safety validation failed: %s", se)
         return False
 
-    g_enabled, g_email, g_pass = _get_gmail_config()
-    r_key, _, _ = _get_resend_config()
+    # 1. Try HTTP Bridge (Port 443 HTTPS - 100% bypasses cloud SMTP port blocks)
+    if await _send_via_http_bridge(to_email, subject, html):
+        return True
 
-    sent = False
+    # 2. Try Brevo HTTPS API (Port 443 HTTPS)
+    if await _send_via_brevo(to_email, subject, html):
+        return True
+
+    # 3. Try Gmail Direct SMTP (Fast 3s fail-over if cloud host blocks ports 465/587)
+    g_enabled, g_email, g_pass = _get_gmail_config()
     if g_enabled and g_email and g_pass:
         try:
-            sent = await _send_via_gmail(to_email, subject, html)
+            if await _send_via_gmail(to_email, subject, html):
+                return True
         except Exception as e:
             logger.warning("Gmail SMTP attempt failed: %s", e)
-            sent = False
 
-    if not sent and r_key and not r_key.startswith("{"):
-        logger.info("Delivering email via Resend API fallback for %s...", to_email)
+    # 4. Try Resend HTTPS API (Port 443 HTTPS)
+    r_key, _, _ = _get_resend_config()
+    if r_key and not r_key.startswith("{"):
         try:
-            sent = await _send_via_resend(to_email, subject, html)
+            if await _send_via_resend(to_email, subject, html):
+                return True
         except Exception as re:
             logger.error("Resend API fallback failed: %s", re)
-            sent = False
 
-    if not sent:
-        logger.warning("⚠️ Email could not be sent to %s via available providers", to_email)
-
-    return sent
+    logger.warning("⚠️ Email could not be sent to %s via available providers", to_email)
+    return False
 
 def _wrap(inner: str) -> str:
     return (f'<table role="presentation" width="100%"><tr><td style="padding:24px;'
