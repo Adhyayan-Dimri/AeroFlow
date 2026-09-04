@@ -245,15 +245,9 @@ export default function PassengerPortal() {
         </div>
         <div className="relative max-w-[1100px] mx-auto px-4 sm:px-6 pt-16 pb-10">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="flex flex-wrap items-center gap-2.5 mb-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-aero-cyan/30 bg-aero-cyan/[0.07] px-3.5 py-1 backdrop-blur-md">
-                <Sparkles className="w-3.5 h-3.5 text-aero-cyan animate-pulse" />
-                <span className="overline text-aero-cyan text-[10px] tracking-wider font-semibold">International Airport · Terminal 3</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/[0.08] px-3.5 py-1 backdrop-blur-md text-[11px] font-medium text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="font-display font-medium tracking-wide">From Curb to Gate, No Need to Wait</span>
-              </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-aero-cyan/30 bg-aero-cyan/[0.07] px-3.5 py-1 mb-5 backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 text-aero-cyan animate-pulse" />
+              <span className="overline text-aero-cyan text-[10px] tracking-wider font-semibold">International Airport · Terminal 3</span>
             </div>
 
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05] max-w-3xl">

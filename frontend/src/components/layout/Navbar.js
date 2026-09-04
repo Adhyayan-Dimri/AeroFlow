@@ -63,11 +63,11 @@ export default function Navbar() {
             alt="AeroFlow Logo"
             className="object-contain w-9 h-9 sm:w-14 sm:h-14 transition-transform duration-200 ease-out group-hover:scale-105"
           />
-          <div className="leading-tight">
-            <div className="font-display font-black tracking-tight text-slate-900 dark:text-white text-base sm:text-2xl">
+          <div className="flex flex-col justify-center leading-tight">
+            <div className="font-display font-black tracking-tight text-slate-900 dark:text-white text-base sm:text-2xl leading-none">
               AERO<span className="text-cyan-600 dark:text-cyan-400">FLOW</span>
             </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal hidden xs:block">
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal mt-1 whitespace-nowrap">
               From Curb to Gate, No Need to Wait
             </div>
           </div>
