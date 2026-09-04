@@ -113,6 +113,16 @@ def _configured() -> bool:
 def configured() -> bool:
     return _configured()
 
+import ssl
+import certifi
+
+def _get_ssl_context():
+    try:
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        ctx = ssl.create_default_context()
+    return ctx
+
 async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
     _, gmail_email, gmail_pass = _get_gmail_config()
     from_name = os.environ.get("EMAIL_FROM_NAME", "").strip() or "AeroFlow"
@@ -127,36 +137,40 @@ async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
     message["Subject"] = subject
     message.set_content(html, subtype="html")
 
-    # Primary attempt: Port 587 with STARTTLS
+    tls_ctx = _get_ssl_context()
+
+    # Attempt 1: Port 465 with Direct SSL (most reliable on cloud & Docker containers)
     try:
         await aiosmtplib.send(
             message,
             hostname="smtp.gmail.com",
-            port=587,
+            port=465,
             username=gmail_email,
             password=gmail_pass,
-            start_tls=True,
-            timeout=12,
+            use_tls=True,
+            tls_context=tls_ctx,
+            timeout=15,
         )
-        logger.info("Email successfully sent via Gmail (port 587) to %s", to_email)
+        logger.info("Email successfully sent via Gmail (port 465 SSL) to %s", to_email)
         return True
-    except Exception as e587:
-        logger.warning("Gmail port 587 send failed (%s); attempting SSL port 465 fallback...", e587)
-        # Fallback attempt: Port 465 with direct SSL (standard for cloud hostings like Render)
+    except Exception as e465:
+        logger.warning("Gmail port 465 send failed (%s); attempting port 587 STARTTLS...", e465)
+        # Attempt 2: Port 587 with STARTTLS fallback
         try:
             await aiosmtplib.send(
                 message,
                 hostname="smtp.gmail.com",
-                port=465,
+                port=587,
                 username=gmail_email,
                 password=gmail_pass,
-                use_tls=True,
-                timeout=12,
+                start_tls=True,
+                tls_context=tls_ctx,
+                timeout=15,
             )
-            logger.info("Email successfully sent via Gmail (port 465 SSL) to %s", to_email)
+            logger.info("Email successfully sent via Gmail (port 587 STARTTLS) to %s", to_email)
             return True
-        except Exception as e465:
-            logger.error("Gmail send failed on both ports 587 and 465. Port 587: %s | Port 465: %s", e587, e465)
+        except Exception as e587:
+            logger.error("Gmail send failed on both ports 465 and 587. Port 465: %s | Port 587: %s", e465, e587)
             return False
 
 async def _send_via_resend(to_email: str, subject: str, html: str) -> bool:
