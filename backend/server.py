@@ -62,12 +62,26 @@ async def cors_and_security_middleware(request: Request, call_next):
 async def health_check():
     import email_service
     g_enabled, g_email, _ = email_service._get_gmail_config()
+    brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
+    bridge_url = os.environ.get("GMAIL_HTTP_BRIDGE_URL", "").strip() or os.environ.get("EMAIL_WEBHOOK_URL", "").strip()
+    
+    if brevo_key:
+        provider = "brevo"
+    elif bridge_url:
+        provider = "http_bridge"
+    elif g_enabled and g_email:
+        provider = "gmail"
+    elif email_service.EMAIL_KEY:
+        provider = "resend"
+    else:
+        provider = "none (logged to console)"
+
     return {
         "status": "healthy",
         "timestamp": iso(now()),
         "email_configured": email_service.configured(),
-        "email_provider": "gmail" if (g_enabled and g_email) else ("resend" if email_service.EMAIL_KEY else "none (logged to console)"),
-        "sender": g_email if g_enabled else None
+        "email_provider": provider,
+        "sender": os.environ.get("BREVO_SENDER_EMAIL", "").strip() or g_email if g_enabled else None
     }
 
 @app.get("/api/test-email")

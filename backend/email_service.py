@@ -108,7 +108,9 @@ def _get_resend_config():
 def _configured() -> bool:
     g_enabled, g_email, g_pass = _get_gmail_config()
     r_key, _, _ = _get_resend_config()
-    return (g_enabled and bool(g_email) and bool(g_pass)) or (bool(r_key) and not r_key.startswith("{"))
+    brevo_key = os.environ.get("BREVO_API_KEY", "").strip()
+    bridge_url = os.environ.get("GMAIL_HTTP_BRIDGE_URL", "").strip() or os.environ.get("EMAIL_WEBHOOK_URL", "").strip()
+    return bool(brevo_key) or bool(bridge_url) or (g_enabled and bool(g_email) and bool(g_pass)) or (bool(r_key) and not r_key.startswith("{"))
 
 def configured() -> bool:
     return _configured()
