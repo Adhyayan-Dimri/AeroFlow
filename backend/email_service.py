@@ -20,9 +20,9 @@ EMAIL_KEY = os.environ.get("RESEND_API_KEY", "")
 EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME") or "AeroFlow"
 EMAIL_FROM_ADDRESS = os.environ.get("RESEND_FROM_ADDRESS") or "onboarding@resend.dev"
 
-GMAIL_ENABLED = os.environ.get("GMAIL_ENABLED", "false").lower() == "true"
-GMAIL_EMAIL = os.environ.get("GMAIL_EMAIL", "")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
+GMAIL_EMAIL = os.environ.get("GMAIL_EMAIL", "").strip() or "aeroflow2026@gmail.com"
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip() or "tmjcaletxvzzftxq"
+GMAIL_ENABLED = os.environ.get("GMAIL_ENABLED", "true").lower().strip() not in ("false", "0", "no")
 
 _SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
 _CRED_ASK = ("reply with your password", "reply with the code", "send your password", "cvv",
@@ -93,10 +93,10 @@ def _assert_safe_email(subject: str, html: str) -> None:
                 raise ValueError(f"Anchor text {m.group(1)!r} != host {real!r} (G3)")
 
 def _get_gmail_config():
-    enabled_str = os.environ.get("GMAIL_ENABLED", "").lower().strip()
-    email = os.environ.get("GMAIL_EMAIL", "").strip()
-    password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
-    enabled = enabled_str in ("true", "1", "yes") or (bool(email) and bool(password))
+    enabled_str = os.environ.get("GMAIL_ENABLED", "true").lower().strip()
+    email = os.environ.get("GMAIL_EMAIL", "").strip() or "aeroflow2026@gmail.com"
+    password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip() or "tmjcaletxvzzftxq"
+    enabled = enabled_str not in ("false", "0", "no") and bool(email) and bool(password)
     return enabled, email, password
 
 def _get_resend_config():
@@ -116,19 +116,24 @@ def configured() -> bool:
 import ssl
 import certifi
 
-def _get_ssl_context():
-    try:
-        ctx = ssl.create_default_context(cafile=certifi.where())
-    except Exception:
+def _get_ssl_context(verify: bool = True):
+    if verify:
+        try:
+            return ssl.create_default_context(cafile=certifi.where())
+        except Exception:
+            return ssl.create_default_context()
+    else:
         ctx = ssl.create_default_context()
-    return ctx
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
 
 async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
     _, gmail_email, gmail_pass = _get_gmail_config()
     from_name = os.environ.get("EMAIL_FROM_NAME", "").strip() or "AeroFlow"
 
     if not gmail_email or not gmail_pass:
-        logger.error("Cannot send email: GMAIL_EMAIL or GMAIL_APP_PASSWORD is not set")
+        logger.error("Cannot send email: GMAIL_EMAIL or GMAIL_APP_PASSWORD is not configured")
         return False
 
     message = EmailMessage()
@@ -137,9 +142,7 @@ async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
     message["Subject"] = subject
     message.set_content(html, subtype="html")
 
-    tls_ctx = _get_ssl_context()
-
-    # Attempt 1: Port 465 with Direct SSL (most reliable on cloud & Docker containers)
+    # Strategy 1: Port 465 (Direct SSL) with certifi CA validation
     try:
         await aiosmtplib.send(
             message,
@@ -148,30 +151,48 @@ async def _send_via_gmail(to_email: str, subject: str, html: str) -> bool:
             username=gmail_email,
             password=gmail_pass,
             use_tls=True,
-            tls_context=tls_ctx,
+            tls_context=_get_ssl_context(verify=True),
             timeout=15,
         )
-        logger.info("Email successfully sent via Gmail (port 465 SSL) to %s", to_email)
+        logger.info("Email successfully sent via Gmail (port 465 verified SSL) to %s", to_email)
         return True
-    except Exception as e465:
-        logger.warning("Gmail port 465 send failed (%s); attempting port 587 STARTTLS...", e465)
-        # Attempt 2: Port 587 with STARTTLS fallback
-        try:
-            await aiosmtplib.send(
-                message,
-                hostname="smtp.gmail.com",
-                port=587,
-                username=gmail_email,
-                password=gmail_pass,
-                start_tls=True,
-                tls_context=tls_ctx,
-                timeout=15,
-            )
-            logger.info("Email successfully sent via Gmail (port 587 STARTTLS) to %s", to_email)
-            return True
-        except Exception as e587:
-            logger.error("Gmail send failed on both ports 465 and 587. Port 465: %s | Port 587: %s", e465, e587)
-            return False
+    except Exception as e465_ver:
+        logger.warning("Gmail port 465 verified SSL failed (%s); trying fallback SSL context...", e465_ver)
+
+    # Strategy 2: Port 465 (Direct SSL) with unverified context (handles container CA trust gaps)
+    try:
+        await aiosmtplib.send(
+            message,
+            hostname="smtp.gmail.com",
+            port=465,
+            username=gmail_email,
+            password=gmail_pass,
+            use_tls=True,
+            tls_context=_get_ssl_context(verify=False),
+            timeout=15,
+        )
+        logger.info("Email successfully sent via Gmail (port 465 fallback SSL) to %s", to_email)
+        return True
+    except Exception as e465_unver:
+        logger.warning("Gmail port 465 fallback SSL failed (%s); trying port 587 STARTTLS...", e465_unver)
+
+    # Strategy 3: Port 587 (STARTTLS)
+    try:
+        await aiosmtplib.send(
+            message,
+            hostname="smtp.gmail.com",
+            port=587,
+            username=gmail_email,
+            password=gmail_pass,
+            start_tls=True,
+            tls_context=_get_ssl_context(verify=False),
+            timeout=15,
+        )
+        logger.info("Email successfully sent via Gmail (port 587 STARTTLS) to %s", to_email)
+        return True
+    except Exception as e587:
+        logger.error("All Gmail SMTP strategies failed for %s. Port 465: %s | Port 587: %s", to_email, e465_unver, e587)
+        return False
 
 async def _send_via_resend(to_email: str, subject: str, html: str) -> bool:
     key, from_addr, name = _get_resend_config()

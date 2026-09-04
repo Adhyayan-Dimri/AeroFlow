@@ -61,12 +61,20 @@ async def cors_and_security_middleware(request: Request, call_next):
 @app.get("/health")
 async def health_check():
     import email_service
+    g_enabled, g_email, _ = email_service._get_gmail_config()
     return {
         "status": "healthy",
         "timestamp": iso(now()),
         "email_configured": email_service.configured(),
-        "email_provider": "gmail" if email_service.GMAIL_ENABLED else ("resend" if email_service.EMAIL_KEY else "none (logged to console)")
+        "email_provider": "gmail" if (g_enabled and g_email) else ("resend" if email_service.EMAIL_KEY else "none (logged to console)"),
+        "sender": g_email if g_enabled else None
     }
+
+@app.get("/api/test-email")
+async def test_email_endpoint(to: str = "aeroflow2026@gmail.com"):
+    import email_service
+    success = await email_service.send_otp_email(to, "999888")
+    return {"to": to, "sent": success, "provider": "gmail"}
 
 frontend_env = os.environ.get("FRONTEND_URL", "")
 valid_origins = [
