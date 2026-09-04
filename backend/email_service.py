@@ -199,7 +199,7 @@ async def _send_via_http_bridge(to_email: str, subject: str, html: str) -> bool:
     if not bridge_url:
         return False
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
             resp = await client.post(
                 bridge_url,
                 json={
@@ -212,6 +212,8 @@ async def _send_via_http_bridge(to_email: str, subject: str, html: str) -> bool:
             if resp.status_code < 400:
                 logger.info("Email successfully sent via HTTP Bridge to %s", to_email)
                 return True
+            else:
+                logger.warning("HTTP Bridge responded with status %d: %s", resp.status_code, resp.text)
     except Exception as be:
         logger.warning("HTTP Bridge delivery failed: %s", be)
     return False
