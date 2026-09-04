@@ -2,12 +2,16 @@ import os
 import re
 import ipaddress
 import logging
+from pathlib import Path
+from dotenv import load_dotenv
 import httpx
 import aiosmtplib
 from email.message import EmailMessage
 from html import escape
 from html.parser import HTMLParser
 from urllib.parse import urlparse
+
+load_dotenv(Path(__file__).parent / ".env")
 
 logger = logging.getLogger(__name__)
 
@@ -191,13 +195,26 @@ async def _send(to_email: str, subject: str, html: str) -> bool:
     g_enabled, g_email, g_pass = _get_gmail_config()
     r_key, _, _ = _get_resend_config()
 
+    sent = False
     if g_enabled and g_email and g_pass:
-        return await _send_via_gmail(to_email, subject, html)
-    elif r_key and not r_key.startswith("{"):
-        return await _send_via_resend(to_email, subject, html)
-    else:
-        logger.warning("⚠️ No email provider configured (Set GMAIL_EMAIL & GMAIL_APP_PASSWORD, or RESEND_API_KEY). Skipping send to %s", to_email)
-        return False
+        try:
+            sent = await _send_via_gmail(to_email, subject, html)
+        except Exception as e:
+            logger.warning("Gmail SMTP attempt failed: %s", e)
+            sent = False
+
+    if not sent and r_key and not r_key.startswith("{"):
+        logger.info("Delivering email via Resend API fallback for %s...", to_email)
+        try:
+            sent = await _send_via_resend(to_email, subject, html)
+        except Exception as re:
+            logger.error("Resend API fallback failed: %s", re)
+            sent = False
+
+    if not sent:
+        logger.warning("⚠️ Email could not be sent to %s via available providers", to_email)
+
+    return sent
 
 def _wrap(inner: str) -> str:
     return (f'<table role="presentation" width="100%"><tr><td style="padding:24px;'

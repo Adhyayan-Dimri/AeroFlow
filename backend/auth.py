@@ -248,8 +248,7 @@ async def register(body: RegisterIn, background: BackgroundTasks, request: Reque
                 "otp_hash": hashlib.sha256(otp.encode()).hexdigest(),
                 "otp_expires": now() + timedelta(minutes=10)
             }})
-            if not email_service.configured():
-                logger.warning("📧 [EMAIL NOT CONFIGURED] Verification code for %s is: %s", email, otp)
+            logger.info("🔑 [AEROFLOW OTP] Verification code for %s is: %s", email, otp)
             background.add_task(email_service.send_otp_email, email, otp)
             return {"otp_required": True, "email": email, "role": existing.get("role", "passenger"), "channel": "email"}
         else:
@@ -294,8 +293,7 @@ async def register(body: RegisterIn, background: BackgroundTasks, request: Reque
     await db.users.insert_one(doc)
     resp = {"otp_required": True, "email": email, "role": role, "channel": channel}
     if channel == "email":
-        if not email_service.configured():
-            logger.warning("📧 [EMAIL NOT CONFIGURED] Verification code for %s is: %s (Configure RESEND_API_KEY or GMAIL in environment variables to deliver live emails)", email, otp)
+        logger.info("🔑 [AEROFLOW OTP] Verification code for %s is: %s", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
         logger.info("OTP verification task queued for %s", email)
     else:
@@ -337,8 +335,7 @@ async def resend_otp(body: ForgotIn, background: BackgroundTasks):
         otp = _gen_otp()
         await db.users.update_one({"_id": user["_id"]}, {"$set": {
             "otp_hash": hashlib.sha256(otp.encode()).hexdigest(), "otp_expires": now() + timedelta(minutes=10)}})
-        if not email_service.configured():
-            logger.warning("📧 [EMAIL NOT CONFIGURED] Resent verification code for %s is: %s", email, otp)
+        logger.info("🔑 [AEROFLOW OTP] Resent verification code for %s is: %s", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
         logger.info("OTP resent to %s", email)
         return {"otp_required": True}
@@ -365,8 +362,7 @@ async def login(body: LoginIn, request: Request, response: Response, background:
         otp = _gen_otp()
         await db.users.update_one({"_id": user["_id"]}, {"$set": {
             "otp_hash": hashlib.sha256(otp.encode()).hexdigest(), "otp_expires": now() + timedelta(minutes=10)}})
-        if not email_service.configured():
-            logger.warning("📧 [EMAIL NOT CONFIGURED] Login verification code for %s is: %s", email, otp)
+        logger.info("🔑 [AEROFLOW OTP] Login verification code for %s is: %s", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
         return {"otp_required": True, "email": email, "role": user.get("role", "passenger"), "detail": "Account verification required. A new verification code has been dispatched."}
     await db.login_attempts.delete_many({"email": email})
