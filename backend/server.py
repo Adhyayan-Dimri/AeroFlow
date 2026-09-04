@@ -268,7 +268,21 @@ async def send_baggage_notifications(flights):
             "sent_at": iso(now())
         })
 
+_last_event_save_minute = -1
+
+async def prune_stale_records():
+    try:
+        cutoff = iso(now() - timedelta(days=7))
+        res1 = await db.congestion_events.delete_many({"timestamp": {"$lt": cutoff}})
+        res2 = await db.baggage_notifications_sent.delete_many({"sent_at": {"$lt": cutoff}})
+        res3 = await db.alerts.delete_many({"status": "resolved", "resolved_at": {"$lt": cutoff}})
+        logger.info("Pruned old records: %d congestion, %d notifications, %d alerts", 
+                    res1.deleted_count, res2.deleted_count, res3.deleted_count)
+    except Exception as e:
+        logger.warning("Pruning error: %s", e)
+
 async def simulation_tick():
+    global _last_event_save_minute
     zones = await db.zones.find({}, {"_id": 0}).to_list(100)
     flights = await db.flights.find({}, {"_id": 0}).to_list(2000)
     states = []
@@ -277,10 +291,12 @@ async def simulation_tick():
     for z in zones:
         pred = engines.predict_zone(z, flights, t, 2.0, t)
         states.append({**z, **pred})
-        events.append({"id": str(uuid.uuid4()), "zone_id": z["zone_id"], "timestamp": iso(t),
-                       "person_count": pred["predicted_count"], "avg_wait_seconds": pred["predicted_wait_seconds"],
-                       "counters_open": z["counters_open"], "source": pred["mode"]})
+        if t.minute % 5 == 0 and t.minute != _last_event_save_minute:
+            events.append({"id": str(uuid.uuid4()), "zone_id": z["zone_id"], "timestamp": iso(t),
+                           "person_count": pred["predicted_count"], "avg_wait_seconds": pred["predicted_wait_seconds"],
+                           "counters_open": z["counters_open"], "source": pred["mode"]})
     if events:
+        _last_event_save_minute = t.minute
         await db.congestion_events.insert_many(events)
     await run_alert_rules(states, flights)
     await send_baggage_notifications(flights)
@@ -321,6 +337,7 @@ async def backfill_history():
 
 async def sim_loop():
     last_seed_day = now().date()
+    last_prune_hour = -1
     while True:
         try:
             current_day = now().date()
@@ -330,11 +347,16 @@ async def sim_loop():
                 await seed_flights_for_today(force=True)
                 last_seed_day = current_day
 
+            current_hour = now().hour
+            if current_hour != last_prune_hour:
+                await prune_stale_records()
+                last_prune_hour = current_hour
+
             await simulation_tick()
             await manager.broadcast({"type": "tick", "ts": iso(now())})
         except Exception as e:
             logger.exception("sim tick error: %s", e)
-        await asyncio.sleep(15)
+        await asyncio.sleep(30)
 
 @app.on_event("startup")
 async def startup():
@@ -352,6 +374,7 @@ async def startup():
         await db.config.update_one({"_id": "baggage_v"}, {"$set": {"value": 5}}, upsert=True)
     await db.congestion_events.create_index("timestamp")
     await db.congestion_events.create_index("zone_id")
+    await prune_stale_records()
     await backfill_history()
     await write_test_credentials()
     try:
