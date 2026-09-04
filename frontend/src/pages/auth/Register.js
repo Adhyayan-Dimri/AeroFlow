@@ -33,12 +33,7 @@ export default function Register() {
       if (isStaff) body.invite_code = inviteCode.trim();
       const { data } = await api.post("/auth/register", body);
       setStep("otp");
-      if (data.dev_otp) {
-        setOtp(data.dev_otp);
-        toast.success(`Verification code: ${data.dev_otp}`, { duration: 10000 });
-      } else {
-        toast.success("Verification code sent to your email");
-      }
+      toast.success("Verification code sent to your email");
     } catch (e2) {
       setErr(formatApiError(e2.response?.data?.detail) || e2.message);
     } finally { setBusy(false); }
@@ -58,13 +53,8 @@ export default function Register() {
   const resend = async () => {
     setBusy(true); setErr("");
     try {
-      const { data } = await api.post("/auth/otp/resend", { email: form.email });
-      if (data?.dev_otp) {
-        setOtp(data.dev_otp);
-        toast.success(`Verification code: ${data.dev_otp}`, { duration: 10000 });
-      } else {
-        toast.success("A new verification code was sent to your email");
-      }
+      await api.post("/auth/otp/resend", { email: form.email });
+      toast.success("A new verification code was sent to your email");
     } catch (e2) {
       setErr(formatApiError(e2.response?.data?.detail) || e2.message);
     } finally { setBusy(false); }

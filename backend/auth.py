@@ -250,7 +250,7 @@ async def register(body: RegisterIn, background: BackgroundTasks, request: Reque
             }})
             logger.info("🔑 [AEROFLOW OTP] Verification code for %s is: %s", email, otp)
             background.add_task(email_service.send_otp_email, email, otp)
-            return {"otp_required": True, "email": email, "role": existing.get("role", "passenger"), "channel": "email", "dev_otp": otp}
+            return {"otp_required": True, "email": email, "role": existing.get("role", "passenger"), "channel": "email"}
         else:
             raise HTTPException(status_code=400, detail="This email is already registered. Please sign in.")
     role = "passenger"
@@ -291,7 +291,7 @@ async def register(body: RegisterIn, background: BackgroundTasks, request: Reque
         "otp_expires": now() + timedelta(minutes=10),
     }
     await db.users.insert_one(doc)
-    resp = {"otp_required": True, "email": email, "role": role, "channel": channel, "dev_otp": otp}
+    resp = {"otp_required": True, "email": email, "role": role, "channel": channel}
     if channel == "email":
         logger.info("🔑 [AEROFLOW OTP] Verification code for %s is: %s", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
@@ -338,7 +338,7 @@ async def resend_otp(body: ForgotIn, background: BackgroundTasks):
         logger.info("🔑 [AEROFLOW OTP] Resent verification code for %s is: %s", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
         logger.info("OTP resent to %s", email)
-        return {"otp_required": True, "dev_otp": otp}
+        return {"otp_required": True}
     return {"otp_required": False}
 
 async def _locked(identifier_email: str, ip: str) -> bool:
@@ -364,7 +364,7 @@ async def login(body: LoginIn, request: Request, response: Response, background:
             "otp_hash": hashlib.sha256(otp.encode()).hexdigest(), "otp_expires": now() + timedelta(minutes=10)}})
         logger.info("🔑 [AEROFLOW OTP] Login verification code for %s is: %s", email, otp)
         background.add_task(email_service.send_otp_email, email, otp)
-        return {"otp_required": True, "email": email, "role": user.get("role", "passenger"), "detail": "Account verification required. A new verification code has been dispatched.", "dev_otp": otp}
+        return {"otp_required": True, "email": email, "role": user.get("role", "passenger"), "detail": "Account verification required. A new verification code has been dispatched."}
     await db.login_attempts.delete_many({"email": email})
     access = create_access_token(str(user["_id"]), user["email"], user["role"], user.get("token_version", 0))
     refresh = create_refresh_token(str(user["_id"]), user.get("token_version", 0))
