@@ -270,8 +270,8 @@ export default function Navbar() {
               </div>
               <div>
                 <span>AeroFlow</span>
-                <span className="text-xs block text-slate-500 dark:text-slate-400 font-mono font-normal">
-                  Next-Gen Predictive Airport Digital Twin
+                <span className="text-xs block text-cyan-600 dark:text-cyan-400 font-display font-semibold italic">
+                  "From Curb to Gate, No Need to Wait"
                 </span>
               </div>
             </DialogTitle>

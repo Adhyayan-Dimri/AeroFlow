@@ -245,26 +245,62 @@ export default function PassengerPortal() {
         </div>
         <div className="relative max-w-[1100px] mx-auto px-4 sm:px-6 pt-16 pb-10">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="inline-flex items-center gap-2 rounded-full border border-aero-cyan/30 bg-aero-cyan/[0.07] px-3 py-1 mb-5">
-              <Sparkles className="w-3.5 h-3.5 text-aero-cyan" />
-              <span className="overline text-aero-cyan text-[10px]">International Airport · Terminal 3</span>
+            <div className="flex flex-wrap items-center gap-2.5 mb-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-aero-cyan/30 bg-aero-cyan/[0.07] px-3.5 py-1 backdrop-blur-md">
+                <Sparkles className="w-3.5 h-3.5 text-aero-cyan animate-pulse" />
+                <span className="overline text-aero-cyan text-[10px] tracking-wider font-semibold">International Airport · Terminal 3</span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/[0.08] px-3.5 py-1 backdrop-blur-md text-[11px] font-medium text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="font-display font-bold tracking-wide">"From Curb to Gate, No Need to Wait"</span>
+              </div>
             </div>
+
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.05] max-w-3xl">
               Know your airport <span className="text-aero-cyan">before you go.</span>
             </h1>
-            <p className="text-base sm:text-lg text-aero-t2 mt-4 max-w-2xl">
+            
+            <p className="text-base sm:text-lg text-aero-t2 mt-3.5 max-w-2xl">
               Search your flight for a live, step-by-step journey forecast with queue waits at every checkpoint,
               a smart leave home by time, and First/Last bag predictions on arrival.
             </p>
-            <Button
-              onClick={() => setShowFids(!showFids)}
-              variant="outline"
-              className="mt-4 border-aero-cyan/50 text-aero-cyan hover:bg-aero-cyan/10"
-            >
-              <MonitorPlay className="w-4 h-4 mr-2" />
-              {showFids ? "Hide FIDS Board" : "View Live FIDS Board"}
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-3 mt-5">
+              <Button
+                onClick={() => setShowFids(!showFids)}
+                variant="outline"
+                className={`transition-all ${
+                  showFids
+                    ? "bg-aero-cyan/15 border-aero-cyan text-aero-cyan shadow-[0_0_15px_rgba(0,229,255,0.2)]"
+                    : "border-aero-cyan/50 text-aero-cyan hover:bg-aero-cyan/10"
+                }`}
+              >
+                <MonitorPlay className="w-4 h-4 mr-2" />
+                {showFids ? "Hide Live FIDS Board" : "View Live FIDS Board"}
+              </Button>
+            </div>
           </motion.div>
+
+          <AnimatePresence>
+            {showFids && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -10 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -10 }}
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+                className="mt-6 mb-2 overflow-hidden"
+              >
+                <div className="aero-card p-4 sm:p-6 border-aero-cyan/40 bg-aero-surface/90 shadow-2xl backdrop-blur-xl">
+                  <FidsBoard
+                    onSelectFlight={(flight) => {
+                      loadFlight(flight);
+                      scrollToDetails();
+                    }}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }} className="mt-8">
             <FlightSearchHero onSelect={loadFlight} onLocationChange={handleLocationChange} />
