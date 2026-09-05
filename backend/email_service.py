@@ -225,7 +225,7 @@ async def _send_via_brevo(to_email: str, subject: str, html: str) -> bool:
     if not brevo_key:
         return False
     from_name = os.environ.get("EMAIL_FROM_NAME", "").strip() or "AeroFlow"
-    sender_email = os.environ.get("GMAIL_EMAIL", "").strip() or "aeroflow2026@gmail.com"
+    sender_email = os.environ.get("BREVO_SENDER_EMAIL", "").strip() or os.environ.get("GMAIL_EMAIL", "").strip() or "aeroflow2026@gmail.com"
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.post(

@@ -387,16 +387,6 @@ def allocate_carousels(arrivals, carousels, buffer_min=10, now_dt=None):
         we = (we_dt + timedelta(minutes=buffer_min)).timestamp()
         delta_t_min = (ws_dt - current_time).total_seconds() / 60.0
         delta_end_min = (we_dt - current_time).total_seconds() / 60.0
-
-        if delta_t_min > 180:
-            assignments.append({
-                **a,
-                "carousel_id": None,
-                "carousel_number": "TBD",
-                "status": "yet_to_assign"
-            })
-            continue
-
         if delta_end_min < 0:
             st = "completed"
         elif delta_t_min <= 90 or (ws_dt <= current_time <= we_dt):

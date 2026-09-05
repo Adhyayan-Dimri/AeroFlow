@@ -750,13 +750,26 @@ async def list_assignments(status: str | None = None, date: str | None = None):
     fids = [a["flight_id"] for a in asg]
     flights = {f["flight_id"]: f for f in await db.flights.find({"flight_id": {"$in": fids}}, {"_id": 0}).to_list(1000)}
     carousels = await db.carousels.find({}, {"_id": 0}).to_list(100)
+
+    # If assignments are missing or orphaned, recompute immediately
+    if len(asg) == 0 or any(a["flight_id"] not in flights for a in asg):
+        from seed import recompute_baggage_and_carousels
+        await recompute_baggage_and_carousels()
+        asg = await db.carousel_assignments.find(q, {"_id": 0}).to_list(1000)
+        fids = [a["flight_id"] for a in asg]
+        flights = {f["flight_id"]: f for f in await db.flights.find({"flight_id": {"$in": fids}}, {"_id": 0}).to_list(1000)}
+
     for a in asg:
         f_obj = flights.get(a["flight_id"])
         a["flight"] = f_obj
-        if not a.get("carousel_number") and not a.get("carousel_id"):
-            a["carousel_number"] = "TBD"
         if f_obj:
-            a["ai_recommendation"] = engines.get_ai_carousel_recommendation(f_obj, carousels, a, current_time)
+            ai_rec = engines.get_ai_carousel_recommendation(f_obj, carousels, a, current_time)
+            a["ai_recommendation"] = ai_rec
+            if not a.get("carousel_number") or a.get("carousel_number") == "TBD" or not a.get("carousel_id"):
+                a["carousel_id"] = ai_rec.get("recommended_carousel_id")
+                a["carousel_number"] = ai_rec.get("recommended_carousel_number", "AC-01")
+        elif not a.get("carousel_number"):
+            a["carousel_number"] = "AC-01"
 
     def asg_sort_key(a):
         a_dt = parse_dt(a.get("window_start"))

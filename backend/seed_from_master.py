@@ -181,6 +181,7 @@ async def ensure_flights_for_date(date_str: str, force: bool = False):
 
     if docs:
         await db.flights.insert_many(docs)
+        await recompute_baggage_and_carousels()
         logger.info("Successfully synthesized and indexed %d dynamic v3 flights for %s", len(docs), clean_date)
     return len(docs)
 
