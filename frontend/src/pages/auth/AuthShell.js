@@ -23,10 +23,10 @@ export default function AuthShell({ title, subtitle, children }) {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center p-6 sm:p-12">
+      <div className="flex items-center justify-center p-6 sm:p-12 bg-slate-50/70 dark:bg-transparent">
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
-          <h1 className="font-display text-3xl font-black">{title}</h1>
-          {subtitle && <p className="text-aero-t2 mt-2 text-sm">{subtitle}</p>}
+          <h1 className="font-display text-3xl font-black text-slate-900 dark:text-white">{title}</h1>
+          {subtitle && <p className="text-slate-600 dark:text-aero-t2 mt-2 text-sm leading-relaxed">{subtitle}</p>}
           <div className="mt-6">{children}</div>
         </motion.div>
       </div>

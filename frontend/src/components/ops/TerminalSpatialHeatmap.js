@@ -182,43 +182,47 @@ const ZONE_CATEGORIES = [
 function getDensityColor(ratio, isDark = true) {
   if (ratio < 0.35) {
     return {
-      fill: isDark ? "rgba(6, 182, 212, 0.25)" : "rgba(6, 182, 212, 0.15)",
-      stroke: isDark ? "#06B6D4" : "#0891B2",
+      fill: isDark ? "rgba(6, 182, 212, 0.25)" : "#E0F2FE", // sky-100 in light mode
+      stroke: isDark ? "#06B6D4" : "#0284C7",
+      text: isDark ? "#67E8F9" : "#0369A1",
       badge: isDark
         ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
-        : "bg-cyan-100 text-cyan-800 border-cyan-300",
-      status: "Low Density",
-      intensity: "Lull",
+        : "bg-sky-100 text-sky-800 border-sky-300 font-bold",
+      status: "Optimal Flow",
+      intensity: "Low",
     };
   }
   if (ratio < 0.65) {
     return {
-      fill: isDark ? "rgba(16, 185, 129, 0.30)" : "rgba(16, 185, 129, 0.18)",
+      fill: isDark ? "rgba(16, 185, 129, 0.25)" : "#DCFCE7", // emerald-100 in light mode
       stroke: isDark ? "#10B981" : "#059669",
+      text: isDark ? "#6EE7B7" : "#047857",
       badge: isDark
         ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-        : "bg-emerald-100 text-emerald-800 border-emerald-300",
+        : "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold",
       status: "Moderate Flow",
       intensity: "Normal",
     };
   }
   if (ratio < 0.85) {
     return {
-      fill: isDark ? "rgba(245, 158, 11, 0.40)" : "rgba(245, 158, 11, 0.22)",
+      fill: isDark ? "rgba(245, 158, 11, 0.35)" : "#FEF3C7", // amber-100 in light mode
       stroke: isDark ? "#F59E0B" : "#D97706",
+      text: isDark ? "#FCD34D" : "#B45309",
       badge: isDark
         ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-        : "bg-amber-100 text-amber-800 border-amber-300",
+        : "bg-amber-100 text-amber-900 border-amber-300 font-bold",
       status: "Heavy Congestion",
       intensity: "High",
     };
   }
   return {
-    fill: isDark ? "rgba(244, 63, 94, 0.55)" : "rgba(244, 63, 94, 0.25)",
+    fill: isDark ? "rgba(244, 63, 94, 0.45)" : "#FFE4E6", // rose-100 in light mode
     stroke: isDark ? "#F43F5E" : "#E11D48",
+    text: isDark ? "#FDA4AF" : "#BE123C",
     badge: isDark
       ? "bg-rose-500/25 text-rose-300 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]"
-      : "bg-rose-100 text-rose-800 border-rose-300 shadow-sm",
+      : "bg-rose-100 text-rose-900 border-rose-300 font-bold shadow-sm",
     status: "Peak Bottleneck",
     intensity: "Critical",
   };
@@ -405,19 +409,18 @@ export default function TerminalSpatialHeatmap() {
       {/* Main Grid: 2D Spatial SVG + Zone Detail Dossier */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* SVG Blueprint Canvas */}
-        <div className="xl:col-span-8 rounded-2xl bg-slate-100 dark:bg-[#070E14] border border-slate-200 dark:border-slate-800 p-4 relative overflow-hidden shadow-inner">
+        <div className="xl:col-span-8 rounded-2xl bg-white dark:bg-[#070E14] border border-slate-200 dark:border-slate-800 p-4 relative overflow-hidden shadow-sm dark:shadow-inner">
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-mono mb-2">
-            <span className="flex items-center gap-1.5 font-bold">
+            <span className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
               <Compass className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> Hub Terminal 3 · Main Concourse Blueprint (Level 2 Departures & Level 1 Arrivals)
             </span>
             <span className="text-[11px] text-cyan-700 dark:text-cyan-400 font-bold">Click any zone for details</span>
           </div>
 
-          <div className="relative w-full aspect-[640/680] max-h-[580px]">
+          <div className="relative w-full aspect-[640/680] max-h-[580px] rounded-xl overflow-hidden bg-slate-50 dark:bg-[#070E14] border border-slate-200 dark:border-slate-800/80">
             <svg
               viewBox="0 0 640 680"
               className="w-full h-full select-none"
-              style={{ filter: "drop-shadow(0 0 10px rgba(0,0,0,0.15))" }}
             >
               {/* Background Grid Pattern */}
               <defs>
@@ -425,12 +428,14 @@ export default function TerminalSpatialHeatmap() {
                   <path
                     d="M 20 0 L 0 0 0 20"
                     fill="none"
-                    stroke={isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.06)"}
+                    stroke={isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(100, 116, 139, 0.12)"}
                     strokeWidth="1"
                   />
                 </pattern>
               </defs>
 
+              {/* Base Floor Canvas */}
+              <rect x="0" y="0" width="640" height="680" fill={isDark ? "#070E14" : "#F8FAFC"} />
               <rect x="10" y="10" width="620" height="660" rx="16" fill="url(#heatmapGrid)" />
               <rect
                 x="20"
@@ -439,16 +444,16 @@ export default function TerminalSpatialHeatmap() {
                 height="640"
                 rx="12"
                 fill="none"
-                stroke={isDark ? "rgba(6, 182, 212, 0.2)" : "rgba(8, 145, 178, 0.35)"}
+                stroke={isDark ? "rgba(6, 182, 212, 0.2)" : "rgba(8, 145, 178, 0.3)"}
                 strokeWidth="1.5"
                 strokeDasharray="6 4"
               />
 
               {/* Terminal Section Guides */}
-              <text x="320" y="22" textAnchor="middle" fill={isDark ? "#64748B" : "#475569"} fontSize="9.5" fontFamily="monospace" fontWeight="800">
+              <text x="320" y="22" textAnchor="middle" fill={isDark ? "#94A3B8" : "#334155"} fontSize="9.5" fontFamily="monospace" fontWeight="800">
                 ▲ LEVEL 2: LANDSIDE FORECOURT DROP-OFF ▲
               </text>
-              <text x="320" y="650" textAnchor="middle" fill={isDark ? "#64748B" : "#475569"} fontSize="9.5" fontFamily="monospace" fontWeight="800">
+              <text x="320" y="650" textAnchor="middle" fill={isDark ? "#94A3B8" : "#334155"} fontSize="9.5" fontFamily="monospace" fontWeight="800">
                 ▼ LEVEL 1: ARRIVALS & RECLAIM CONCOURSE ▼
               </text>
 
