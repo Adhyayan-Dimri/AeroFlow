@@ -67,23 +67,19 @@ export default function Navbar() {
       <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-16 sm:h-20">
         <Link
           to="/"
-          className={`flex items-center gap-2.5 sm:gap-3 group shrink-0 transition-transform duration-300 ease-out ${
-            scrolled ? "scale-[0.93] origin-left" : "scale-100 origin-left"
-          }`}
+          className="flex items-center gap-2.5 sm:gap-3.5 group shrink-0"
           data-testid="nav-logo"
         >
           <img
             src="/logo.png"
             alt="AeroFlow Logo"
-            className="w-10 h-10 sm:w-12 sm:h-12 object-contain transition-transform duration-300 ease-out group-hover:scale-105 shrink-0"
+            className="w-11 h-11 sm:w-14 sm:h-14 object-contain transition-transform duration-300 ease-out group-hover:scale-105 shrink-0"
           />
-          <div className="flex flex-col justify-center leading-tight">
-            <div className="font-display font-black tracking-tight text-slate-900 dark:text-white leading-none text-base sm:text-lg">
+          <div className="flex flex-col justify-center items-start text-left">
+            <div className="font-display font-black tracking-tight text-slate-900 dark:text-white leading-none text-lg sm:text-xl">
               AERO<span className="text-cyan-600 dark:text-cyan-400">FLOW</span>
             </div>
-            <div className={`text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap transition-all duration-300 ${
-              scrolled ? "opacity-75 mt-0.5" : "opacity-100 mt-1"
-            }`}>
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap mt-1 leading-none text-left">
               From Curb to Gate, No Need to Wait
             </div>
           </div>

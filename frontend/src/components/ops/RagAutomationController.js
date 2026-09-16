@@ -186,10 +186,10 @@ export default function RagAutomationController({
             <div className="flex items-center gap-2">
               <h3 className="font-display font-black text-base text-slate-900 dark:text-white flex items-center gap-1.5">
                 {section === "congestion"
-                  ? "Congestion & Checkpoint SOP Auto-Pilot"
+                  ? "RAG Congestion & Checkpoint SOP Auto-Pilot"
                   : section === "baggage"
-                  ? "Baggage Carousel SOP Auto-Pilot"
-                  : "Airport Operations SOP Automation"}
+                  ? "RAG Baggage Carousel SOP Auto-Pilot"
+                  : "RAG Airport Operations SOP Auto-Pilot"}
               </h3>
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
                 mode === "autonomous"
