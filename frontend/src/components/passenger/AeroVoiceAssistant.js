@@ -319,14 +319,41 @@ export default function AeroVoiceAssistant({
     }
   };
 
-function AudioEqualizerIcon({ active, isSpeaking, className = "w-4 h-4" }) {
+function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
   return (
-    <div className={`flex items-center justify-center gap-[2.5px] ${className}`} aria-hidden="true">
-      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-3.5 animate-pulse" : "h-2"}`} />
-      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-5 animate-bounce" : "h-4"}`} />
-      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-3 animate-pulse" : "h-2.5"}`} />
-      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-4.5 animate-bounce" : "h-3.5"}`} />
-    </div>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Central Sonic Dot */}
+      <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+      {/* Inner Acoustic Wave Arcs */}
+      <path
+        d="M8.5 8.5C7.5 9.5 7 10.7 7 12s.5 2.5 1.5 3.5"
+        className={active || isSpeaking ? "animate-pulse" : ""}
+      />
+      <path
+        d="M15.5 8.5C16.5 9.5 17 10.7 17 12s-.5 2.5-1.5 3.5"
+        className={active || isSpeaking ? "animate-pulse" : ""}
+      />
+      {/* Outer Sonic Horizon */}
+      <path
+        d="M5.5 5.5C3.8 7.2 3 9.5 3 12s.8 4.8 2.5 6.5"
+        strokeOpacity="0.65"
+        className={active || isSpeaking ? "animate-pulse" : ""}
+      />
+      <path
+        d="M18.5 5.5C20.2 7.2 21 9.5 21 12s-.8 4.8-2.5 6.5"
+        strokeOpacity="0.65"
+        className={active || isSpeaking ? "animate-pulse" : ""}
+      />
+    </svg>
   );
 }
 
@@ -594,7 +621,7 @@ function AudioEqualizerIcon({ active, isSpeaking, className = "w-4 h-4" }) {
               earcon.playClose();
             }
           }}
-          className={`relative group flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-2xl transition-all border-2 cursor-pointer ${
+          className={`relative group flex items-center gap-3 px-4 py-2.5 sm:px-4.5 sm:py-3 rounded-full shadow-2xl transition-all border-2 cursor-pointer ${
             isOpen
               ? "bg-cyan-500 text-slate-950 border-cyan-400 shadow-cyan-500/30"
               : "bg-white dark:bg-[#071318] text-slate-900 dark:text-white border-cyan-500/80 hover:border-cyan-400 shadow-slate-900/15 dark:shadow-black/60"
@@ -605,7 +632,7 @@ function AudioEqualizerIcon({ active, isSpeaking, className = "w-4 h-4" }) {
           <div className="relative flex items-center justify-center">
             <span className={`absolute w-7 h-7 rounded-full bg-cyan-400/30 ${isListening || isSpeaking ? "animate-ping" : "group-hover:animate-ping"}`} />
             <div className="w-8 h-8 rounded-full bg-cyan-500 text-slate-950 grid place-items-center font-black shrink-0 shadow-sm">
-              <AudioEqualizerIcon active={isListening} isSpeaking={isSpeaking} className="text-slate-950" />
+              <VoiceAssistantLogo active={isListening} isSpeaking={isSpeaking} className="w-4 h-4 text-slate-950" />
             </div>
           </div>
 
@@ -624,7 +651,7 @@ function AudioEqualizerIcon({ active, isSpeaking, className = "w-4 h-4" }) {
         </motion.button>
       </div>
 
-      {/* Compact, Light & Dark Responsive Dialog */}
+      {/* Decluttered, Clean & Spacious Audio Guide Dialog */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -632,44 +659,53 @@ function AudioEqualizerIcon({ active, isSpeaking, className = "w-4 h-4" }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 15, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-20 right-4 sm:right-6 z-50 w-[calc(100vw-32px)] sm:w-[380px] max-h-[70vh] bg-white/95 dark:bg-[#071318]/95 backdrop-blur-2xl border-2 border-slate-200 dark:border-cyan-500/40 rounded-3xl shadow-2xl text-slate-900 dark:text-white p-4 sm:p-5 flex flex-col font-sans overflow-hidden"
+            className="fixed bottom-20 right-4 sm:right-6 z-50 w-[calc(100vw-32px)] sm:w-[390px] max-h-[75vh] bg-white/95 dark:bg-[#071318]/95 backdrop-blur-2xl border-2 border-slate-200 dark:border-cyan-500/40 rounded-3xl shadow-2xl text-slate-900 dark:text-white p-5 flex flex-col font-sans overflow-hidden"
             role="dialog"
             aria-modal="true"
             aria-label="AeroVoice Assistant Dialog"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-3 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 grid place-items-center text-cyan-600 dark:text-cyan-400">
-                  <AudioEqualizerIcon active={isListening} isSpeaking={isSpeaking} className="text-cyan-600 dark:text-cyan-400" />
+            {/* Header: Clean & Spacious */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 grid place-items-center text-cyan-600 dark:text-cyan-400 shadow-sm">
+                  <VoiceAssistantLogo active={isListening} isSpeaking={isSpeaking} className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
                 <div>
-                  <h2 className="font-display font-black text-sm sm:text-base flex items-center gap-1.5 leading-none">
-                    AeroVoice Audio Guide
+                  <h2 className="font-display font-black text-base leading-tight">
+                    AeroVoice Guide
                   </h2>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                    Bilingual (English + हिंदी) Navigation
-                  </span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Bilingual Voice Navigation (DEL T3)
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setInputLang((l) => (l === "hi-IN" ? "en-IN" : "hi-IN"))}
+                  className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 font-mono text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                  title="Switch Listening Language"
+                >
+                  {inputLang === "hi-IN" ? "🇮🇳 हिंदी" : "🇬🇧 English"}
+                </button>
+
                 {isSpeaking && (
                   <button
                     onClick={stopSpeaking}
-                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
-                    title="Stop Audio"
+                    className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 transition-all cursor-pointer"
+                    title="Stop Speaking"
                   >
                     <VolumeX className="w-4 h-4" />
                   </button>
                 )}
+
                 <button
                   onClick={() => {
                     setIsOpen(false);
                     stopSpeaking();
                     earcon.playClose();
                   }}
-                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
                   aria-label="Close Voice Assistant"
                 >
                   <X className="w-4 h-4" />
@@ -677,199 +713,158 @@ function AudioEqualizerIcon({ active, isSpeaking, className = "w-4 h-4" }) {
               </div>
             </div>
 
-            {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto pr-1 py-3 space-y-3 scrollbar-thin">
-              {/* Mic & Wave Box */}
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 font-bold font-mono">
-                    <span className={`w-2 h-2 rounded-full ${isListening ? "bg-rose-500 animate-ping" : isSpeaking ? "bg-cyan-500 animate-pulse" : "bg-emerald-500"}`} />
-                    <span className="text-[11px] text-slate-700 dark:text-slate-300">
-                      {isListening ? "Listening to your voice..." : isSpeaking ? "Speaking bilingual response..." : "Ready for voice query"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setInputLang((l) => (l === "hi-IN" ? "en-IN" : "hi-IN"))}
-                      className="px-1.5 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 font-mono text-[9px] cursor-pointer"
-                      title="Switch Voice Input Language"
-                    >
-                      {inputLang === "hi-IN" ? "🇮🇳 हिंदी" : "🇬🇧 English"}
-                    </button>
-                    <button
-                      onClick={() => setVoiceRate((r) => (r === 1.0 ? 1.2 : r === 1.2 ? 0.85 : 1.0))}
-                      className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[9px] cursor-pointer"
-                      title="Speech Speed"
-                    >
-                      {voiceRate}x
-                    </button>
-                  </div>
-                </div>
-
-                {/* Live Transcript / Prompt */}
-                <div className="min-h-[42px] flex items-center justify-center p-2.5 rounded-xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-center">
-                  {isListening ? (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-center gap-1">
-                        {[30, 70, 45, 80, 50, 90, 60, 40].map((h, i) => (
-                          <span
-                            key={i}
-                            style={{ height: `${h * 0.18}px` }}
-                            className="w-1 rounded-full bg-cyan-500 animate-pulse"
-                          />
-                        ))}
-                      </div>
-                      <p className="text-xs text-cyan-600 dark:text-cyan-400 italic font-mono">{transcript || "Listening in Hindi & English..."}</p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-tight">
-                      {transcript ? `"${transcript}"` : "Tap speak or press 'V' to ask in Hindi (हिंदी) or English."}
-                    </p>
-                  )}
-                </div>
-
-                {/* Speak Button & Replay */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
+            {/* Scrollable Body: Uncluttered & Clear Flow */}
+            <div className="flex-1 overflow-y-auto pr-1 py-3.5 space-y-3.5 scrollbar-thin">
+              {/* Primary Voice Action Hub */}
+              <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+                <div className="flex items-center justify-center">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={isListening ? () => recognitionRef.current?.stop() : startListening}
-                    className={`flex-1 font-bold text-xs py-2 rounded-xl transition-all cursor-pointer ${
+                    className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all cursor-pointer ${
                       isListening
-                        ? "bg-rose-500 hover:bg-rose-600 text-white"
-                        : "bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black shadow-sm"
+                        ? "bg-rose-500 text-white ring-4 ring-rose-500/30 animate-pulse"
+                        : isSpeaking
+                        ? "bg-cyan-500 text-slate-950 ring-4 ring-cyan-500/30"
+                        : "bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 hover:scale-105"
                     }`}
+                    title={isListening ? "Stop listening" : "Tap to speak"}
                   >
-                    {isListening ? (
-                      <>
-                        <MicOff className="w-3.5 h-3.5 mr-1" /> Stop Listening
-                      </>
-                    ) : (
-                      <>
-                        <AudioEqualizerIcon active={false} className="mr-1.5" /> Tap to Speak (हिंदी / English)
-                      </>
-                    )}
-                  </Button>
-
-                  {response && !isSpeaking && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => speakBilingual(response.en, response.hi)}
-                      className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 text-xs px-2.5 rounded-xl cursor-pointer"
-                      title="Replay Audio"
-                    >
-                      <RotateCcw className="w-3 h-3 mr-1" /> Replay
-                    </Button>
-                  )}
+                    <VoiceAssistantLogo active={isListening} isSpeaking={isSpeaking} className="w-7 h-7" />
+                  </motion.button>
                 </div>
+
+                <div>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    {isListening
+                      ? "Listening to your voice..."
+                      : isSpeaking
+                      ? "Speaking response in English + हिंदी..."
+                      : "Tap above or press 'V' to speak"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {transcript ? `"${transcript}"` : "Ask about leave-home timing, gates, wheelchairs, or baggage."}
+                  </p>
+                </div>
+
+                {response && !isSpeaking && (
+                  <div className="pt-1 flex items-center justify-center">
+                    <button
+                      onClick={() => speakBilingual(response.en, response.hi)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-600 dark:text-cyan-400 text-[11px] font-medium hover:bg-slate-100 cursor-pointer shadow-sm"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Replay Audio
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Spoken Response Container (Clean, no shiny symbol, bilingual output) */}
+              {/* Spoken Response: Clean Bilingual Typography */}
               {response && (
                 <div
-                  className="p-3.5 rounded-2xl bg-cyan-50/80 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-500/30 space-y-2 text-left"
+                  className="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/25 border border-cyan-200/80 dark:border-cyan-500/30 space-y-2.5 text-left"
                   aria-live="assertive"
                 >
-                  <div className="flex items-center justify-between text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400">
-                    <span className="flex items-center gap-1.5">
-                      <Volume2 className="w-3.5 h-3.5" /> Assistant Response:
-                    </span>
-                    {isSpeaking && <span className="text-[9px] animate-pulse">Playing audio...</span>}
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider">
+                    <Volume2 className="w-3.5 h-3.5" /> Answer
                   </div>
 
-                  {/* English Response */}
-                  <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
-                    <span className="font-bold text-cyan-700 dark:text-cyan-400 mr-1.5">English:</span>
+                  {/* English Translation */}
+                  <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed">
+                    <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 mr-1.5">
+                      EN
+                    </span>
                     {response.en}
                   </div>
 
-                  {/* Hindi Response */}
-                  <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium pt-2 border-t border-cyan-200/60 dark:border-cyan-500/20">
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 mr-1.5">हिंदी:</span>
+                  {/* Hindi Translation */}
+                  <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pt-2 border-t border-cyan-200/60 dark:border-cyan-500/20">
+                    <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 mr-1.5">
+                      हिंदी
+                    </span>
                     {response.hi}
                   </div>
                 </div>
               )}
 
-              {/* Leave Home & Transit Timing Card */}
+              {/* Leave Home Timing Pill (Simplified & Clean) */}
               {transitAdvice && (
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold font-display text-slate-900 dark:text-white flex items-center gap-1">
+                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      Leave Home Advisory ({transitAdvice.flightNumber})
+                      Leave Home Time ({transitAdvice.flightNumber})
                     </span>
-                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                    <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800">
                       {transitAdvice.leaveHomeTimeFormatted}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs pt-1">
                     <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                      <div className="text-[9px] text-slate-500 uppercase font-mono">T3 Time</div>
-                      <div className="font-black text-xs text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">{transitAdvice.totalTerminalTime} mins</div>
+                      <div className="text-[10px] text-slate-500 uppercase font-mono">T3 Process Time</div>
+                      <div className="font-bold text-xs text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">{transitAdvice.totalTerminalTime} mins</div>
                     </div>
                     <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                      <div className="text-[9px] text-slate-500 uppercase font-mono">Curb Arrival</div>
-                      <div className="font-black text-xs text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">{transitAdvice.curbArrivalTimeFormatted}</div>
+                      <div className="text-[10px] text-slate-500 uppercase font-mono">Curb Arrival</div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200 font-mono mt-0.5">{transitAdvice.curbArrivalTimeFormatted}</div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-1 text-[10px] font-mono">
-                    {transitAdvice.breakdown.slice(0, 6).map((b, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-1 rounded bg-white dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800/60">
-                        <span className="text-slate-600 dark:text-slate-400 truncate pr-1">{b.label}</span>
-                        <span className="font-bold text-cyan-600 dark:text-cyan-400 shrink-0">{b.time}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               )}
 
-              {/* Quick Questions */}
-              <div className="space-y-1.5 pt-0.5">
+              {/* Quick Inquiry Prompts (Clean 2-Column Grid) */}
+              <div className="space-y-1.5 pt-1">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3" /> Quick Inquiries:
+                  <HelpCircle className="w-3 h-3" /> Quick Questions:
                 </div>
-                <div className="grid grid-cols-1 gap-1">
+                <div className="grid grid-cols-2 gap-1.5">
                   {[
-                    { en: "When should I leave home for my flight?", hi: "घर से कब निकलना चाहिए?" },
-                    { en: "How much time will it take inside T3?", hi: "टर्मिनल में कितना समय लगेगा?" },
-                    { en: "Where is my flight and gate?", hi: "मेरी फ्लाइट और गेट कहाँ है?" },
-                    { en: "Where is wheelchair assistance?", hi: "व्हीलचेयर सहायता कहाँ मिलेगी?" }
+                    { label: "Leave Home Time", en: "When should I leave home for my flight?", hi: "घर से कब निकलना चाहिए?" },
+                    { label: "T3 Terminal Time", en: "How much time will it take inside T3?", hi: "टर्मिनल में कितना समय लगेगा?" },
+                    { label: "Gate & Flight", en: "Where is my flight and gate?", hi: "मेरी फ्लाइट और गेट कहाँ है?" },
+                    { label: "Wheelchair Help", en: "Where is wheelchair assistance?", hi: "व्हीलचेयर सहायता कहाँ मिलेगी?" }
                   ].map((q, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleQuickPrompt(inputLang === "hi-IN" ? q.hi : q.en)}
-                      className="p-1.5 px-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 text-left text-[11px] leading-tight transition-all cursor-pointer flex items-center justify-between"
+                      className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-left transition-all cursor-pointer flex flex-col justify-between group"
                     >
-                      <div className="flex items-center gap-1.5 truncate pr-1">
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{q.en}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400">· {q.hi}</span>
-                      </div>
-                      <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+                      <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 leading-tight">
+                        {q.label}
+                      </span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 truncate">
+                        {inputLang === "hi-IN" ? q.hi : q.en}
+                      </span>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Footer: City Origin */}
-            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
-              <span className="flex items-center gap-1 font-mono text-[10px]">
-                <MapPin className="w-3 h-3 text-cyan-500" /> Origin:
-              </span>
-              <select
-                value={originCity}
-                onChange={(e) => setOriginCity(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-cyan-300 rounded-lg px-2 py-1 text-[10px] font-mono cursor-pointer"
+            {/* Clean Minimal Footer */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3 h-3 text-cyan-500" />
+                <select
+                  value={originCity}
+                  onChange={(e) => setOriginCity(e.target.value)}
+                  className="bg-transparent border-0 font-medium text-slate-800 dark:text-cyan-300 text-[11px] cursor-pointer p-0 focus:ring-0"
+                >
+                  <option value="Delhi NCR" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Delhi NCR (45m drive)</option>
+                  <option value="Gurugram" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Gurugram (30m drive)</option>
+                  <option value="Noida" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Noida (60m drive)</option>
+                  <option value="South Delhi" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">South Delhi (25m drive)</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => setVoiceRate((r) => (r === 1.0 ? 1.2 : r === 1.2 ? 0.85 : 1.0))}
+                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-mono cursor-pointer"
+                title="Voice Speed"
               >
-                <option value="Delhi NCR">Delhi NCR (45m drive)</option>
-                <option value="Gurugram">Gurugram (30m drive)</option>
-                <option value="Noida">Noida (60m drive)</option>
-                <option value="South Delhi">South Delhi (25m drive)</option>
-              </select>
+                Speed: {voiceRate}x
+              </button>
             </div>
           </motion.div>
         )}
