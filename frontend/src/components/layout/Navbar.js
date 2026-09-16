@@ -59,24 +59,24 @@ export default function Navbar() {
       data-testid="navbar"
     >
       <div className={`max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 ${
-        scrolled ? "h-14 sm:h-16" : "h-16 sm:h-20"
+        scrolled ? "h-16 sm:h-18" : "h-18 sm:h-22"
       }`}>
-        <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0" data-testid="nav-logo">
+        <Link to="/" className="flex items-center gap-2.5 sm:gap-3.5 group shrink-0" data-testid="nav-logo">
           <img
             src="/logo.png"
             alt="AeroFlow Logo"
-            className={`object-contain transition-all duration-300 ease-out group-hover:scale-105 ${
-              scrolled ? "w-8 h-8 sm:w-11 sm:h-11" : "w-9 h-9 sm:w-13 sm:h-13"
+            className={`object-contain transition-all duration-300 ease-out group-hover:scale-105 shrink-0 ${
+              scrolled ? "w-10 h-10 sm:w-14 sm:h-14" : "w-12 h-12 sm:w-16 sm:h-16"
             }`}
           />
           <div className="flex flex-col justify-center leading-tight">
             <div className={`font-display font-black tracking-tight text-slate-900 dark:text-white leading-none transition-all duration-300 ${
-              scrolled ? "text-base sm:text-xl" : "text-lg sm:text-2xl"
+              scrolled ? "text-lg sm:text-2xl" : "text-xl sm:text-3xl"
             }`}>
               AERO<span className="text-cyan-600 dark:text-cyan-400">FLOW</span>
             </div>
-            <div className={`text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap transition-all duration-300 ${
-              scrolled ? "hidden sm:block opacity-75 mt-0.5" : "block opacity-100 mt-1"
+            <div className={`text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-semibold tracking-normal whitespace-nowrap transition-all duration-300 ${
+              scrolled ? "opacity-90 mt-0.5" : "opacity-100 mt-1"
             }`}>
               From Curb to Gate, No Need to Wait
             </div>
