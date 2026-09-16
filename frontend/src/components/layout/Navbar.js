@@ -35,11 +35,11 @@ export default function Navbar() {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentY = window.scrollY || window.pageYOffset || 0;
-          // Dual-threshold hysteresis: activates at > 50px, deactivates at < 15px
-          // Eliminates boundary flicker when scrolling slowly
+          // Dual-threshold hysteresis: activates at > 15px, deactivates at < 5px
+          // Eliminates boundary flicker while reacting immediately to scroll
           setScrolled((prev) => {
-            if (!prev && currentY > 50) return true;
-            if (prev && currentY < 15) return false;
+            if (!prev && currentY > 15) return true;
+            if (prev && currentY < 5) return false;
             return prev;
           });
           ticking = false;
@@ -65,7 +65,13 @@ export default function Navbar() {
       data-testid="navbar"
     >
       <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-16 sm:h-20">
-        <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0" data-testid="nav-logo">
+        <Link
+          to="/"
+          className={`flex items-center gap-2.5 sm:gap-3 group shrink-0 transition-transform duration-300 ease-out ${
+            scrolled ? "scale-[0.93] origin-left" : "scale-100 origin-left"
+          }`}
+          data-testid="nav-logo"
+        >
           <img
             src="/logo.png"
             alt="AeroFlow Logo"
@@ -75,7 +81,9 @@ export default function Navbar() {
             <div className="font-display font-black tracking-tight text-slate-900 dark:text-white leading-none text-base sm:text-lg">
               AERO<span className="text-cyan-600 dark:text-cyan-400">FLOW</span>
             </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap mt-1">
+            <div className={`text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap transition-all duration-300 ${
+              scrolled ? "opacity-75 mt-0.5" : "opacity-100 mt-1"
+            }`}>
               From Curb to Gate, No Need to Wait
             </div>
           </div>
@@ -83,10 +91,10 @@ export default function Navbar() {
 
         {/* Scroll-Driven Animated Mode Toggle Pill */}
         <div
-          className={`hidden md:flex items-center gap-1 rounded-full transition-[background-color,border-color,box-shadow] duration-300 ${
+          className={`hidden md:flex items-center gap-1 rounded-full transition-all duration-300 transform-gpu ${
             scrolled
-              ? "p-1 bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 dark:border-cyan-500/30 shadow-md shadow-cyan-500/10 backdrop-blur-xl"
-              : "p-1.5 bg-slate-100/90 dark:bg-slate-900/80 border border-slate-300/80 dark:border-slate-800 shadow-inner"
+              ? "p-1 bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 dark:border-cyan-500/30 shadow-md shadow-cyan-500/15 backdrop-blur-xl scale-[0.95]"
+              : "p-1.5 bg-slate-100/90 dark:bg-slate-900/80 border border-slate-300/80 dark:border-slate-800 shadow-inner scale-100"
           }`}
         >
           <NavLink
@@ -117,7 +125,9 @@ export default function Navbar() {
           </NavLink>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className={`flex items-center gap-1.5 sm:gap-2 shrink-0 transition-transform duration-300 ease-out ${
+          scrolled ? "scale-[0.95] origin-right" : "scale-100 origin-right"
+        }`}>
           <div className="hidden lg:block mr-1">
             <Clock />
           </div>

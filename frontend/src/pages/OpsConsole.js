@@ -111,21 +111,34 @@ export default function OpsConsole() {
       </div>
 
       <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Real-time RAG Auto-Pilot Operations Controller */}
-        <RagAutomationController
-          onRefreshTelemetry={() => {
-            loadZones();
-            loadBaggage();
-            loadAlerts();
-          }}
-          section={tab === "congestion" ? "congestion" : tab === "baggage" || tab === "carousels" ? "baggage" : "all"}
-        />
-
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-          {tab === "congestion" && <><ImpactBanner impact={impact} /><TerminalCongestionMap zones={zones} onChanged={loadZones} canEdit={canDeployStaff} /></>}
+          {tab === "congestion" && (
+            <div className="space-y-6">
+              <RagAutomationController
+                section="congestion"
+                onRefreshTelemetry={() => {
+                  loadZones();
+                  loadAlerts();
+                }}
+              />
+              <ImpactBanner impact={impact} />
+              <TerminalCongestionMap zones={zones} onChanged={loadZones} canEdit={canDeployStaff} />
+            </div>
+          )}
           {tab === "cctv" && <CctvFlowMonitor />}
           {tab === "flights" && <FlightScheduleDelayManager onFlightDelayed={() => { loadZones(); loadBaggage(); loadAlerts(); }} canEdit={canEdit} />}
-          {tab === "baggage" && <CarouselAllocationBoard assignments={assignments} carousels={carousels} canEdit={canEdit} onChanged={loadBaggage} />}
+          {tab === "baggage" && (
+            <div className="space-y-6">
+              <RagAutomationController
+                section="baggage"
+                onRefreshTelemetry={() => {
+                  loadBaggage();
+                  loadAlerts();
+                }}
+              />
+              <CarouselAllocationBoard assignments={assignments} carousels={carousels} canEdit={canEdit} onChanged={loadBaggage} />
+            </div>
+          )}
           {tab === "alerts" && <AlertsFeedCenter alerts={alerts} filter={alertFilter} setFilter={setAlertFilter} onChanged={loadAlerts} canAct={canEdit} />}
           {tab === "analytics" && <HistoricalAnalyticsStudio />}
           {tab === "carousels" && <CarouselMasterManager carousels={carousels} onChanged={loadBaggage} canEdit={user?.role === "admin" || user?.role === "baggage_ops"} />}
