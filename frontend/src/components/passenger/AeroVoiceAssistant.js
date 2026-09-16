@@ -147,6 +147,7 @@ export default function AeroVoiceAssistant({
   const [response, setResponse] = useState(null); // { en: string, hi: string }
   const [transitAdvice, setTransitAdvice] = useState(null);
   const [voiceRate, setVoiceRate] = useState(1.0);
+  const [inputLang, setInputLang] = useState("hi-IN"); // 'hi-IN' supports both Hindi & English seamlessly
   const [originCity, setOriginCity] = useState("Delhi NCR");
   const recognitionRef = useRef(null);
   const speechSynthRef = useRef(null);
@@ -161,7 +162,7 @@ export default function AeroVoiceAssistant({
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = true;
-        recognition.lang = "en-IN";
+        recognition.lang = inputLang;
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -203,7 +204,7 @@ export default function AeroVoiceAssistant({
         window.speechSynthesis.cancel();
       }
     };
-  }, []);
+  }, [inputLang]);
 
   // Keyboard Shortcut: Press 'V' to toggle Voice Assistant
   useEffect(() => {
@@ -318,6 +319,17 @@ export default function AeroVoiceAssistant({
     }
   };
 
+function AudioEqualizerIcon({ active, isSpeaking, className = "w-4 h-4" }) {
+  return (
+    <div className={`flex items-center justify-center gap-[2.5px] ${className}`} aria-hidden="true">
+      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-3.5 animate-pulse" : "h-2"}`} />
+      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-5 animate-bounce" : "h-4"}`} />
+      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-3 animate-pulse" : "h-2.5"}`} />
+      <span className={`w-[2.5px] rounded-full bg-current transition-all duration-200 ${active || isSpeaking ? "h-4.5 animate-bounce" : "h-3.5"}`} />
+    </div>
+  );
+}
+
   // Calculate Intelligent Leave Home & Curb-to-Gate Breakdown
   const calculateLeaveHomeAdvice = useCallback((flight) => {
     if (!flight) return null;
@@ -382,7 +394,7 @@ export default function AeroVoiceAssistant({
     };
   }, [originCity]);
 
-  // Voice Query Brain with Dual-Language Generation
+  // Voice Query Brain with Dual-Language Generation & Hindi NLP Recognition
   const handleVoiceQuery = useCallback((queryText) => {
     const q = queryText.toLowerCase().trim();
     if (!q) return;
@@ -398,7 +410,7 @@ export default function AeroVoiceAssistant({
     let answerEn = "";
     let answerHi = "";
 
-    // 1. Leave Home & Transit Timing Intent
+    // 1. Leave Home & Transit Timing Intent (English, Hindi Devanagari, Hinglish)
     if (
       q.includes("leave home") ||
       q.includes("when should i leave") ||
@@ -407,7 +419,17 @@ export default function AeroVoiceAssistant({
       q.includes("time will it take") ||
       q.includes("when to go") ||
       q.includes("timing") ||
-      q.includes("departure advice")
+      q.includes("departure advice") ||
+      q.includes("घर") ||
+      q.includes("निकल") ||
+      q.includes("समय") ||
+      q.includes("टाइम") ||
+      q.includes("वक्त") ||
+      q.includes("kab nikle") ||
+      q.includes("kab nikalna") ||
+      q.includes("kitna time") ||
+      q.includes("kitna samay") ||
+      q.includes("ghar se")
     ) {
       const advice = calculateLeaveHomeAdvice(activeFlight);
       setTransitAdvice(advice);
@@ -417,13 +439,28 @@ export default function AeroVoiceAssistant({
         `With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted} ` +
         `to reach the T3 curb by ${advice.curbArrivalTimeFormatted}.`;
 
-      answerHi = `फ्लाइट ${advice.flightNumber} ${advice.destination} के लिए: ` +
+      answerHi = `फ्लाइट ${advice.flightNumber} (${advice.destination}) के लिए: ` +
         `टर्मिनल 3 में कुल ${advice.totalTerminalTime} मिनट लगेंगे। ` +
         `${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`;
     }
 
     // 2. Flight Status & Gate Guidance
-    else if (q.includes("flight") || q.includes("gate") || q.includes("where is my") || q.includes("status")) {
+    else if (
+      q.includes("flight") ||
+      q.includes("gate") ||
+      q.includes("where is my") ||
+      q.includes("status") ||
+      q.includes("गेट") ||
+      q.includes("फ्लाइट") ||
+      q.includes("विमान") ||
+      q.includes("उड़ान") ||
+      q.includes("उड़ान") ||
+      q.includes("कहाँ") ||
+      q.includes("किधर") ||
+      q.includes("kahan") ||
+      q.includes("kidhar") ||
+      q.includes("mera flight")
+    ) {
       const gateStr = activeFlight.gate || "Gate 32B";
       const depTime = activeFlight.departure_time || activeFlight.scheduled_departure || "06:45 PM";
       
@@ -432,11 +469,23 @@ export default function AeroVoiceAssistant({
     }
 
     // 3. Directions & Wayfinding
-    else if (q.includes("direction") || q.includes("how to reach") || q.includes("where is gate") || q.includes("way to")) {
-      if (q.includes("gate 34") || q.includes("gate 32") || q.includes("gate 30")) {
+    else if (
+      q.includes("direction") ||
+      q.includes("how to reach") ||
+      q.includes("where is gate") ||
+      q.includes("way to") ||
+      q.includes("रास्ता") ||
+      q.includes("दिशा") ||
+      q.includes("कैसे पहुंचे") ||
+      q.includes("कैसे जाऊं") ||
+      q.includes("rasta") ||
+      q.includes("kaise pauhchu") ||
+      q.includes("kaise jau")
+    ) {
+      if (q.includes("gate 34") || q.includes("gate 32") || q.includes("gate 30") || q.includes("34") || q.includes("32")) {
         answerEn = T3_LOCATIONS.gate34.en;
         answerHi = T3_LOCATIONS.gate34.hi;
-      } else if (q.includes("international") || q.includes("pier a")) {
+      } else if (q.includes("international") || q.includes("pier a") || q.includes("15") || q.includes("इमिग्रेशन")) {
         answerEn = T3_LOCATIONS.gate15.en;
         answerHi = T3_LOCATIONS.gate15.hi;
       } else {
@@ -446,19 +495,62 @@ export default function AeroVoiceAssistant({
     }
 
     // 4. Accessibility / PRM Assistance
-    else if (q.includes("wheelchair") || q.includes("blind") || q.includes("assistance") || q.includes("help") || q.includes("prm") || q.includes("special assistance")) {
+    else if (
+      q.includes("wheelchair") ||
+      q.includes("blind") ||
+      q.includes("assistance") ||
+      q.includes("help") ||
+      q.includes("prm") ||
+      q.includes("special assistance") ||
+      q.includes("व्हीलचेयर") ||
+      q.includes("सहायता") ||
+      q.includes("मदद") ||
+      q.includes("दिव्यांग") ||
+      q.includes("नेत्रहीन") ||
+      q.includes("madad") ||
+      q.includes("sahayata")
+    ) {
       answerEn = T3_LOCATIONS.wheelchair.en;
       answerHi = T3_LOCATIONS.wheelchair.hi;
     }
 
     // 5. Security & Queues
-    else if (q.includes("security") || q.includes("queue") || q.includes("rush") || q.includes("crowd") || q.includes("digiyatra") || q.includes("wait")) {
+    else if (
+      q.includes("security") ||
+      q.includes("queue") ||
+      q.includes("rush") ||
+      q.includes("crowd") ||
+      q.includes("digiyatra") ||
+      q.includes("wait") ||
+      q.includes("सुरक्षा") ||
+      q.includes("सिक्योरिटी") ||
+      q.includes("जांच") ||
+      q.includes("कतार") ||
+      q.includes("लाइन") ||
+      q.includes("भीड़") ||
+      q.includes("भीड") ||
+      q.includes("डिजीयात्रा") ||
+      q.includes("bheed") ||
+      q.includes("suraksha")
+    ) {
       answerEn = T3_LOCATIONS.security.en;
       answerHi = T3_LOCATIONS.security.hi;
     }
 
     // 6. Baggage & Reclaim Belts
-    else if (q.includes("baggage") || q.includes("belt") || q.includes("carousel") || q.includes("luggage")) {
+    else if (
+      q.includes("baggage") ||
+      q.includes("belt") ||
+      q.includes("carousel") ||
+      q.includes("luggage") ||
+      q.includes("सामान") ||
+      q.includes("बैग") ||
+      q.includes("बैगेज") ||
+      q.includes("बेल्ट") ||
+      q.includes("कैरउसेल") ||
+      q.includes("saman") ||
+      q.includes("luggage")
+    ) {
       const beltNum = activeFlight.carousel_number || "Belt 4";
       answerEn = `Arrival baggage for ${activeFlight.flight_number} is scheduled at ${beltNum} on Ground Reclaim. Bags arrive within 12 minutes of touchdown.`;
       answerHi = `फ्लाइट ${activeFlight.flight_number} का बैगेज ग्राउंड फ्लोर पर ${beltNum} पर आएगा। बैग 12 मिनट में पहुंच जाएंगे।`;
@@ -513,13 +605,7 @@ export default function AeroVoiceAssistant({
           <div className="relative flex items-center justify-center">
             <span className={`absolute w-7 h-7 rounded-full bg-cyan-400/30 ${isListening || isSpeaking ? "animate-ping" : "group-hover:animate-ping"}`} />
             <div className="w-8 h-8 rounded-full bg-cyan-500 text-slate-950 grid place-items-center font-black shrink-0 shadow-sm">
-              {isListening ? (
-                <Mic className="w-4 h-4 text-slate-950 animate-pulse" />
-              ) : isSpeaking ? (
-                <Volume2 className="w-4 h-4 text-slate-950 animate-bounce" />
-              ) : (
-                <Mic className="w-4 h-4 text-slate-950" />
-              )}
+              <AudioEqualizerIcon active={isListening} isSpeaking={isSpeaking} className="text-slate-950" />
             </div>
           </div>
 
@@ -555,7 +641,7 @@ export default function AeroVoiceAssistant({
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-3 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 grid place-items-center text-cyan-600 dark:text-cyan-400">
-                  <Mic className="w-4 h-4" />
+                  <AudioEqualizerIcon active={isListening} isSpeaking={isSpeaking} className="text-cyan-600 dark:text-cyan-400" />
                 </div>
                 <div>
                   <h2 className="font-display font-black text-sm sm:text-base flex items-center gap-1.5 leading-none">
@@ -603,13 +689,22 @@ export default function AeroVoiceAssistant({
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => setVoiceRate((r) => (r === 1.0 ? 1.2 : r === 1.2 ? 0.85 : 1.0))}
-                    className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-600 dark:text-cyan-400 font-mono text-[10px] cursor-pointer"
-                    title="Speech Speed"
-                  >
-                    Speed: {voiceRate}x
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setInputLang((l) => (l === "hi-IN" ? "en-IN" : "hi-IN"))}
+                      className="px-1.5 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 font-mono text-[9px] cursor-pointer"
+                      title="Switch Voice Input Language"
+                    >
+                      {inputLang === "hi-IN" ? "🇮🇳 हिंदी" : "🇬🇧 English"}
+                    </button>
+                    <button
+                      onClick={() => setVoiceRate((r) => (r === 1.0 ? 1.2 : r === 1.2 ? 0.85 : 1.0))}
+                      className="px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-mono text-[9px] cursor-pointer"
+                      title="Speech Speed"
+                    >
+                      {voiceRate}x
+                    </button>
+                  </div>
                 </div>
 
                 {/* Live Transcript / Prompt */}
@@ -625,11 +720,11 @@ export default function AeroVoiceAssistant({
                           />
                         ))}
                       </div>
-                      <p className="text-xs text-cyan-600 dark:text-cyan-400 italic font-mono">{transcript || "Listening..."}</p>
+                      <p className="text-xs text-cyan-600 dark:text-cyan-400 italic font-mono">{transcript || "Listening in Hindi & English..."}</p>
                     </div>
                   ) : (
                     <p className="text-xs text-slate-600 dark:text-slate-300 leading-tight">
-                      {transcript ? `"${transcript}"` : "Tap microphone or press 'V' to speak in English or Hindi."}
+                      {transcript ? `"${transcript}"` : "Tap speak or press 'V' to ask in Hindi (हिंदी) or English."}
                     </p>
                   )}
                 </div>
@@ -651,7 +746,7 @@ export default function AeroVoiceAssistant({
                       </>
                     ) : (
                       <>
-                        <Mic className="w-3.5 h-3.5 mr-1" /> Tap to Speak
+                        <AudioEqualizerIcon active={false} className="mr-1.5" /> Tap to Speak (हिंदी / English)
                       </>
                     )}
                   </Button>
@@ -739,17 +834,20 @@ export default function AeroVoiceAssistant({
                 </div>
                 <div className="grid grid-cols-1 gap-1">
                   {[
-                    "When should I leave home for my flight?",
-                    "How much time will it take inside T3?",
-                    "Where is my flight and gate?",
-                    "Where is wheelchair assistance?"
+                    { en: "When should I leave home for my flight?", hi: "घर से कब निकलना चाहिए?" },
+                    { en: "How much time will it take inside T3?", hi: "टर्मिनल में कितना समय लगेगा?" },
+                    { en: "Where is my flight and gate?", hi: "मेरी फ्लाइट और गेट कहाँ है?" },
+                    { en: "Where is wheelchair assistance?", hi: "व्हीलचेयर सहायता कहाँ मिलेगी?" }
                   ].map((q, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleQuickPrompt(q)}
+                      onClick={() => handleQuickPrompt(inputLang === "hi-IN" ? q.hi : q.en)}
                       className="p-1.5 px-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 text-left text-[11px] leading-tight transition-all cursor-pointer flex items-center justify-between"
                     >
-                      <span className="truncate pr-1">{q}</span>
+                      <div className="flex items-center gap-1.5 truncate pr-1">
+                        <span className="font-medium text-slate-800 dark:text-slate-200">{q.en}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">· {q.hi}</span>
+                      </div>
                       <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
                     </button>
                   ))}
