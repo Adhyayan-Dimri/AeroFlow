@@ -96,12 +96,12 @@ export default function GoogleAuthButton({ onAuthSuccess, onError, disabled = fa
         onClick={handleManualClick}
         disabled={disabled || loading}
         data-testid="google-auth-btn"
-        className="w-full relative flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-700/60 bg-white/5 hover:bg-white/10 text-slate-200 text-sm font-semibold transition-all duration-200 shadow-sm hover:border-cyan-500/40 hover:text-white disabled:opacity-50 group cursor-pointer"
+        className="w-full relative flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900/90 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm font-bold transition-all duration-200 shadow-sm hover:shadow hover:border-cyan-500/60 dark:hover:border-cyan-500/50 disabled:opacity-50 group cursor-pointer"
       >
         {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+          <Loader2 className="w-4 h-4 animate-spin text-cyan-600 dark:text-cyan-400" />
         ) : (
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
             <path
               fill="#EA4335"
               d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
@@ -120,7 +120,7 @@ export default function GoogleAuthButton({ onAuthSuccess, onError, disabled = fa
             />
           </svg>
         )}
-        <span>{text}</span>
+        <span className="font-semibold text-slate-800 dark:text-slate-100">{text}</span>
       </button>
     </div>
   );

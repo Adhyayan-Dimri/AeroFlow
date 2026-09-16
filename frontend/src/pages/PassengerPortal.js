@@ -314,71 +314,84 @@ export default function PassengerPortal() {
 
           {user && savedFlights.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-aero-cyan/15 flex items-center justify-center text-aero-cyan">
-                    <Bookmark className="w-3.5 h-3.5 fill-aero-cyan" />
+              <div className="flex items-center justify-between mb-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-xl bg-cyan-500/10 dark:bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-sm">
+                    <Bookmark className="w-4 h-4 fill-cyan-500 text-cyan-500" />
                   </div>
-                  <div className="text-sm font-bold text-aero-t1">My Saved Flights</div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-aero-cyan/10 text-aero-cyan border border-aero-cyan/30">
-                    {savedFlights.length} {savedFlights.length === 1 ? "trip" : "trips"}
-                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      My Saved Flights
+                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                        {savedFlights.length} {savedFlights.length === 1 ? "flight" : "flights"}
+                      </span>
+                    </h3>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {savedFlights.map((flight) => {
                   const isDep = flight.direction === "departure";
                   const timeDisplay = isDep ? (flight.etd || flight.std) : (flight.eta || flight.sta);
+                  const isDelayed = flight.status === "delayed";
+
                   return (
                     <div
                       key={flight.flight_id}
-                      className="group relative p-3.5 rounded-xl bg-aero-surface/90 border border-aero-border hover:border-aero-cyan/60 transition-all duration-200 shadow-md hover:shadow-aero-cyan/5 flex flex-col justify-between"
+                      className="group relative p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-400 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <button
-                          onClick={() => loadFlight(flight)}
-                          className="flex-1 text-left cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-black text-sm text-aero-t1 group-hover:text-aero-cyan transition-colors">
-                              {flight.flight_number}
-                            </span>
-                            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                              flight.status === "delayed"
-                                ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                            }`}>
-                              {flight.status || "Scheduled"}
-                            </span>
-                          </div>
-                          <div className="text-xs text-aero-t2 font-medium mt-1 flex items-center gap-1.5">
-                            <span className="font-semibold">{flight.origin}</span>
-                            <ArrowRight className="w-3 h-3 text-aero-t3" />
-                            <span className="font-semibold">{flight.destination}</span>
-                          </div>
-                          <div className="text-[11px] text-aero-t3 mt-1.5 flex items-center gap-2">
-                            <Clock className="w-3 h-3 text-aero-cyan/70" />
-                            <span>{fmtTime(timeDisplay)}</span>
-                            <span>•</span>
-                            <span>{isDep ? `Gate ${flight.gate || "TBD"}` : `Belt ${flight.carousel_number || "TBD"}`}</span>
-                          </div>
-                        </button>
-                        <button
-                          title="Remove from saved"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSaveFlight(flight.flight_id);
-                          }}
-                          className="p-1.5 rounded-lg text-aero-t3 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            onClick={() => loadFlight(flight)}
+                            className="flex-1 text-left cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-black text-base text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                                {flight.flight_number}
+                              </span>
+                              <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md border ${
+                                isDelayed
+                                  ? "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800"
+                                  : "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                              }`}>
+                                {flight.status || "Scheduled"}
+                              </span>
+                            </div>
+
+                            <div className="text-xs text-slate-800 dark:text-slate-200 font-bold mt-2 flex items-center gap-1.5">
+                              <span>{flight.origin}</span>
+                              <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                              <span>{flight.destination}</span>
+                            </div>
+
+                            <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 flex items-center gap-2 font-medium">
+                              <Clock className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{fmtTime(timeDisplay)}</span>
+                              <span>•</span>
+                              <span>{isDep ? `Gate ${flight.gate || "TBD"}` : `Belt ${flight.carousel_number || "TBD"}`}</span>
+                            </div>
+                          </button>
+
+                          <button
+                            title="Remove from saved"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSaveFlight(flight.flight_id);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+
                       <button
                         onClick={() => loadFlight(flight)}
-                        className="mt-3 w-full py-1.5 px-2 rounded-lg bg-aero-cyan/10 hover:bg-aero-cyan/20 text-aero-cyan text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-aero-cyan/30"
+                        className="mt-3.5 w-full py-2 px-3 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-800 dark:text-cyan-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-cyan-200 dark:border-cyan-800 shadow-sm hover:shadow"
                       >
-                        <Sparkles className="w-3 h-3" /> View Journey Forecast
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> View Journey Forecast
                       </button>
                     </div>
                   );
