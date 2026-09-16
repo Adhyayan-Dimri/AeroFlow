@@ -82,17 +82,17 @@ export default function RagAutomationController({
       const { data } = await api.post("/rag/toggle-mode", { mode: nextMode });
       setMode(data.mode);
       if (data.mode === "autonomous") {
-        toast.success("🤖 Autonomous RAG Auto-Pilot Activated", {
-          description: "Real-time AI will auto-deploy staff to congested checkpoints and auto-reassign belts per SOP directives."
+        toast.success("Autonomous Dispatch Enabled", {
+          description: "Checkpoint counters and baggage belts will update automatically based on airport operating standards."
         });
         runEvaluation(true);
       } else {
-        toast.info("Manual Operations Control Active", {
-          description: "RAG will propose recommendations but requires human Duty Manager approval before applying changes."
+        toast.info("Manual Control Enabled", {
+          description: "Duty manager approval required before applying counter and belt changes."
         });
       }
     } catch (err) {
-      toast.error("Failed to toggle RAG mode");
+      toast.error("Failed to toggle operating mode");
     } finally {
       setLoading(false);
     }
@@ -114,14 +114,14 @@ export default function RagAutomationController({
       if (onRefreshTelemetry) onRefreshTelemetry();
       
       if (!silent) {
-        toast.success("RAG Knowledge Evaluation Completed", {
+        toast.success("Operations Evaluated", {
           description: mode === "autonomous" 
-            ? "Tactical actions executed automatically per Airport SOPs." 
-            : "Fresh SOP-backed recommendations generated for review."
+            ? "Terminal staffing and belt assignments updated." 
+            : "Recommendations updated for duty manager review."
         });
       }
     } catch (err) {
-      if (!silent) toast.error("Failed to run RAG evaluation");
+      if (!silent) toast.error("Failed to evaluate operations");
     } finally {
       setEvaluating(false);
     }
@@ -172,20 +172,20 @@ export default function RagAutomationController({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-display font-black text-base text-slate-900 dark:text-white flex items-center gap-1.5">
-                RAG Airport Operations Auto-Pilot
+                Airport Operations SOP Automation
               </h3>
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
                 mode === "autonomous"
-                  ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 animate-pulse"
+                  ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
                   : "bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700"
               }`}>
-                {mode === "autonomous" ? "Autonomous Mode Active" : "Manual Review Mode"}
+                {mode === "autonomous" ? "Autonomous Dispatch Active" : "Manual Authorization Mode"}
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
               {mode === "autonomous"
-                ? "Real-time AI continuously parses live CCTV flow & arrival telemetry to automatically deploy staff and reassign carousels."
-                : "RAG continuously evaluates airport SOPs and proposes 1-click tactical deployments for Duty Manager authorization."}
+                ? "Checkpoint counters and baggage belts update automatically based on live terminal telemetry and SOP thresholds."
+                : "Standard operating procedures evaluate live queue telemetry and propose recommendations for duty manager review."}
             </p>
           </div>
         </div>

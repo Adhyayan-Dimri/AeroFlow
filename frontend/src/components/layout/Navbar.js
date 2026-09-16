@@ -34,8 +34,14 @@ export default function Navbar() {
     const onScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          const isScrolled = window.scrollY > 25;
-          setScrolled((prev) => (prev !== isScrolled ? isScrolled : prev));
+          const currentY = window.scrollY || window.pageYOffset || 0;
+          // Dual-threshold hysteresis: activates at > 50px, deactivates at < 15px
+          // Eliminates boundary flicker when scrolling slowly
+          setScrolled((prev) => {
+            if (!prev && currentY > 50) return true;
+            if (prev && currentY < 15) return false;
+            return prev;
+          });
           ticking = false;
         });
         ticking = true;
@@ -51,33 +57,25 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-[99999] transition-all duration-300 transform-gpu ${
+      className={`sticky top-0 z-[99999] transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-out transform-gpu ${
         scrolled
-          ? "bg-white/95 dark:bg-[#071318]/95 backdrop-blur-2xl shadow-lg dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-b border-cyan-500/30 dark:border-cyan-500/30 py-0"
-          : "bg-white/85 dark:bg-[#071318]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shadow-none py-1 sm:py-1.5"
+          ? "bg-white/95 dark:bg-[#071318]/95 backdrop-blur-2xl shadow-lg dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-b border-cyan-500/30 dark:border-cyan-500/30"
+          : "bg-white/85 dark:bg-[#071318]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shadow-none"
       }`}
       data-testid="navbar"
     >
-      <div className={`max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 ${
-        scrolled ? "h-14 sm:h-16" : "h-16 sm:h-20"
-      }`}>
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-16 sm:h-20">
         <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0" data-testid="nav-logo">
           <img
             src="/logo.png"
             alt="AeroFlow Logo"
-            className={`object-contain transition-all duration-300 ease-out group-hover:scale-105 shrink-0 ${
-              scrolled ? "w-9 h-9 sm:w-12 sm:h-12" : "w-11 h-11 sm:w-14 sm:h-14"
-            }`}
+            className="w-10 h-10 sm:w-12 sm:h-12 object-contain transition-transform duration-300 ease-out group-hover:scale-105 shrink-0"
           />
           <div className="flex flex-col justify-center leading-tight">
-            <div className={`font-display font-black tracking-tight text-slate-900 dark:text-white leading-none transition-all duration-300 ${
-              scrolled ? "text-base sm:text-lg" : "text-lg sm:text-xl"
-            }`}>
+            <div className="font-display font-black tracking-tight text-slate-900 dark:text-white leading-none text-base sm:text-lg">
               AERO<span className="text-cyan-600 dark:text-cyan-400">FLOW</span>
             </div>
-            <div className={`text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap transition-all duration-300 ${
-              scrolled ? "opacity-80 mt-0.5" : "opacity-100 mt-1"
-            }`}>
+            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap mt-1">
               From Curb to Gate, No Need to Wait
             </div>
           </div>
@@ -85,10 +83,10 @@ export default function Navbar() {
 
         {/* Scroll-Driven Animated Mode Toggle Pill */}
         <div
-          className={`hidden md:flex items-center gap-1 rounded-full transition-all duration-300 transform-gpu ${
+          className={`hidden md:flex items-center gap-1 rounded-full transition-[background-color,border-color,box-shadow] duration-300 ${
             scrolled
-              ? "p-1 bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 dark:border-cyan-500/30 shadow-md shadow-cyan-500/10 backdrop-blur-xl scale-[0.98]"
-              : "p-1.5 bg-slate-100/90 dark:bg-slate-900/80 border border-slate-300/80 dark:border-slate-800 shadow-inner scale-100"
+              ? "p-1 bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 dark:border-cyan-500/30 shadow-md shadow-cyan-500/10 backdrop-blur-xl"
+              : "p-1.5 bg-slate-100/90 dark:bg-slate-900/80 border border-slate-300/80 dark:border-slate-800 shadow-inner"
           }`}
         >
           <NavLink
