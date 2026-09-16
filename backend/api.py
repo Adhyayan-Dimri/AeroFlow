@@ -18,6 +18,7 @@ import maps_service
 import email_service
 import sms_service
 import whatsapp_service
+import rag_engine
 from seed_from_master import ensure_flights_for_date
 
 logger = logging.getLogger(__name__)
@@ -1309,3 +1310,186 @@ async def get_holidays():
 async def get_staffing():
     doc = await db.config.find_one({"_id": "staffing"})
     return {"staffing": doc["value"] if doc else []}
+
+# ==========================================
+# RAG AUTONOMOUS OPERATIONS & SOP DIRECTIVES
+# ==========================================
+class RagModeToggleIn(BaseModel):
+    mode: Optional[str] = None
+
+class RagManualActionIn(BaseModel):
+    action_type: str  # "deploy_staff" or "reassign_belt"
+    zone_id: Optional[str] = None
+    counters_open: Optional[int] = None
+    flight_id: Optional[str] = None
+    carousel_id: Optional[str] = None
+    carousel_number: Optional[str] = None
+
+@router.get("/rag/status")
+async def get_rag_status(user: dict = Depends(require_staff)):
+    """Returns current RAG automation mode, recent audit log, and knowledge base stats."""
+    return {
+        "mode": rag_engine.rag_state.mode,
+        "last_evaluated_at": rag_engine.rag_state.last_evaluated_at,
+        "total_sops_indexed": len(rag_engine.AIRPORT_SOP_CORPUS),
+        "recent_audit_log": rag_engine.rag_state.audit_log[:15],
+        "active_manpower_actions": rag_engine.rag_state.active_manpower_actions,
+        "active_baggage_actions": rag_engine.rag_state.active_baggage_actions
+    }
+
+@router.post("/rag/toggle-mode")
+async def toggle_rag_mode(body: RagModeToggleIn, user: dict = Depends(require_staff)):
+    """Switches between 'manual' and 'autonomous' RAG operating mode."""
+    new_mode = rag_engine.rag_state.toggle_mode(body.mode)
+    rag_engine.rag_state.add_audit_entry({
+        "action_type": "MODE_CHANGE",
+        "details": f"Operations operating mode switched to {new_mode.upper()} by {user.get('email')}",
+        "by": user.get("email"),
+        "mode": new_mode
+    })
+    return {"ok": True, "mode": new_mode}
+
+@router.post("/rag/evaluate-congestion")
+async def evaluate_congestion_rag(user: dict = Depends(require_staff)):
+    """Runs RAG retrieval over zone congestion and auto-deploys staff if in autonomous mode."""
+    zones = await db.zones.find({}, {"_id": 0}).to_list(100)
+    today_str = now().strftime("%Y-%m-%d")
+    flights = await db.flights.find({
+        "$or": [{"std": {"$regex": f"^{today_str}"}}, {"sta": {"$regex": f"^{today_str}"}}]
+    }, {"_id": 0}).to_list(300)
+    if not flights:
+        flights = await db.flights.find({}, {"_id": 0}).to_list(100)
+
+    # Compute live metrics for zones
+    augmented_zones = []
+    for z in zones:
+        pred = engines.predict_zone(z, flights, now(), 2.0, now())
+        augmented_zones.append({
+            **z,
+            "current_pax": pred["predicted_count"],
+            "wait_minutes": round(pred["predicted_wait_seconds"] / 60.0, 1),
+            "crowd_level": pred["crowd_level"],
+            "recommended_counters": pred["recommended_counters"]
+        })
+
+    result = rag_engine.evaluate_congestion_and_deploy_staff(augmented_zones, flights, execute_if_autonomous=True)
+
+    # If autonomous, execute database updates for auto-deployed zones
+    if rag_engine.rag_state.mode == "autonomous":
+        for rec in result.get("recommendations", []):
+            if rec.get("status") == "auto_deployed":
+                zid = rec["zone_id"]
+                new_c = rec["recommended_counters"]
+                await db.zones.update_one(
+                    {"zone_id": zid},
+                    {"$set": {"counters_open": new_c, "staffed_at": iso(now())}}
+                )
+                await db.alerts.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "alert_type": "rag_auto_deployment",
+                    "severity": "info",
+                    "zone_id": zid,
+                    "title": f"RAG Auto-Pilot · Staff Deployed ({rec['sop_id']})",
+                    "message": f"Auto-deployed {new_c} counters at {rec['zone_name']}. {rec['sop_title']}",
+                    "triggered_at": iso(now()),
+                    "status": "open",
+                    "deployed_by": "AeroFlow RAG Auto-Pilot"
+                })
+
+    return result
+
+@router.post("/rag/evaluate-baggage")
+async def evaluate_baggage_rag(user: dict = Depends(require_staff)):
+    """Runs RAG retrieval over arrival flights and auto-reassigns carousels if in autonomous mode."""
+    today_str = now().strftime("%Y-%m-%d")
+    arrivals = await db.flights.find({
+        "direction": "arrival",
+        "$or": [{"sta": {"$regex": f"^{today_str}"}}, {"eta": {"$regex": f"^{today_str}"}}]
+    }, {"_id": 0}).to_list(200)
+    if not arrivals:
+        arrivals = await db.flights.find({"direction": "arrival"}, {"_id": 0}).to_list(50)
+
+    carousels = await db.carousels.find({}, {"_id": 0}).to_list(50)
+    result = rag_engine.evaluate_baggage_and_reassign_belts(arrivals, carousels, execute_if_autonomous=True)
+
+    # If autonomous, execute database updates for reassignments
+    if rag_engine.rag_state.mode == "autonomous":
+        for item in result.get("reassignments", []):
+            if item.get("status") == "auto_reassigned":
+                fid = item["flight_id"]
+                target_cid = item["target_carousel_id"]
+                target_cnum = item["target_carousel_number"]
+                
+                await db.flights.update_one(
+                    {"flight_id": fid},
+                    {"$set": {"carousel_id": target_cid, "carousel_number": target_cnum}}
+                )
+                await db.carousel_assignments.update_one(
+                    {"flight_id": fid},
+                    {"$set": {"carousel_id": target_cid, "carousel_number": target_cnum}},
+                    upsert=True
+                )
+                await db.alerts.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "alert_type": "rag_belt_reassignment",
+                    "severity": "info",
+                    "zone_id": f"belt-{target_cnum}",
+                    "title": f"RAG Auto-Pilot · Belt Reassigned ({item['sop_id']})",
+                    "message": f"Flight {item['flight_number']} ({item['aircraft_name']}) auto-reassigned to {target_cnum} ({item['target_length_m']}m). {item['reason']}",
+                    "triggered_at": iso(now()),
+                    "status": "open",
+                    "deployed_by": "AeroFlow RAG Auto-Pilot"
+                })
+
+    return result
+
+@router.post("/rag/execute-action")
+async def execute_rag_action(body: RagManualActionIn, user: dict = Depends(require_staff)):
+    """Executes a single RAG-recommended action manually when in manual mode."""
+    if body.action_type == "deploy_staff" and body.zone_id and body.counters_open:
+        await db.zones.update_one(
+            {"zone_id": body.zone_id},
+            {"$set": {"counters_open": body.counters_open, "staffed_at": iso(now())}}
+        )
+        rag_engine.rag_state.add_audit_entry({
+            "action_type": "MANUAL_STAFF_DEPLOYMENT",
+            "zone_id": body.zone_id,
+            "details": f"Staffing set to {body.counters_open} counters approved by {user.get('email')}",
+            "by": user.get("email"),
+            "mode": "manual"
+        })
+        return {"ok": True, "message": f"Staff deployed to zone {body.zone_id}"}
+        
+    elif body.action_type == "reassign_belt" and body.flight_id and body.carousel_id:
+        c_doc = await db.carousels.find_one({"carousel_id": body.carousel_id})
+        cnum = c_doc.get("carousel_number", body.carousel_number or "AC-01") if c_doc else "AC-01"
+        await db.flights.update_one(
+            {"flight_id": body.flight_id},
+            {"$set": {"carousel_id": body.carousel_id, "carousel_number": cnum}}
+        )
+        await db.carousel_assignments.update_one(
+            {"flight_id": body.flight_id},
+            {"$set": {"carousel_id": body.carousel_id, "carousel_number": cnum}},
+            upsert=True
+        )
+        rag_engine.rag_state.add_audit_entry({
+            "action_type": "MANUAL_BELT_REASSIGNMENT",
+            "flight_id": body.flight_id,
+            "details": f"Flight {body.flight_id} reassigned to belt {cnum} by {user.get('email')}",
+            "by": user.get("email"),
+            "mode": "manual"
+        })
+        return {"ok": True, "message": f"Flight {body.flight_id} reassigned to {cnum}"}
+
+    raise HTTPException(status_code=400, detail="Invalid action parameters")
+
+@router.get("/rag/sops")
+async def get_airport_sops(user: dict = Depends(require_staff)):
+    """Returns the indexed Airport Standard Operating Procedures (SOP) corpus."""
+    return {"sops": rag_engine.AIRPORT_SOP_CORPUS}
+
+@router.get("/rag/audit-log")
+async def get_rag_audit_log(user: dict = Depends(require_staff)):
+    """Returns the full chronological audit trail of all automated and manual RAG actions."""
+    return {"audit_log": rag_engine.rag_state.audit_log}
+

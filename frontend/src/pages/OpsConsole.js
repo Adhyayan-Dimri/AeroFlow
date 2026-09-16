@@ -10,6 +10,7 @@ import HistoricalAnalyticsStudio from "@/components/ops/HistoricalAnalyticsStudi
 import CarouselMasterManager from "@/components/ops/CarouselMasterManager";
 import FlightScheduleDelayManager from "@/components/ops/FlightScheduleDelayManager";
 import CctvFlowMonitor from "@/components/ops/CctvFlowMonitor";
+import RagAutomationController from "@/components/ops/RagAutomationController";
 
 const HERO = "https://images.unsplash.com/photo-1522798120812-304f8819f4be?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTJ8MHwxfHNlYXJjaHw0fHxyYWRhciUyMHNjcmVlbiUyMGFpciUyMHRyYWZmaWN8ZW58MHx8fHwxNzg3ODA2MzI2fDA&ixlib=rb-4.1.0&q=85";
 
@@ -109,7 +110,17 @@ export default function OpsConsole() {
         </div>
       </div>
 
-      <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
+      <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Real-time RAG Auto-Pilot Operations Controller */}
+        <RagAutomationController
+          onRefreshTelemetry={() => {
+            loadZones();
+            loadBaggage();
+            loadAlerts();
+          }}
+          section={tab === "congestion" ? "congestion" : tab === "baggage" || tab === "carousels" ? "baggage" : "all"}
+        />
+
         <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
           {tab === "congestion" && <><ImpactBanner impact={impact} /><TerminalCongestionMap zones={zones} onChanged={loadZones} canEdit={canDeployStaff} /></>}
           {tab === "cctv" && <CctvFlowMonitor />}
