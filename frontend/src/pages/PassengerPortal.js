@@ -313,14 +313,14 @@ export default function PassengerPortal() {
           </motion.div>
 
           {user && savedFlights.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-cyan-500/15 dark:bg-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 border border-cyan-500/30">
-                    <Bookmark className="w-3.5 h-3.5 fill-cyan-500 text-cyan-500" />
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
+              <div className="flex items-center justify-between mb-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-sm">
+                    <Bookmark className="w-3.5 h-3.5 fill-cyan-500/30 text-cyan-600 dark:text-cyan-400" />
                   </div>
-                  <div className="text-sm font-black text-slate-900 dark:text-white tracking-tight">My Saved Flights</div>
-                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                  <div className="text-base font-black text-slate-900 dark:text-white tracking-tight">My Saved Flights</div>
+                  <span className="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
                     {savedFlights.length} {savedFlights.length === 1 ? "trip" : "trips"}
                   </span>
                 </div>
@@ -332,7 +332,7 @@ export default function PassengerPortal() {
                   return (
                     <div
                       key={flight.flight_id}
-                      className="group relative p-4 rounded-2xl bg-white dark:bg-[#071318] border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 dark:hover:border-cyan-400/60 transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-cyan-500/5 flex flex-col justify-between"
+                      className="group relative p-4 rounded-2xl bg-white dark:bg-[#071318]/95 border border-slate-200/90 dark:border-slate-800 hover:border-cyan-500/60 dark:hover:border-cyan-500/60 transition-all duration-200 shadow-md hover:shadow-xl dark:hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col justify-between"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <button
@@ -343,7 +343,7 @@ export default function PassengerPortal() {
                             <span className="font-mono font-black text-base text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                               {flight.flight_number}
                             </span>
-                            <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-md ${
+                            <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md ${
                               flight.status === "delayed"
                                 ? "bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30"
                                 : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
@@ -351,18 +351,16 @@ export default function PassengerPortal() {
                               {flight.status || "Scheduled"}
                             </span>
                           </div>
-                          <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-1.5 flex items-center gap-1.5">
-                            <span>{flight.origin}</span>
-                            <ArrowRight className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                            <span>{flight.destination}</span>
+                          <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-1.5 flex items-center gap-2">
+                            <span className="font-extrabold">{flight.origin}</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                            <span className="font-extrabold">{flight.destination}</span>
                           </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-2 font-medium">
+                          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-2">
                             <Clock className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
                             <span>{fmtTime(timeDisplay)}</span>
                             <span>•</span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">
-                              {isDep ? `Gate ${flight.gate || "TBD"}` : `Belt ${flight.carousel_number || "TBD"}`}
-                            </span>
+                            <span className="font-mono">{isDep ? `Gate ${flight.gate || "TBD"}` : `Belt ${flight.carousel_number || "TBD"}`}</span>
                           </div>
                         </button>
                         <button
@@ -371,14 +369,14 @@ export default function PassengerPortal() {
                             e.stopPropagation();
                             toggleSaveFlight(flight.flight_id);
                           }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       <button
                         onClick={() => loadFlight(flight)}
-                        className="mt-3.5 w-full py-2 px-3 rounded-xl bg-cyan-50 dark:bg-cyan-500/15 hover:bg-cyan-100 dark:hover:bg-cyan-500/25 text-cyan-700 dark:text-cyan-300 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 border border-cyan-300/60 dark:border-cyan-500/40 shadow-sm"
+                        className="mt-3.5 w-full py-2 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 dark:bg-cyan-500/15 dark:hover:bg-cyan-500/25 text-cyan-700 dark:text-cyan-300 text-xs font-black transition-all flex items-center justify-center gap-2 border border-cyan-500/30 shadow-sm"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> View Journey Forecast
                       </button>
@@ -392,24 +390,24 @@ export default function PassengerPortal() {
           {user && recentFlights.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-bold text-slate-900 dark:text-white">Recently Viewed</div>
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Recently Viewed</div>
                 <button
                   data-testid="clear-recently-viewed-btn"
                   onClick={handleClearRecentlyViewed}
-                  className="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-semibold flex items-center gap-1.5 transition-colors px-2.5 py-1 rounded-lg hover:bg-rose-500/10 cursor-pointer"
+                  className="text-xs text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 font-semibold flex items-center gap-1.5 transition-colors px-2 py-1 rounded hover:bg-rose-500/10"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Clear History
                 </button>
               </div>
-              <div className="flex gap-2.5 overflow-x-auto pb-2">
+              <div className="flex gap-2 overflow-x-auto pb-2">
                 {recentFlights.slice(0, 8).map((flight) => (
                   <button
                     key={flight.flight_id}
                     onClick={() => loadFlight(flight)}
-                    className="flex-shrink-0 px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#071318] border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 dark:hover:border-cyan-400/60 text-left transition-all shadow-sm group cursor-pointer"
+                    className="flex-shrink-0 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 dark:hover:border-cyan-500/50 text-left transition-all shadow-sm group"
                   >
-                    <div className="font-mono font-bold text-xs text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400">{flight.flight_number}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-0.5">{flight.origin} → {flight.destination}</div>
+                    <div className="font-mono font-black text-xs text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400">{flight.flight_number}</div>
+                    <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{flight.origin} → {flight.destination}</div>
                   </button>
                 ))}
               </div>

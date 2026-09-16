@@ -96,10 +96,10 @@ export default function GoogleAuthButton({ onAuthSuccess, onError, disabled = fa
         onClick={handleManualClick}
         disabled={disabled || loading}
         data-testid="google-auth-btn"
-        className="w-full relative flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900/90 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm font-bold transition-all duration-200 shadow-sm hover:border-cyan-500/60 hover:shadow-[0_2px_12px_rgba(6,182,212,0.15)] disabled:opacity-50 group cursor-pointer"
+        className="w-full relative flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm font-bold transition-all duration-200 shadow-sm hover:shadow hover:border-cyan-500/50 dark:hover:border-cyan-500/50 hover:text-cyan-700 dark:hover:text-cyan-300 disabled:opacity-50 group cursor-pointer"
       >
         {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-cyan-500" />
+          <Loader2 className="w-4 h-4 animate-spin text-cyan-600 dark:text-cyan-400" />
         ) : (
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
             <path

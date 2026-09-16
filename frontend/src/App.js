@@ -35,27 +35,15 @@ function Shell() {
 }
 
 export default function App() {
-  const [booted, setBooted] = useState(() => {
-    try {
-      return sessionStorage.getItem("aero-booted") === "1" || new URLSearchParams(window.location.search).has("fast");
-    } catch {
-      return true;
-    }
-  });
-
-  const handleDone = React.useCallback(() => {
-    try {
-      sessionStorage.setItem("aero-booted", "1");
-    } catch {}
-    setBooted(true);
-  }, []);
-
+  const [booted, setBooted] = useState(() =>
+    sessionStorage.getItem("aero-booted") === "1" || new URLSearchParams(window.location.search).has("fast")
+  );
   return (
     <ThemeProvider>
       <AuthProvider>
         <div className="App min-h-screen bg-aero-bg text-aero-t1 font-body">
           <AnimatePresence>
-            {!booted && <CinematicLoader onDone={handleDone} />}
+            {!booted && <CinematicLoader onDone={() => { sessionStorage.setItem("aero-booted", "1"); setBooted(true); }} />}
           </AnimatePresence>
           <BrowserRouter>
             <Shell />
