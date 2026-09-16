@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
@@ -35,15 +35,36 @@ function Shell() {
 }
 
 export default function App() {
-  const [booted, setBooted] = useState(() =>
-    sessionStorage.getItem("aero-booted") === "1" || new URLSearchParams(window.location.search).has("fast")
-  );
+  const [booted, setBooted] = useState(() => {
+    try {
+      return (
+        sessionStorage.getItem("aero-booted") === "1" ||
+        new URLSearchParams(window.location.search).has("fast")
+      );
+    } catch {
+      return true;
+    }
+  });
+
+  const handleDone = useCallback(() => {
+    try {
+      sessionStorage.setItem("aero-booted", "1");
+    } catch {}
+    setBooted(true);
+  }, []);
+
+  // Failsafe: Ensure screen is NEVER stuck black
+  useEffect(() => {
+    const timer = setTimeout(() => setBooted(true), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <ThemeProvider>
       <AuthProvider>
-        <div className="App min-h-screen bg-aero-bg text-aero-t1 font-body">
+        <div className="App min-h-screen bg-slate-50 dark:bg-[#071017] text-slate-900 dark:text-slate-100 font-body transition-colors duration-200">
           <AnimatePresence>
-            {!booted && <CinematicLoader onDone={() => { sessionStorage.setItem("aero-booted", "1"); setBooted(true); }} />}
+            {!booted && <CinematicLoader onDone={handleDone} />}
           </AnimatePresence>
           <BrowserRouter>
             <Shell />
