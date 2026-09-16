@@ -9,9 +9,10 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 
 export default function Login() {
-  const { login, verifyOtp, formatApiError } = useAuth();
+  const { login, googleLogin, verifyOtp, formatApiError } = useAuth();
   const nav = useNavigate();
   const [params] = useSearchParams();
   const loginType = params.get("type") || (params.get("next")?.startsWith("/ops") ? "staff" : "passenger");
@@ -165,6 +166,34 @@ export default function Login() {
           {busy ? "Signing in…" : (isStaffFlow ? "Access Operations Console" : "Sign in as Passenger")}
         </Button>
       </form>
+
+      {!isStaffFlow && (
+        <div className="mt-5 space-y-4">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-aero-border w-full" />
+            <span className="bg-aero-surface px-3 text-[11px] uppercase tracking-wider text-aero-t3 font-medium absolute">
+              or continue with
+            </span>
+          </div>
+
+          <GoogleAuthButton
+            text="Sign in with Google"
+            disabled={busy}
+            onAuthSuccess={async (cred) => {
+              try {
+                setBusy(true);
+                const u = await googleLogin(cred);
+                await handlePostLogin(u);
+              } catch (e2) {
+                setErr(formatApiError(e2.response?.data?.detail) || e2.message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+            onError={(err) => setErr(err.message)}
+          />
+        </div>
+      )}
 
       <div className="flex flex-col gap-2 mt-5 text-sm text-center">
         <p className="text-aero-t2">

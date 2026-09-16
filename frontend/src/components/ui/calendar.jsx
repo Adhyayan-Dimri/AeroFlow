@@ -9,12 +9,41 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  disabled,
   ...props
 }) {
+  const yesterday = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const effectiveDisabled = React.useMemo(() => {
+    if (disabled === undefined) {
+      return { before: yesterday };
+    }
+    if (typeof disabled === "function") {
+      return (date) => date < yesterday || disabled(date);
+    }
+    if (Array.isArray(disabled)) {
+      return [{ before: yesterday }, ...disabled];
+    }
+    if (disabled && typeof disabled === "object") {
+      if (disabled.before) {
+        const customBefore = new Date(disabled.before);
+        return { ...disabled, before: customBefore > yesterday ? customBefore : yesterday };
+      }
+      return [{ before: yesterday }, disabled];
+    }
+    return disabled;
+  }, [disabled, yesterday]);
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
+      disabled={effectiveDisabled}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",

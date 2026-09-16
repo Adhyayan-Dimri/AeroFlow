@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Cell, Legend } from "recharts";
 import api from "@/lib/api";
-import { Loader2, Layers, Flame } from "lucide-react";
+import { Loader2, Layers, Flame, Compass } from "lucide-react";
+import TerminalSpatialHeatmap from "./TerminalSpatialHeatmap";
 
 const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -279,7 +280,7 @@ export default function HistoricalAnalyticsStudio() {
       <div className="flex items-center justify-between">
         <div>
           <div className="overline text-aero-t3">ML Forecast Studio</div>
-          <h3 className="font-display text-xl font-bold">Historical analytics</h3>
+          <h3 className="font-display text-xl font-bold">Historical analytics & Spatial Intelligence</h3>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-aero-border p-0.5">
           {["1h", "24h", "7d", "30d"].map((r) => (
@@ -288,6 +289,9 @@ export default function HistoricalAnalyticsStudio() {
           ))}
         </div>
       </div>
+
+      {/* Terminal 3 Spatial Density Heatmap (2D Interactive Concourse Intelligence) */}
+      <TerminalSpatialHeatmap />
 
       <div className="aero-card p-5">
         <div className="overline text-aero-t3 mb-3">Terminal passenger volume · avg wait (min)</div>
@@ -407,7 +411,7 @@ function BusiestHourHeatmap({ heat, maxHeat }) {
               Busiest Hour Heatmap · 7-Day Terminal Profile
             </div>
             <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-              Hourly Passenger Load Analysis (Delhi IGI T3)
+              Hourly Passenger Load Analysis (Hub Terminal 3)
             </div>
           </div>
 

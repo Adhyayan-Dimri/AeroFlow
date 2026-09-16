@@ -51,6 +51,15 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const googleLogin = async (payload) => {
+    const { data } = await api.post("/auth/google", payload);
+    if (data.access_token) {
+      try { localStorage.setItem("aero_token", data.access_token); } catch {}
+    }
+    setUser(data.user);
+    return data.user;
+  };
+
   const logout = async () => {
     try {
       localStorage.removeItem("aero_token");
@@ -62,7 +71,7 @@ export function AuthProvider({ children }) {
   const isStaff = user && STAFF_ROLES.includes(user.role);
 
   return (
-    <AuthContext.Provider value={{ user, checked, refresh, login, verifyOtp, logout, isStaff, formatApiError }}>
+    <AuthContext.Provider value={{ user, checked, refresh, login, googleLogin, verifyOtp, logout, isStaff, formatApiError }}>
       {children}
     </AuthContext.Provider>
   );

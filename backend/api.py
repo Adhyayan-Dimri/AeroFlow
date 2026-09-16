@@ -29,35 +29,6 @@ SLA_FIRST_BAG = {"DOM": 20, "INT": 35}
 class FlightPreferenceIn(BaseModel):
     flight_id: str
 
-@router.post("/user/saved-flights")
-async def save_flight(body: FlightPreferenceIn, user: dict = Depends(get_current_user)):
-    user_id = str(user["_id"])
-    await db.user_preferences.update_one(
-        {"user_id": user_id},
-        {"$addToSet": {"saved_flights": body.flight_id}},
-        upsert=True
-    )
-    return {"ok": True}
-
-@router.delete("/user/saved-flights/{flight_id}")
-async def unsave_flight(flight_id: str, user: dict = Depends(get_current_user)):
-    user_id = str(user["_id"])
-    await db.user_preferences.update_one(
-        {"user_id": user_id},
-        {"$pull": {"saved_flights": flight_id}}
-    )
-    return {"ok": True}
-
-@router.get("/user/saved-flights")
-async def get_saved_flights(user: dict = Depends(get_current_user)):
-    user_id = str(user["_id"])
-    pref = await db.user_preferences.find_one({"user_id": user_id}, {"_id": 0})
-    saved_ids = pref.get("saved_flights", []) if pref else []
-    if not saved_ids:
-        return {"flights": []}
-    flights = await db.flights.find({"flight_id": {"$in": saved_ids}}, {"_id": 0}).to_list(50)
-    return {"flights": flights}
-
 @router.post("/user/recently-viewed")
 async def add_recently_viewed(body: FlightPreferenceIn, user: dict = Depends(get_current_user)):
     user_id = str(user["_id"])
@@ -403,28 +374,49 @@ class SaveFlightIn(BaseModel):
 @router.post("/users/me/saved-flights")
 @router.post("/user/saved-flights")
 async def save_flight(body: SaveFlightIn, background: BackgroundTasks, user: dict = Depends(get_current_user)):
+    user_id = str(user["_id"])
     f = await db.flights.find_one({"flight_id": body.flight_id}, {"_id": 0})
     if not f:
-        raise HTTPException(status_code=404, detail="Flight not found")
-    if await db.saved_flights.find_one({"user_id": str(user["_id"]), "flight_id": body.flight_id}):
-        return {"ok": True, "already": True}
-    await db.saved_flights.insert_one({"id": str(uuid.uuid4()), "user_id": str(user["_id"]),
-                                       "flight_id": body.flight_id, "created_at": iso(now())})
-    return {"ok": True}
+        f = await db.flights.find_one({"id": body.flight_id}, {"_id": 0})
+        if not f:
+            raise HTTPException(status_code=404, detail="Flight not found")
+    
+    await db.user_preferences.update_one(
+        {"user_id": user_id},
+        {"$addToSet": {"saved_flights": body.flight_id}},
+        upsert=True
+    )
+    if not await db.saved_flights.find_one({"user_id": user_id, "flight_id": body.flight_id}):
+        await db.saved_flights.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "flight_id": body.flight_id,
+            "created_at": iso(now())
+        })
+    return {"ok": True, "status": "success"}
 
 @router.get("/users/me/saved-flights")
 @router.get("/user/saved-flights")
 async def list_saved(user: dict = Depends(get_current_user)):
-    saved = await db.saved_flights.find({"user_id": str(user["_id"])}, {"_id": 0}).to_list(100)
-    fids = [s["flight_id"] for s in saved]
-    flights = await db.flights.find({"flight_id": {"$in": fids}}, {"_id": 0}).to_list(100)
-    return {"flights": flights}
+    user_id = str(user["_id"])
+    pref = await db.user_preferences.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    sf_docs = await db.saved_flights.find({"user_id": user_id}, {"_id": 0}).to_list(100)
+    saved_ids = list(set(pref.get("saved_flights", [])) | {s["flight_id"] for s in sf_docs if s.get("flight_id")})
+    if not saved_ids:
+        return {"flights": [], "saved_flights": []}
+    flights = await db.flights.find({"flight_id": {"$in": saved_ids}}, {"_id": 0}).to_list(100)
+    return {"flights": flights, "saved_flights": flights}
 
 @router.delete("/users/me/saved-flights/{flight_id}")
 @router.delete("/user/saved-flights/{flight_id}")
 async def del_saved(flight_id: str, user: dict = Depends(get_current_user)):
-    await db.saved_flights.delete_one({"user_id": str(user["_id"]), "flight_id": flight_id})
-    return {"ok": True}
+    user_id = str(user["_id"])
+    await db.user_preferences.update_one(
+        {"user_id": user_id},
+        {"$pull": {"saved_flights": flight_id}}
+    )
+    await db.saved_flights.delete_many({"user_id": user_id, "flight_id": flight_id})
+    return {"ok": True, "status": "success"}
 
 class NudgeIn(BaseModel):
     flight_id: str

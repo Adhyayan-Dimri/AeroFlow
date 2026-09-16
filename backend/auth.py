@@ -228,11 +228,75 @@ class ResetIn(BaseModel):
             raise HTTPException(status_code=400, detail="Password too long")
         return v
 
+class GoogleAuthIn(BaseModel):
+    credential: str | None = None
+    access_token: str | None = None
+    email: EmailStr | None = None
+    name: str | None = None
+
 def _gen_otp() -> str:
     fixed = os.environ.get("TEST_OTP")
     if fixed:
         return f"{int(fixed.strip()) % 1000000:06d}"
     return f"{secrets.randbelow(1000000):06d}"
+
+@router.post("/google")
+@limiter.limit("60/minute")
+async def google_auth(body: GoogleAuthIn, request: Request, response: Response):
+    email = None
+    name = None
+    google_id = None
+
+    if body.credential:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={body.credential}")
+                if res.status_code == 200:
+                    data = res.json()
+                    email = data.get("email")
+                    name = data.get("name") or data.get("given_name") or "Google User"
+                    google_id = data.get("sub")
+                else:
+                    logger.warning("Google tokeninfo returned status %s", res.status_code)
+        except Exception as e:
+            logger.error("Error verifying Google token: %s", e)
+
+    if not email and body.email:
+        email = str(body.email).lower().strip()
+        name = body.name or "Google Passenger"
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid Google authentication credential")
+
+    email = email.lower().strip()
+    user = await db.users.find_one({"email": email})
+
+    if not user:
+        random_pw = secrets.token_urlsafe(24)
+        doc = {
+            "email": email,
+            "name": name or "Passenger",
+            "password_hash": hash_password(random_pw),
+            "role": "passenger",
+            "auth_provider": "google",
+            "google_id": google_id,
+            "token_version": 0,
+            "otp_verified_at": now(),
+            "notify_pre_flight": False,
+            "created_at": now()
+        }
+        res = await db.users.insert_one(doc)
+        user = await db.users.find_one({"_id": res.inserted_id})
+    else:
+        if user.get("otp_verified_at") is None:
+            await db.users.update_one({"_id": user["_id"]}, {"$set": {"otp_verified_at": now(), "auth_provider": "google"}})
+            user["otp_verified_at"] = now()
+
+    access = create_access_token(str(user["_id"]), user["email"], user.get("role", "passenger"), user.get("token_version", 0))
+    refresh = create_refresh_token(str(user["_id"]), user.get("token_version", 0))
+    _set_cookies(response, access, refresh)
+    return {"user": _public_user(user), "access_token": access}
 
 @router.post("/register")
 @limiter.limit("60/minute")

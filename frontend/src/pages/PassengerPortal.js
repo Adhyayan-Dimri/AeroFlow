@@ -57,10 +57,25 @@ export default function PassengerPortal() {
   const [planes, setPlanes] = useState([]);
   const [params] = useSearchParams();
   const [userPrefs, setUserPrefs] = useState({ saved_flights: [], recently_viewed: [] });
+  const [savedFlights, setSavedFlights] = useState([]);
   const [recentFlights, setRecentFlights] = useState([]);
   const [dossierOpen, setDossierOpen] = useState(true);
   const detailsRef = useRef(null);
   const { user } = useAuth();
+
+  const fetchSavedFlights = () => {
+    if (!user) return;
+    api.get("/user/saved-flights")
+      .then(({ data }) => {
+        const list = data.flights || [];
+        setSavedFlights(list);
+        setUserPrefs(prev => ({
+          ...prev,
+          saved_flights: list.map(f => f.flight_id)
+        }));
+      })
+      .catch(() => {});
+  };
 
   const scrollToDetails = () => {
     if (detailsRef.current) {
@@ -106,9 +121,13 @@ export default function PassengerPortal() {
       api.get("/user/preferences").then(({ data }) => {
         setUserPrefs(data);
       }).catch(() => { });
+      fetchSavedFlights();
       api.get("/user/recently-viewed").then(({ data }) => {
         setRecentFlights(data.flights || []);
       }).catch(() => { });
+    } else {
+      setSavedFlights([]);
+      setRecentFlights([]);
     }
   }, [user]);
 
@@ -213,19 +232,12 @@ export default function PassengerPortal() {
     try {
       if (isSaved) {
         await api.delete(`/user/saved-flights/${flightId}`);
-        setUserPrefs(prev => ({
-          ...prev,
-          saved_flights: prev.saved_flights.filter(id => id !== flightId)
-        }));
         toast.success("Flight removed from saved");
       } else {
         await api.post("/user/saved-flights", { flight_id: flightId });
-        setUserPrefs(prev => ({
-          ...prev,
-          saved_flights: [...prev.saved_flights, flightId]
-        }));
         toast.success("Flight saved");
       }
+      fetchSavedFlights();
     } catch (e) {
       toast.error("Failed to update saved flights");
     }
@@ -299,6 +311,81 @@ export default function PassengerPortal() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }} className="mt-8">
             <FlightSearchHero onSelect={loadFlight} onLocationChange={handleLocationChange} />
           </motion.div>
+
+          {user && savedFlights.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-md bg-aero-cyan/15 flex items-center justify-center text-aero-cyan">
+                    <Bookmark className="w-3.5 h-3.5 fill-aero-cyan" />
+                  </div>
+                  <div className="text-sm font-bold text-aero-t1">My Saved Flights</div>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-aero-cyan/10 text-aero-cyan border border-aero-cyan/30">
+                    {savedFlights.length} {savedFlights.length === 1 ? "trip" : "trips"}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {savedFlights.map((flight) => {
+                  const isDep = flight.direction === "departure";
+                  const timeDisplay = isDep ? (flight.etd || flight.std) : (flight.eta || flight.sta);
+                  return (
+                    <div
+                      key={flight.flight_id}
+                      className="group relative p-3.5 rounded-xl bg-aero-surface/90 border border-aero-border hover:border-aero-cyan/60 transition-all duration-200 shadow-md hover:shadow-aero-cyan/5 flex flex-col justify-between"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <button
+                          onClick={() => loadFlight(flight)}
+                          className="flex-1 text-left cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-sm text-aero-t1 group-hover:text-aero-cyan transition-colors">
+                              {flight.flight_number}
+                            </span>
+                            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                              flight.status === "delayed"
+                                ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            }`}>
+                              {flight.status || "Scheduled"}
+                            </span>
+                          </div>
+                          <div className="text-xs text-aero-t2 font-medium mt-1 flex items-center gap-1.5">
+                            <span className="font-semibold">{flight.origin}</span>
+                            <ArrowRight className="w-3 h-3 text-aero-t3" />
+                            <span className="font-semibold">{flight.destination}</span>
+                          </div>
+                          <div className="text-[11px] text-aero-t3 mt-1.5 flex items-center gap-2">
+                            <Clock className="w-3 h-3 text-aero-cyan/70" />
+                            <span>{fmtTime(timeDisplay)}</span>
+                            <span>•</span>
+                            <span>{isDep ? `Gate ${flight.gate || "TBD"}` : `Belt ${flight.carousel_number || "TBD"}`}</span>
+                          </div>
+                        </button>
+                        <button
+                          title="Remove from saved"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSaveFlight(flight.flight_id);
+                          }}
+                          className="p-1.5 rounded-lg text-aero-t3 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => loadFlight(flight)}
+                        className="mt-3 w-full py-1.5 px-2 rounded-lg bg-aero-cyan/10 hover:bg-aero-cyan/20 text-aero-cyan text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-aero-cyan/30"
+                      >
+                        <Sparkles className="w-3 h-3" /> View Journey Forecast
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
 
           {user && recentFlights.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">

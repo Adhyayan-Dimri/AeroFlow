@@ -10,9 +10,10 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import api, { formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 
 export default function Register() {
-  const { verifyOtp } = useAuth();
+  const { verifyOtp, googleLogin } = useAuth();
   const nav = useNavigate();
   const [step, setStep] = useState("form");
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
@@ -124,6 +125,36 @@ export default function Register() {
           {busy ? "Creating…" : "Create account"}
         </Button>
       </form>
+
+      {!isStaff && (
+        <div className="mt-5 space-y-4">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-aero-border w-full" />
+            <span className="bg-aero-surface px-3 text-[11px] uppercase tracking-wider text-aero-t3 font-medium absolute">
+              or sign up with
+            </span>
+          </div>
+
+          <GoogleAuthButton
+            text="Sign up with Google"
+            disabled={busy}
+            onAuthSuccess={async (cred) => {
+              try {
+                setBusy(true);
+                const u = await googleLogin(cred);
+                toast.success(`Welcome to AeroFlow, ${u.name}!`);
+                nav("/");
+              } catch (e2) {
+                setErr(formatApiError(e2.response?.data?.detail) || e2.message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+            onError={(err) => setErr(err.message)}
+          />
+        </div>
+      )}
+
       <div className="flex justify-between text-sm text-aero-t2 mt-5">
         <Link to="/" className="text-aero-t3 hover:text-aero-t1" data-testid="goto-home">← Back to home</Link>
         <span>Already have an account? <Link to="/login" className="text-aero-cyan hover:underline" data-testid="goto-login">Sign in</Link></span>
