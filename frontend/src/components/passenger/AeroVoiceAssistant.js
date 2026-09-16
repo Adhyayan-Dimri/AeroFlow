@@ -201,8 +201,7 @@ export default function AeroVoiceAssistant({
   // Keyboard Shortcut: Press 'V' to toggle Voice Assistant
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Avoid triggering when user is typing in form inputs
-      if (["INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
 
       if (e.key === "v" || e.key === "V") {
         e.preventDefault();
@@ -216,7 +215,7 @@ export default function AeroVoiceAssistant({
                   recognitionRef.current.start();
                 } catch (err) {}
               }
-            }, 400);
+            }, 350);
           } else {
             if (typeof window !== "undefined" && window.speechSynthesis) {
               window.speechSynthesis.cancel();
@@ -249,7 +248,6 @@ export default function AeroVoiceAssistant({
     utterance.pitch = 1.0;
     utterance.lang = "en-IN";
 
-    // Pick natural voice if available
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(
       (v) => (v.lang === "en-IN" || v.lang === "en-GB" || v.lang === "en-US") && v.name.includes("Natural")
@@ -278,7 +276,7 @@ export default function AeroVoiceAssistant({
   const startListening = () => {
     stopSpeaking();
     if (!recognitionRef.current) {
-      toast.info("Voice Input not supported in this browser. Please use Chrome, Edge, or Safari.");
+      toast.info("Voice recognition supported in Chrome, Edge, and Safari.");
       return;
     }
     try {
@@ -302,27 +300,25 @@ export default function AeroVoiceAssistant({
     const depTimeStr = flight.departure_time || flight.scheduled_departure;
     
     // Base times in minutes
-    const forecourtTime = 3; // DigiYatra entry average
-    const checkinTime = isIntl ? 14 : 9;
-    const securityTime = 7;
-    const immigrationTime = isIntl ? 12 : 0;
-    const gateWalkTime = 10;
-    const boardingBuffer = isIntl ? 35 : 20;
+    const forecourtTime = 3;
+    const checkinTime = isIntl ? 12 : 8;
+    const securityTime = 6;
+    const immigrationTime = isIntl ? 10 : 0;
+    const gateWalkTime = 9;
+    const boardingBuffer = isIntl ? 30 : 20;
     const totalTerminalTime = forecourtTime + checkinTime + securityTime + immigrationTime + gateWalkTime + boardingBuffer;
 
-    // City drive time estimation (minutes)
     let cityDriveTime = 45;
     if (originCity.toLowerCase().includes("gurugram") || originCity.toLowerCase().includes("gurgaon")) {
       cityDriveTime = 30;
-    } else if (originCity.toLowerCase().includes("noida") || originCity.toLowerCase().includes("greater noida")) {
-      cityDriveTime = 65;
-    } else if (originCity.toLowerCase().includes("south delhi") || originCity.toLowerCase().includes("vasant")) {
+    } else if (originCity.toLowerCase().includes("noida")) {
+      cityDriveTime = 60;
+    } else if (originCity.toLowerCase().includes("south delhi")) {
       cityDriveTime = 25;
     }
 
     const totalPreFlightMinutes = cityDriveTime + totalTerminalTime;
 
-    // Compute Leave Home Timestamp
     let depDate = new Date();
     if (depTimeStr) {
       const parts = depTimeStr.split(":");
@@ -350,23 +346,22 @@ export default function AeroVoiceAssistant({
       isIntl,
       gateNumber: flight.gate || "Gate 32B",
       breakdown: [
-        { label: "Drive to Delhi T3", time: `${cityDriveTime} mins`, desc: `From ${originCity}` },
-        { label: "Forecourt Entry", time: `${forecourtTime} mins`, desc: "Gate 2 / DigiYatra E-Gate" },
-        { label: "Check-in & Bag Drop", time: `${checkinTime} mins`, desc: isIntl ? "Island C (Intl)" : "Island B (Domestic)" },
-        { label: "CISF Security Screening", time: `${securityTime} mins`, desc: "Security Hold Area" },
-        ...(isIntl ? [{ label: "Immigration Clearance", time: `${immigrationTime} mins`, desc: "Bureau of Immigration" }] : []),
-        { label: "Walk to Gate", time: `${gateWalkTime} mins`, desc: flight.gate ? `To ${flight.gate}` : "To Concourse B" },
-        { label: "Boarding Buffer", time: `${boardingBuffer} mins`, desc: "Gate closes before departure" }
+        { label: "Drive to T3", time: `${cityDriveTime}m`, desc: `From ${originCity}` },
+        { label: "DigiYatra Entry", time: `${forecourtTime}m`, desc: "Gate 2 / E-Gate" },
+        { label: "Check-in", time: `${checkinTime}m`, desc: isIntl ? "Island C" : "Island B" },
+        { label: "CISF Security", time: `${securityTime}m`, desc: "Security Area" },
+        ...(isIntl ? [{ label: "Immigration", time: `${immigrationTime}m`, desc: "Immigration Hall" }] : []),
+        { label: "Walk to Gate", time: `${gateWalkTime}m`, desc: flight.gate || "Gate 32B" },
+        { label: "Boarding Buffer", time: `${boardingBuffer}m`, desc: "Pre-departure" }
       ]
     };
   }, [originCity]);
 
-  // Voice Query Processing Brain
+  // Voice Query Brain
   const handleVoiceQuery = useCallback((queryText) => {
     const q = queryText.toLowerCase().trim();
     if (!q) return;
 
-    // Determine target flight
     const activeFlight = selectedFlight || savedFlights[0] || (allFlights.length > 0 ? allFlights[0] : {
       flight_number: "AI-805",
       destination: "Mumbai (BOM)",
@@ -376,7 +371,6 @@ export default function AeroVoiceAssistant({
     });
 
     let spokenAnswer = "";
-    let generatedAdvice = null;
 
     // 1. Leave Home & Transit Timing Intent
     if (
@@ -390,22 +384,19 @@ export default function AeroVoiceAssistant({
       q.includes("departure advice")
     ) {
       const advice = calculateLeaveHomeAdvice(activeFlight);
-      generatedAdvice = advice;
       setTransitAdvice(advice);
 
       spokenAnswer = `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: ` +
-        `Your total estimated time inside Terminal 3 is ${advice.totalTerminalTime} minutes. ` +
-        `With an estimated ${advice.cityDriveTime} minute drive from ${originCity}, we recommend you leave home by ${advice.leaveHomeTimeFormatted}, ` +
-        `arriving at the T3 curb by ${advice.curbArrivalTimeFormatted}. ` +
-        `This includes 3 minutes for DigiYatra entry, ${advice.breakdown[2].time} for check-in and security, and 10 minutes walk to ${advice.gateNumber}.`;
+        `Your total time inside Terminal 3 is approximately ${advice.totalTerminalTime} minutes. ` +
+        `With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted}, ` +
+        `reaching the T3 curb by ${advice.curbArrivalTimeFormatted}.`;
     }
 
     // 2. Flight Status & Gate Guidance
     else if (q.includes("flight") || q.includes("gate") || q.includes("where is my") || q.includes("status")) {
       const gateStr = activeFlight.gate || "Gate 32B";
       const depTime = activeFlight.departure_time || activeFlight.scheduled_departure || "06:45 PM";
-      spokenAnswer = `Your flight ${activeFlight.flight_number} to ${activeFlight.destination} is on schedule for departure at ${depTime} from ${gateStr}, Terminal 3. ` +
-        `Security screening queue is currently running smoothly with an average 4-minute wait time.`;
+      spokenAnswer = `Flight ${activeFlight.flight_number} to ${activeFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3. Security queue is approximately 4 minutes.`;
     }
 
     // 3. Directions & Wayfinding
@@ -415,33 +406,33 @@ export default function AeroVoiceAssistant({
       } else if (q.includes("international") || q.includes("pier a")) {
         spokenAnswer = T3_LOCATIONS.gates.gate15;
       } else {
-        spokenAnswer = `To reach domestic boarding gates 27 through 62, proceed straight through Security Hold Area North and follow the illuminated tactile walkway towards the central atrium. Elevator and ramp access are available at every gate.`;
+        spokenAnswer = `To reach boarding gates, proceed through Security Hold Area North and follow the illuminated tactile walkway towards the central atrium. Elevators are available at every gate.`;
       }
     }
 
     // 4. Accessibility / PRM Assistance
     else if (q.includes("wheelchair") || q.includes("blind") || q.includes("assistance") || q.includes("help") || q.includes("prm") || q.includes("special assistance")) {
-      spokenAnswer = T3_LOCATIONS.amenities.wheelchair + " You can also request an electric buggy or assistance officer at Departure Gate 4.";
+      spokenAnswer = T3_LOCATIONS.amenities.wheelchair + " Assistance officers are on duty at Departure Gate 4.";
     }
 
     // 5. Security & Queues
     else if (q.includes("security") || q.includes("queue") || q.includes("rush") || q.includes("crowd") || q.includes("digiyatra") || q.includes("wait")) {
-      spokenAnswer = `Security Hold Area North has 6 lanes open with a 4-minute wait time. DigiYatra biometric e-gates at Gate 2 and Gate 6 are clear with zero wait time.`;
+      spokenAnswer = `Security screening currently has 6 active lanes with a 4-minute average wait. DigiYatra e-gates at Gate 2 are clear.`;
     }
 
     // 6. Baggage & Reclaim Belts
     else if (q.includes("baggage") || q.includes("belt") || q.includes("carousel") || q.includes("luggage")) {
       const beltNum = activeFlight.carousel_number || "Belt 4";
-      spokenAnswer = `Baggage for arrival flight ${activeFlight.flight_number} is scheduled at High-Capacity ${beltNum} on Ground Reclaim Floor. Estimated bag arrival is within 12 minutes of touchdown.`;
+      spokenAnswer = `Arrival baggage for ${activeFlight.flight_number} is scheduled at ${beltNum} on Ground Reclaim. Bags arrive within 12 minutes of touchdown.`;
     }
 
     // 7. General Airport FAQ Fallback
     else {
-      spokenAnswer = `I understand you are asking about ${queryText}. Delhi Terminal 3 is operating smoothly. Your flight ${activeFlight.flight_number} departs from ${activeFlight.gate || "Gate 32B"}. You can ask me when to leave home, for step-by-step directions to your gate, or where to find wheelchair assistance.`;
+      spokenAnswer = `Terminal 3 is operating smoothly. Flight ${activeFlight.flight_number} departs from ${activeFlight.gate || "Gate 32B"}. Ask me when to leave home or for directions to your gate.`;
     }
 
     setResponse(spokenAnswer);
-    setHistory((prev) => [{ query: queryText, answer: spokenAnswer, time: new Date() }, ...prev.slice(0, 5)]);
+    setHistory((prev) => [{ query: queryText, answer: spokenAnswer, time: new Date() }, ...prev.slice(0, 3)]);
     speakText(spokenAnswer);
   }, [selectedFlight, savedFlights, allFlights, calculateLeaveHomeAdvice, originCity, speakText]);
 
@@ -449,7 +440,6 @@ export default function AeroVoiceAssistant({
     handleVoiceQueryRef.current = handleVoiceQuery;
   }, [handleVoiceQuery]);
 
-  // Trigger quick prompt
   const handleQuickPrompt = (promptText) => {
     setTranscript(promptText);
     handleVoiceQuery(promptText);
@@ -457,97 +447,92 @@ export default function AeroVoiceAssistant({
 
   return (
     <>
-      {/* 1. Floating High-Contrast Accessible Voice Button */}
+      {/* Floating Accessible Audio Pill */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 pointer-events-auto">
         <motion.button
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
           onClick={() => {
             if (!isOpen) {
               setIsOpen(true);
               earcon.playStartListening();
-              setTimeout(() => startListening(), 350);
+              setTimeout(() => startListening(), 300);
             } else {
               setIsOpen(false);
               stopSpeaking();
               earcon.playClose();
             }
           }}
-          className={`relative group flex items-center gap-3 px-4 py-3.5 rounded-full shadow-2xl transition-all border-2 cursor-pointer ${
+          className={`relative group flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-xl transition-all border-2 cursor-pointer ${
             isOpen
-              ? "bg-cyan-500 text-slate-950 border-cyan-300 shadow-cyan-500/40"
-              : "bg-slate-950/95 text-white border-cyan-500/60 hover:border-cyan-400 shadow-black/60"
+              ? "bg-cyan-500 text-slate-950 border-cyan-400 shadow-cyan-500/30"
+              : "bg-white dark:bg-[#071318] text-slate-900 dark:text-white border-cyan-500/70 hover:border-cyan-400 shadow-slate-900/10 dark:shadow-black/50"
           }`}
-          aria-label="AeroFlow Accessibility Voice Assistant for Blind and Visually Impaired Passengers"
-          title="Press 'V' or click to activate Voice Assistant"
+          aria-label="AeroFlow Accessibility Voice Assistant for Blind Passengers"
+          title="Press 'V' or click for Voice Assistant"
         >
-          {/* Animated Neon Pulse Waves */}
           <div className="relative flex items-center justify-center">
-            <span className={`absolute w-8 h-8 rounded-full bg-cyan-400/30 ${isListening || isSpeaking ? "animate-ping" : "group-hover:animate-ping"}`} />
-            <div className="w-9 h-9 rounded-full bg-cyan-500 text-slate-950 grid place-items-center font-bold">
+            <span className={`absolute w-7 h-7 rounded-full bg-cyan-400/30 ${isListening || isSpeaking ? "animate-ping" : "group-hover:animate-ping"}`} />
+            <div className="w-8 h-8 rounded-full bg-cyan-500 text-slate-950 grid place-items-center font-bold shrink-0">
               {isListening ? (
-                <Mic className="w-5 h-5 text-slate-950 animate-pulse" />
+                <Mic className="w-4 h-4 text-slate-950 animate-pulse" />
               ) : isSpeaking ? (
-                <Volume2 className="w-5 h-5 text-slate-950 animate-bounce" />
+                <Volume2 className="w-4 h-4 text-slate-950 animate-bounce" />
               ) : (
-                <Accessibility className="w-5 h-5 text-slate-950" />
+                <Accessibility className="w-4 h-4 text-slate-950" />
               )}
             </div>
           </div>
 
-          <div className="flex flex-col items-start pr-1">
+          <div className="flex flex-col items-start pr-0.5">
             <span className="font-display font-black text-xs sm:text-sm tracking-tight leading-none flex items-center gap-1.5">
               Voice Assistant
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
-                Press V
+              <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                V
               </span>
             </span>
-            <span className="text-[10px] opacity-80 text-left font-medium mt-0.5">
-              {isListening ? "Listening now..." : isSpeaking ? "Speaking answer..." : "Blind & Accessibility Audio Guide"}
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              {isListening ? "Listening..." : isSpeaking ? "Speaking..." : "Audio Guide"}
             </span>
           </div>
         </motion.button>
       </div>
 
-      {/* 2. Full High-Contrast Voice Assistant Interface Modal */}
+      {/* Compact, Light/Dark Mode Accessible Dialog */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 15, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.25 }}
-            className="fixed bottom-24 right-4 sm:right-6 z-50 w-[95vw] sm:w-[480px] max-h-[85vh] bg-slate-950/98 backdrop-blur-2xl border-2 border-cyan-500/50 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-white p-5 sm:p-6 overflow-y-auto space-y-4 font-sans"
+            exit={{ opacity: 0, y: 15, scale: 0.96 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-20 right-4 sm:right-6 z-50 w-[calc(100vw-32px)] sm:w-[380px] max-h-[70vh] bg-white/95 dark:bg-[#071318]/95 backdrop-blur-2xl border-2 border-slate-200 dark:border-cyan-500/40 rounded-3xl shadow-2xl text-slate-900 dark:text-white p-4 sm:p-5 flex flex-col font-sans overflow-hidden"
             role="dialog"
             aria-modal="true"
-            aria-label="AeroFlow Voice Companion for Blind Passengers"
+            aria-label="AeroVoice Assistant Dialog"
           >
-            {/* Header: Title, Controls, Close */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3.5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 grid place-items-center text-cyan-400">
-                  <Accessibility className="w-5 h-5" />
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 grid place-items-center text-cyan-600 dark:text-cyan-400">
+                  <Accessibility className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="font-display font-black text-base sm:text-lg flex items-center gap-2">
-                    AeroVoice Passenger Guide
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      Accessibility
-                    </span>
+                  <h2 className="font-display font-black text-sm sm:text-base flex items-center gap-1.5 leading-none">
+                    AeroVoice Audio Guide
                   </h2>
-                  <p className="text-[11px] text-slate-400">
-                    Spoken directions, transit times & gate guidance for DEL T3
-                  </p>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                    Accessible T3 Transit & Wayfinding
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 {isSpeaking && (
                   <button
                     onClick={stopSpeaking}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition-all cursor-pointer"
-                    title="Stop Audio Speech"
-                    aria-label="Stop speech"
+                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                    title="Stop Audio"
                   >
                     <VolumeX className="w-4 h-4" />
                   </button>
@@ -558,191 +543,185 @@ export default function AeroVoiceAssistant({
                     stopSpeaking();
                     earcon.playClose();
                   }}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
-                  aria-label="Close Voice Assistant (Escape)"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                  aria-label="Close Voice Assistant"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Live Audio Interaction Visualizer & Mic Control */}
-            <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${isListening ? "bg-rose-500 animate-ping" : isSpeaking ? "bg-cyan-400 animate-pulse" : "bg-emerald-400"}`} />
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-                    {isListening ? "Listening to your voice..." : isSpeaking ? "Speaking response..." : "Ready for voice query"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                  <span>Speed:</span>
-                  <button
-                    onClick={() => setVoiceRate((r) => (r === 1.0 ? 1.2 : r === 1.2 ? 0.85 : 1.0))}
-                    className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 cursor-pointer text-[11px]"
-                  >
-                    {voiceRate}x
-                  </button>
-                </div>
-              </div>
-
-              {/* Live Transcript / Speech Wave */}
-              <div className="min-h-[52px] flex items-center justify-center p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 text-center">
-                {isListening ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-center gap-1">
-                      {[40, 80, 50, 90, 60, 100, 70, 45, 85].map((h, i) => (
-                        <span
-                          key={i}
-                          style={{ height: `${h * 0.22}px` }}
-                          className="w-1 rounded-full bg-cyan-400 animate-pulse"
-                        />
-                      ))}
-                    </div>
-                    <p className="text-xs text-cyan-300 italic font-mono">{transcript || "Speak clearly into microphone..."}</p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {transcript ? `"${transcript}"` : "Tap microphone below or press 'V' to ask a question."}
-                  </p>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 pt-1">
-                <Button
-                  onClick={isListening ? () => recognitionRef.current?.stop() : startListening}
-                  className={`flex-1 font-bold text-xs sm:text-sm py-2.5 rounded-xl transition-all cursor-pointer ${
-                    isListening
-                      ? "bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20"
-                      : "bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black shadow-lg shadow-cyan-500/20"
-                  }`}
-                >
-                  {isListening ? (
-                    <>
-                      <MicOff className="w-4 h-4 mr-1.5" /> Stop Listening
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-4 h-4 mr-1.5" /> Tap to Speak
-                    </>
-                  )}
-                </Button>
-
-                {response && !isSpeaking && (
-                  <Button
-                    variant="outline"
-                    onClick={() => speakText(response)}
-                    className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer"
-                    title="Repeat Last Response"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 mr-1" /> Replay
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Spoken Response Container */}
-            {response && (
-              <div
-                className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 space-y-2 text-left"
-                aria-live="assertive"
-              >
-                <div className="flex items-center justify-between text-xs font-mono font-bold text-cyan-400">
-                  <span className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" /> Voice Response:
-                  </span>
-                  {isSpeaking && <span className="text-[10px] animate-pulse">Playing audio...</span>}
-                </div>
-                <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium">
-                  {response}
-                </p>
-              </div>
-            )}
-
-            {/* Transit & Leave Home Detailed Timeline Card */}
-            {transitAdvice && (
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-emerald-400" />
-                    <span className="font-display font-bold text-xs text-white">
-                      Leave Home Advisory ({transitAdvice.flightNumber})
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto pr-1 py-3 space-y-3 scrollbar-thin">
+              {/* Mic & Wave Box */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 font-bold font-mono">
+                    <span className={`w-2 h-2 rounded-full ${isListening ? "bg-rose-500 animate-ping" : isSpeaking ? "bg-cyan-500 animate-pulse" : "bg-emerald-500"}`} />
+                    <span className="text-[11px] text-slate-700 dark:text-slate-300">
+                      {isListening ? "Listening..." : isSpeaking ? "Speaking..." : "Ready to listen"}
                     </span>
                   </div>
-                  <span className="text-xs font-mono font-bold text-emerald-400">
-                    Leave by {transitAdvice.leaveHomeTimeFormatted}
-                  </span>
+
+                  <button
+                    onClick={() => setVoiceRate((r) => (r === 1.0 ? 1.2 : r === 1.2 ? 0.85 : 1.0))}
+                    className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-600 dark:text-cyan-400 font-mono text-[10px] cursor-pointer"
+                    title="Speech Speed"
+                  >
+                    Speed: {voiceRate}x
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                  <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
-                    <div className="text-[10px] text-slate-400 uppercase font-mono">Terminal 3 Time</div>
-                    <div className="font-black text-sm text-cyan-400 font-mono mt-0.5">{transitAdvice.totalTerminalTime} mins</div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
-                    <div className="text-[10px] text-slate-400 uppercase font-mono">T3 Curb Arrival</div>
-                    <div className="font-black text-sm text-emerald-400 font-mono mt-0.5">{transitAdvice.curbArrivalTimeFormatted}</div>
-                  </div>
-                </div>
-
-                {/* Step Breakdown */}
-                <div className="space-y-1.5 pt-1 text-xs">
-                  {transitAdvice.breakdown.map((b, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-[11px] p-1.5 rounded-lg bg-slate-950/40 border border-slate-800/60">
-                      <div className="flex items-center gap-1.5 text-slate-300">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                        <span>{b.label}</span>
+                {/* Live Transcript / Prompt */}
+                <div className="min-h-[42px] flex items-center justify-center p-2.5 rounded-xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 text-center">
+                  {isListening ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-center gap-1">
+                        {[30, 70, 45, 80, 50, 90, 60, 40].map((h, i) => (
+                          <span
+                            key={i}
+                            style={{ height: `${h * 0.18}px` }}
+                            className="w-1 rounded-full bg-cyan-500 animate-pulse"
+                          />
+                        ))}
                       </div>
-                      <span className="font-mono font-bold text-cyan-300">{b.time}</span>
+                      <p className="text-xs text-cyan-600 dark:text-cyan-400 italic font-mono">{transcript || "Listening..."}</p>
                     </div>
+                  ) : (
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-tight">
+                      {transcript ? `"${transcript}"` : "Tap microphone or press 'V' to ask a question."}
+                    </p>
+                  )}
+                </div>
+
+                {/* Speak Button & Replay */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={isListening ? () => recognitionRef.current?.stop() : startListening}
+                    className={`flex-1 font-bold text-xs py-2 rounded-xl transition-all cursor-pointer ${
+                      isListening
+                        ? "bg-rose-500 hover:bg-rose-600 text-white"
+                        : "bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black shadow-sm"
+                    }`}
+                  >
+                    {isListening ? (
+                      <>
+                        <MicOff className="w-3.5 h-3.5 mr-1" /> Stop Listening
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-3.5 h-3.5 mr-1" /> Tap to Speak
+                      </>
+                    )}
+                  </Button>
+
+                  {response && !isSpeaking && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => speakText(response)}
+                      className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 text-xs px-2.5 rounded-xl cursor-pointer"
+                      title="Replay Audio"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" /> Replay
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Spoken Response */}
+              {response && (
+                <div
+                  className="p-3 rounded-2xl bg-cyan-50/80 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-500/30 space-y-1 text-left"
+                  aria-live="assertive"
+                >
+                  <div className="flex items-center justify-between text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Assistant Response:
+                    </span>
+                    {isSpeaking && <span className="text-[9px] animate-pulse">Playing audio...</span>}
+                  </div>
+                  <p className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
+                    {response}
+                  </p>
+                </div>
+              )}
+
+              {/* Leave Home & Transit Timing Card */}
+              {transitAdvice && (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold font-display text-slate-900 dark:text-white flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      Leave Home Advisory ({transitAdvice.flightNumber})
+                    </span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                      {transitAdvice.leaveHomeTimeFormatted}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                      <div className="text-[9px] text-slate-500 uppercase font-mono">T3 Time</div>
+                      <div className="font-black text-xs text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">{transitAdvice.totalTerminalTime} mins</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                      <div className="text-[9px] text-slate-500 uppercase font-mono">Curb Arrival</div>
+                      <div className="font-black text-xs text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">{transitAdvice.curbArrivalTimeFormatted}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1 text-[10px] font-mono">
+                    {transitAdvice.breakdown.slice(0, 6).map((b, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-1 rounded bg-white dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800/60">
+                        <span className="text-slate-600 dark:text-slate-400 truncate pr-1">{b.label}</span>
+                        <span className="font-bold text-cyan-600 dark:text-cyan-400 shrink-0">{b.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Questions */}
+              <div className="space-y-1.5 pt-0.5">
+                <div className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <HelpCircle className="w-3 h-3" /> Quick Questions:
+                </div>
+                <div className="grid grid-cols-1 gap-1">
+                  {[
+                    "When should I leave home for my flight?",
+                    "How much time will it take inside T3?",
+                    "Where is my flight and gate?",
+                    "Where is wheelchair assistance?"
+                  ].map((q, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleQuickPrompt(q)}
+                      className="p-1.5 px-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 text-left text-[11px] leading-tight transition-all cursor-pointer flex items-center justify-between"
+                    >
+                      <span className="truncate pr-1">{q}</span>
+                      <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+                    </button>
                   ))}
                 </div>
               </div>
-            )}
-
-            {/* Quick Accessible Questions Chips */}
-            <div className="space-y-2 pt-1">
-              <div className="text-[11px] font-mono font-bold uppercase text-slate-400 flex items-center gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
-                Quick Spoken Inquiries:
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                {[
-                  "When should I leave home for my flight?",
-                  "How much time will it take inside T3?",
-                  "Where is my flight and gate?",
-                  "How to reach Gate 34?",
-                  "How crowded is Security right now?",
-                  "Where is wheelchair assistance?"
-                ].map((q, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleQuickPrompt(q)}
-                    className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-slate-300 hover:text-white text-left text-[11px] leading-tight transition-all cursor-pointer flex items-center justify-between group"
-                  >
-                    <span>{q}</span>
-                    <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 shrink-0 ml-1" />
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* City Origin Selector */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-[11px] text-slate-400">
-              <span className="flex items-center gap-1 font-mono">
-                <MapPin className="w-3 h-3 text-cyan-400" /> Origin:
+            {/* Footer: City Origin */}
+            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
+              <span className="flex items-center gap-1 font-mono text-[10px]">
+                <MapPin className="w-3 h-3 text-cyan-500" /> Origin:
               </span>
               <select
                 value={originCity}
                 onChange={(e) => setOriginCity(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-cyan-300 rounded-lg px-2 py-1 text-[11px] font-mono cursor-pointer"
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-cyan-300 rounded-lg px-2 py-1 text-[10px] font-mono cursor-pointer"
               >
-                <option value="Delhi NCR">Delhi NCR (45 mins drive)</option>
-                <option value="Gurugram">Gurugram / CyberCity (30 mins drive)</option>
-                <option value="Noida">Noida / Greater Noida (65 mins drive)</option>
-                <option value="South Delhi">South Delhi / Vasant Kunj (25 mins drive)</option>
+                <option value="Delhi NCR">Delhi NCR (45m drive)</option>
+                <option value="Gurugram">Gurugram (30m drive)</option>
+                <option value="Noida">Noida (60m drive)</option>
+                <option value="South Delhi">South Delhi (25m drive)</option>
               </select>
             </div>
           </motion.div>
