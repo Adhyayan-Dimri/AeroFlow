@@ -27,6 +27,15 @@ class ErrorBoundary extends React.Component {
     console.error("AeroFlow UI Error Boundary caught an error:", error, errorInfo);
   }
 
+  handleReset = () => {
+    try {
+      localStorage.removeItem("aero_token");
+      localStorage.removeItem("aero-theme");
+      sessionStorage.clear();
+    } catch {}
+    window.location.href = "/";
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -36,16 +45,22 @@ class ErrorBoundary extends React.Component {
           </div>
           <h1 className="text-2xl font-bold mb-2">AeroFlow Reconnecting</h1>
           <p className="text-slate-400 max-w-md mb-6 text-sm">
-            The application encountered a display refresh. Click below to reload and continue your journey seamlessly.
+            {this.state.error?.message ? String(this.state.error.message) : "Click below to refresh and load AeroFlow."}
           </p>
-          <button
-            onClick={() => {
-              window.location.reload();
-            }}
-            className="px-6 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition-all shadow-lg"
-          >
-            Reload AeroFlow
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition-all shadow-lg text-sm cursor-pointer"
+            >
+              Reload Page
+            </button>
+            <button
+              onClick={this.handleReset}
+              className="px-6 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition-all text-sm cursor-pointer"
+            >
+              Reset & Reload
+            </button>
+          </div>
         </div>
       );
     }

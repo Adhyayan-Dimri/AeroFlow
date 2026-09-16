@@ -2,7 +2,23 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import api, { formatApiError } from "@/lib/api";
 
 const AuthContext = createContext(null);
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    return {
+      user: null,
+      checked: true,
+      refresh: async () => {},
+      login: async () => {},
+      googleLogin: async () => {},
+      verifyOtp: async () => {},
+      logout: async () => {},
+      isStaff: false,
+      formatApiError,
+    };
+  }
+  return ctx;
+};
 
 const STAFF_ROLES = ["ops_manager", "security_lead", "baggage_ops", "admin", "ground_staff"];
 
@@ -11,7 +27,10 @@ export function AuthProvider({ children }) {
   const [checked, setChecked] = useState(false);
 
   const refresh = useCallback(async () => {
-    const token = localStorage.getItem("aero_token");
+    let token = null;
+    try {
+      token = localStorage.getItem("aero_token");
+    } catch {}
     if (!token) {
       setUser(null);
       setChecked(true);
@@ -68,7 +87,7 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const isStaff = user && STAFF_ROLES.includes(user.role);
+  const isStaff = Boolean(user && STAFF_ROLES.includes(user.role));
 
   return (
     <AuthContext.Provider value={{ user, checked, refresh, login, googleLogin, verifyOtp, logout, isStaff, formatApiError }}>
@@ -76,3 +95,4 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
