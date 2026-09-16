@@ -14,6 +14,7 @@ import NotificationOptInModal from "@/components/passenger/NotificationOptInModa
 import WeatherWidget from "@/components/passenger/WeatherWidget";
 import FidsBoard from "@/components/passenger/FidsBoard";
 import BoardingPassDossier from "@/components/passenger/BoardingPassDossier";
+import AeroVoiceAssistant from "@/components/passenger/AeroVoiceAssistant";
 import { Button } from "@/components/ui/button";
 import { fmtTime, fmtDateTime } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
@@ -620,10 +621,19 @@ export default function PassengerPortal() {
 
       <NotificationOptInModal open={notifyOpen} onOpenChange={setNotifyOpen} flight={selected} />
 
+      {/* Accessibility Voice Assistant for Blind / Visually Impaired Passengers */}
+      <AeroVoiceAssistant
+        selectedFlight={selected}
+        forecast={forecast}
+        savedFlights={savedFlights}
+        allFlights={savedFlights}
+      />
+
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-50 bg-aero-cyan text-[#041014] hover:bg-aero-cyan/90 rounded-full p-3 shadow-lg transition-all hover:scale-110"
+          className="fixed bottom-6 left-6 z-40 bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-slate-700/80 rounded-full p-3 shadow-xl backdrop-blur-md transition-all hover:scale-110 cursor-pointer"
+          aria-label="Scroll to top of page"
         >
           <ChevronUp className="w-5 h-5" />
         </button>
