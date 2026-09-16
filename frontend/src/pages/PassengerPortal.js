@@ -396,7 +396,7 @@ export default function PassengerPortal() {
                         onClick={() => loadFlight(flight)}
                         className="mt-4 w-full py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer"
                       >
-                        <Sparkles className="w-4 h-4 fill-current" /> Track Journey Forecast
+                        Track Journey Forecast
                       </button>
                     </div>
                   );
