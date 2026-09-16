@@ -96,7 +96,7 @@ export default function GoogleAuthButton({ onAuthSuccess, onError, disabled = fa
         onClick={handleManualClick}
         disabled={disabled || loading}
         data-testid="google-auth-btn"
-        className="w-full relative flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-sm font-bold transition-all duration-200 shadow-sm hover:shadow hover:border-cyan-500/50 dark:hover:border-cyan-500/50 hover:text-cyan-700 dark:hover:text-cyan-300 disabled:opacity-50 group cursor-pointer"
+        className="w-full relative flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm font-bold transition-all duration-200 shadow-sm hover:border-cyan-500 dark:hover:border-cyan-500/50 hover:shadow-md disabled:opacity-50 group cursor-pointer"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin text-cyan-600 dark:text-cyan-400" />
@@ -120,7 +120,7 @@ export default function GoogleAuthButton({ onAuthSuccess, onError, disabled = fa
             />
           </svg>
         )}
-        <span>{text}</span>
+        <span className="text-slate-800 dark:text-slate-100 font-semibold">{text}</span>
       </button>
     </div>
   );

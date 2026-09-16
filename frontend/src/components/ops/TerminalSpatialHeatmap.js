@@ -181,39 +181,35 @@ const ZONE_CATEGORIES = [
 function getDensityColor(ratio) {
   if (ratio < 0.35) {
     return {
-      fill: "rgba(6, 182, 212, 0.22)",
+      fill: "rgba(6, 182, 212, 0.28)",
       stroke: "#06B6D4",
-      strokeLight: "#0891B2",
-      badge: "bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border-cyan-500/30",
+      badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
       status: "Low Density",
       intensity: "Lull",
     };
   }
   if (ratio < 0.65) {
     return {
-      fill: "rgba(16, 185, 129, 0.25)",
+      fill: "rgba(16, 185, 129, 0.35)",
       stroke: "#10B981",
-      strokeLight: "#059669",
-      badge: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30",
+      badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
       status: "Moderate Flow",
       intensity: "Normal",
     };
   }
   if (ratio < 0.85) {
     return {
-      fill: "rgba(245, 158, 11, 0.32)",
+      fill: "rgba(245, 158, 11, 0.45)",
       stroke: "#F59E0B",
-      strokeLight: "#D97706",
-      badge: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30",
+      badge: "bg-amber-500/20 text-amber-300 border-amber-500/40",
       status: "Heavy Congestion",
       intensity: "High",
     };
   }
   return {
-    fill: "rgba(244, 63, 94, 0.45)",
+    fill: "rgba(244, 63, 94, 0.6)",
     stroke: "#F43F5E",
-    strokeLight: "#E11D48",
-    badge: "bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-500/40 shadow-sm",
+    badge: "bg-rose-500/25 text-rose-300 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.4)]",
     status: "Peak Bottleneck",
     intensity: "Critical",
   };
@@ -301,45 +297,45 @@ export default function TerminalSpatialHeatmap() {
     : highestHotspot;
 
   return (
-    <div className="aero-card p-5 sm:p-6 space-y-6 bg-white dark:bg-[#0a1118] border border-slate-200 dark:border-slate-800 shadow-xl" data-testid="terminal-spatial-heatmap">
+    <div className="aero-card p-5 sm:p-6 space-y-6 bg-white dark:bg-[#09151e] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-sm" data-testid="terminal-spatial-heatmap">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 dark:bg-cyan-400 animate-ping" />
-            <span className="overline text-cyan-600 dark:text-cyan-400 font-black tracking-wider">
+            <span className="overline text-cyan-600 dark:text-cyan-400 font-bold tracking-wider">
               Hub Terminal 3 · Spatial Intelligence
             </span>
           </div>
-          <h2 className="font-display text-xl sm:text-2xl font-black mt-1 text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="font-display text-xl sm:text-2xl font-bold mt-1 text-slate-900 dark:text-white flex items-center gap-2">
             Terminal 3 Spatial Density Heatmap
-            <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30">
               Live 2D Concourse Map
             </span>
           </h2>
-          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Real-time optical flow & queue bottleneck detection across all checkpoints, security halls, and reclaim belts.
           </p>
         </div>
 
         {/* Top KPI counters */}
         <div className="flex items-center gap-3">
-          <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/60 flex items-center gap-2.5 shadow-sm">
+          <div className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 flex items-center gap-2.5 shadow-sm">
             <Users className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
             <div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-mono font-bold">Terminal Load</div>
-              <div className="font-mono font-black text-sm text-slate-900 dark:text-cyan-400">
-                {totalTerminalPax.toLocaleString()} <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">pax</span>
+              <div className="font-mono font-black text-sm text-cyan-700 dark:text-cyan-400">
+                {totalTerminalPax.toLocaleString()} <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">pax</span>
               </div>
             </div>
           </div>
 
-          <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/60 flex items-center gap-2.5 shadow-sm">
+          <div className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/60 flex items-center gap-2.5 shadow-sm">
             <Flame className="w-4 h-4 text-rose-600 dark:text-rose-400" />
             <div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-mono font-bold">Peak Hotspot</div>
               <div className="font-mono font-black text-sm text-rose-600 dark:text-rose-400">
-                {highestHotspot?.densityPct}% <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">cap</span>
+                {highestHotspot?.densityPct}% <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">cap</span>
               </div>
             </div>
           </div>
@@ -354,7 +350,7 @@ export default function TerminalSpatialHeatmap() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                 selectedCategory === cat.id
                   ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
                   : "bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/50"
@@ -366,13 +362,13 @@ export default function TerminalSpatialHeatmap() {
         </div>
 
         {/* Time Scrubber / Simulation Controller */}
-        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900/90 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
+        <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-900/90 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shrink-0 shadow-sm">
           <button
             onClick={() => setIsPlaying(!isPlaying)}
             title={isPlaying ? "Pause replay" : "Play rush simulation"}
-            className="w-8 h-8 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-700 dark:text-cyan-300 grid place-items-center transition-colors border border-cyan-500/40"
+            className="w-8 h-8 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-700 dark:text-cyan-300 grid place-items-center transition-colors border border-cyan-500/40"
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-cyan-600 dark:fill-cyan-300 text-cyan-600 dark:text-cyan-300" />}
           </button>
           <div className="flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
@@ -397,35 +393,39 @@ export default function TerminalSpatialHeatmap() {
       {/* Main Grid: 2D Spatial SVG + Zone Detail Dossier */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* SVG Blueprint Canvas */}
-        <div className="xl:col-span-8 rounded-2xl bg-slate-50/90 dark:bg-[#070E14] border border-slate-200 dark:border-slate-800 p-4 relative overflow-hidden shadow-inner">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono mb-2">
+        <div className="xl:col-span-8 rounded-2xl bg-[#08131C] dark:bg-[#070E14] border border-slate-300 dark:border-slate-800 p-4 relative overflow-hidden shadow-lg">
+          <div className="flex items-center justify-between text-xs text-slate-300 dark:text-slate-400 font-mono mb-2">
             <span className="flex items-center gap-1.5 font-bold">
-              <Compass className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" /> Hub Terminal 3 · Main Concourse Blueprint (Level 2 Departures & Level 1 Arrivals)
+              <Compass className="w-3.5 h-3.5 text-cyan-400" /> Hub Terminal 3 · Main Concourse Blueprint (Level 2 Departures & Level 1 Arrivals)
             </span>
-            <span className="text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold">Click any zone for AI balancing</span>
+            <span className="text-[11px] text-cyan-300 dark:text-cyan-400">Click any zone for AI balancing actions</span>
           </div>
 
           <div className="relative w-full aspect-[640/680] max-h-[580px]">
             <svg
               viewBox="0 0 640 680"
               className="w-full h-full select-none"
-              style={{ filter: "drop-shadow(0 0 15px rgba(0,0,0,0.15))" }}
+              style={{ filter: "drop-shadow(0 0 20px rgba(0,0,0,0.5))" }}
             >
               {/* Background Grid Pattern */}
               <defs>
                 <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" className="text-slate-300/60 dark:text-white/5" strokeWidth="1" />
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
                 </pattern>
+                <linearGradient id="terminalGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0F172A" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#0B1120" stopOpacity="0.9" />
+                </linearGradient>
               </defs>
 
               <rect x="10" y="10" width="620" height="660" rx="16" fill="url(#grid)" />
-              <rect x="20" y="20" width="600" height="640" rx="12" fill="none" stroke="currentColor" className="text-cyan-500/40 dark:text-cyan-500/20" strokeWidth="1.5" strokeDasharray="6 4" />
+              <rect x="20" y="20" width="600" height="640" rx="12" fill="none" stroke="rgba(6, 182, 212, 0.3)" strokeWidth="1.5" strokeDasharray="6 4" />
 
               {/* Terminal Section Guides */}
-              <text x="320" y="22" textAnchor="middle" className="fill-slate-500 dark:fill-slate-500 text-[9px] font-mono font-bold">
+              <text x="320" y="22" textAnchor="middle" fill="#94A3B8" fontSize="9" fontFamily="monospace" fontWeight="700">
                 ▲ LEVEL 2: LANDSIDE FORECOURT DROP-OFF ▲
               </text>
-              <text x="320" y="650" textAnchor="middle" className="fill-slate-500 dark:fill-slate-500 text-[9px] font-mono font-bold">
+              <text x="320" y="650" textAnchor="middle" fill="#94A3B8" fontSize="9" fontFamily="monospace" fontWeight="700">
                 ▼ LEVEL 1: ARRIVALS & RECLAIM CONCOURSE ▼
               </text>
 
@@ -450,12 +450,11 @@ export default function TerminalSpatialHeatmap() {
                       height={h}
                       rx="8"
                       fill={zone.color.fill}
-                      stroke={isSelected ? "#06B6D4" : zone.color.stroke}
-                      strokeWidth={isSelected ? "3" : "1.8"}
-                      className={isSelected ? "shadow-lg" : ""}
+                      stroke={isSelected ? "#FFFFFF" : zone.color.stroke}
+                      strokeWidth={isSelected ? "2.5" : "1.5"}
                       style={{
                         transition: "all 0.3s ease",
-                        filter: isSelected ? "drop-shadow(0 0 8px rgba(6, 182, 212, 0.7))" : "none"
+                        filter: isSelected ? "drop-shadow(0 0 10px rgba(6, 182, 212, 0.8))" : "none"
                       }}
                     />
 
@@ -463,7 +462,11 @@ export default function TerminalSpatialHeatmap() {
                     <text
                       x={x + 10}
                       y={y + 20}
-                      className="fill-slate-900 dark:fill-white font-sans font-bold text-[10.5px] pointer-events-none"
+                      fill="#FFFFFF"
+                      fontSize="10.5"
+                      fontFamily="sans-serif"
+                      fontWeight="700"
+                      className="pointer-events-none"
                     >
                       {zone.name}
                     </text>
@@ -473,7 +476,10 @@ export default function TerminalSpatialHeatmap() {
                       x={x + 10}
                       y={y + 36}
                       fill={zone.color.stroke}
-                      className="font-mono font-black text-[9.5px] pointer-events-none"
+                      fontSize="9.5"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                      className="pointer-events-none"
                     >
                       {zone.currentPax.toLocaleString()} pax ({zone.densityPct}%)
                     </text>
@@ -482,7 +488,10 @@ export default function TerminalSpatialHeatmap() {
                     <text
                       x={x + 10}
                       y={y + 50}
-                      className="fill-slate-600 dark:fill-slate-400 font-mono text-[8.5px] font-medium pointer-events-none"
+                      fill="#CBD5E1"
+                      fontSize="8.5"
+                      fontFamily="monospace"
+                      className="pointer-events-none"
                     >
                       ⏱ ~{zone.waitMinutes}m wait
                     </text>
@@ -504,24 +513,24 @@ export default function TerminalSpatialHeatmap() {
           </div>
 
           {/* Map Color Legend */}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-500 dark:text-slate-400 flex-wrap gap-2">
-            <span className="font-bold text-slate-700 dark:text-slate-300">Density Scale:</span>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-700/60 dark:border-slate-800/80 text-[11px] font-mono text-slate-300 dark:text-slate-400 flex-wrap gap-2">
+            <span className="font-bold text-white dark:text-slate-300">Density Scale:</span>
             <div className="flex items-center gap-3 flex-wrap">
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-cyan-500/20 border border-cyan-500" />
-                <span className="text-cyan-700 dark:text-cyan-300 font-semibold">Lull (&lt;35%)</span>
+                <span className="w-3 h-3 rounded bg-cyan-500/40 border border-cyan-400" />
+                <span className="text-cyan-300">Lull (&lt;35%)</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500" />
-                <span className="text-emerald-700 dark:text-emerald-300 font-semibold">Moderate (35–65%)</span>
+                <span className="w-3 h-3 rounded bg-emerald-500/40 border border-emerald-400" />
+                <span className="text-emerald-300">Moderate (35–65%)</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-amber-500/25 border border-amber-500" />
-                <span className="text-amber-700 dark:text-amber-300 font-semibold">Heavy (65–85%)</span>
+                <span className="w-3 h-3 rounded bg-amber-500/50 border border-amber-400" />
+                <span className="text-amber-300">Heavy (65–85%)</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-rose-500/35 border border-rose-500" />
-                <span className="text-rose-700 dark:text-rose-300 font-bold">Peak Bottleneck (&gt;85%)</span>
+                <span className="w-3 h-3 rounded bg-rose-500/60 border border-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.6)]" />
+                <span className="text-rose-300 font-bold">Peak Bottleneck (&gt;85%)</span>
               </span>
             </div>
           </div>
@@ -529,11 +538,11 @@ export default function TerminalSpatialHeatmap() {
 
         {/* Right Panel: Selected Zone Intelligence Dossier */}
         <div className="xl:col-span-4 space-y-4">
-          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                   Zone Intelligence
                 </span>
               </div>
@@ -546,15 +555,15 @@ export default function TerminalSpatialHeatmap() {
               <h3 className="font-display font-black text-lg text-slate-900 dark:text-white">
                 {activeZoneDetail?.name}
               </h3>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                Staffing Key: <span className="text-slate-800 dark:text-slate-200 font-semibold">{activeZoneDetail?.staffingKey}</span>
+              <div className="text-xs text-slate-600 dark:text-slate-400 font-mono mt-0.5">
+                Operational Staffing Key: <span className="text-slate-900 dark:text-slate-200 font-bold">{activeZoneDetail?.staffingKey}</span>
               </div>
             </div>
 
             {/* Metrics Grid */}
             <div className="grid grid-cols-2 gap-2.5">
-              <div className="p-3 rounded-xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 shadow-sm">
-                <div className="text-[10px] uppercase font-mono font-bold text-slate-500 dark:text-slate-400">Occupancy</div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
+                <div className="text-[10px] uppercase font-mono font-bold text-slate-500 dark:text-slate-400">Current Occupancy</div>
                 <div className="font-mono font-black text-lg text-slate-900 dark:text-white mt-0.5">
                   {activeZoneDetail?.currentPax?.toLocaleString()}{" "}
                   <span className="text-xs font-normal text-slate-500 dark:text-slate-400">/ {activeZoneDetail?.capacity?.toLocaleString()}</span>
@@ -570,19 +579,19 @@ export default function TerminalSpatialHeatmap() {
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
                 <div className="text-[10px] uppercase font-mono font-bold text-slate-500 dark:text-slate-400">Estimated Wait</div>
-                <div className="font-mono font-black text-lg text-cyan-600 dark:text-cyan-400 mt-0.5">
+                <div className="font-mono font-black text-lg text-cyan-700 dark:text-cyan-400 mt-0.5">
                   ~{activeZoneDetail?.waitMinutes} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">mins</span>
                 </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-mono font-medium">
                   Throughput: ~{Math.round(activeZoneDetail?.capacity / 60)} pax/min
                 </div>
               </div>
             </div>
 
             {/* AI Recommendation Card */}
-            <div className="p-3.5 rounded-xl bg-cyan-500/10 dark:bg-cyan-950/20 border border-cyan-500/30 space-y-1.5 shadow-sm">
+            <div className="p-3.5 rounded-xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-500/30 space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-800 dark:text-cyan-300">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                 AI Counter Balancing Action
@@ -602,7 +611,7 @@ export default function TerminalSpatialHeatmap() {
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 space-y-3 shadow-sm">
             <div className="text-xs font-mono font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
               <span>Hotspot Congestion Ranking</span>
-              <Flame className="w-3.5 h-3.5 text-amber-500" />
+              <Flame className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
             </div>
             <div className="space-y-2">
               {[...zonesData]
@@ -612,10 +621,10 @@ export default function TerminalSpatialHeatmap() {
                   <button
                     key={z.id}
                     onClick={() => setSelectedZone(z)}
-                    className="w-full flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-slate-200 dark:border-slate-800 transition-all text-left group shadow-xs"
+                    className="w-full flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-slate-200 dark:border-slate-800 transition-all text-left group shadow-xs cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono font-black flex items-center justify-center text-slate-700 dark:text-slate-400">
+                      <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-mono font-bold flex items-center justify-center text-slate-700 dark:text-slate-400">
                         {idx + 1}
                       </span>
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-300 truncate max-w-[150px]">
@@ -623,10 +632,10 @@ export default function TerminalSpatialHeatmap() {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-black" style={{ color: z.color.stroke }}>
+                      <span className="text-xs font-mono font-bold" style={{ color: z.color.stroke }}>
                         {z.densityPct}%
                       </span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-500" />
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 group-hover:text-cyan-500 dark:group-hover:text-cyan-400" />
                     </div>
                   </button>
                 ))}

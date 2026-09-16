@@ -119,14 +119,14 @@ export default function Login() {
       subtitle={isStaffFlow ? "Authorized staff, terminal duty managers, and baggage operators." : "Track your flights, live queue predictions, and baggage alerts."}>
 
       {}
-      <div className={`flex items-center justify-between p-3 rounded-lg border text-xs font-semibold mb-4 ${isStaffFlow ? "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300" : "bg-cyan-500/10 border-cyan-500/30 text-cyan-800 dark:text-cyan-300"}`}>
+      <div className={`flex items-center justify-between p-3 rounded-lg border text-xs font-semibold mb-4 ${isStaffFlow ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-cyan-500/10 border-cyan-500/30 text-cyan-300"}`}>
         <div className="flex items-center gap-2">
-          {isStaffFlow ? <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <Plane className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />}
+          {isStaffFlow ? <ShieldCheck className="w-4 h-4 text-amber-400" /> : <Plane className="w-4 h-4 text-cyan-400" />}
           <span>{isStaffFlow ? "Staff & Operations Console Access" : "Passenger Travel Portal"}</span>
         </div>
         <Link
           to={isStaffFlow ? "/login?type=passenger&next=/" : "/login?type=staff&next=/ops"}
-          className="text-slate-600 dark:text-aero-t2 hover:text-cyan-600 dark:hover:text-aero-cyan underline font-medium">
+          className="text-aero-t2 hover:text-aero-cyan underline">
           Switch to {isStaffFlow ? "Passenger" : "Staff"}
         </Link>
       </div>
@@ -139,7 +139,7 @@ export default function Login() {
         <div>
           <div className="flex items-center justify-between">
             <Label>Password <span className="text-aero-rose">*</span></Label>
-            <Link to="/forgot-password" className="text-xs text-cyan-600 dark:text-aero-cyan hover:underline font-semibold" data-testid="forgot-link">Forgot?</Link>
+            <Link to="/forgot-password" className="text-xs text-aero-cyan hover:underline" data-testid="forgot-link">Forgot?</Link>
           </div>
           <div className="relative">
             <Input
@@ -155,23 +155,23 @@ export default function Login() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-aero-t1 p-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-aero-t3 hover:text-aero-t1 p-1"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
         {err && <div className="text-sm text-aero-rose" data-testid="login-error">{err}</div>}
-        <Button data-testid="login-submit" disabled={busy} className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold shadow-sm">
+        <Button data-testid="login-submit" disabled={busy} className="w-full bg-aero-cyan text-[#041014] hover:bg-aero-cyan/90 font-semibold">
           {busy ? "Signing in…" : (isStaffFlow ? "Access Operations Console" : "Sign in as Passenger")}
         </Button>
       </form>
 
       {!isStaffFlow && (
         <div className="mt-5 space-y-4">
-          <div className="relative flex items-center justify-center my-2">
-            <div className="border-t border-slate-300 dark:border-slate-800 w-full" />
-            <span className="bg-slate-50 dark:bg-[#071318] px-3 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold absolute">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-aero-border w-full" />
+            <span className="bg-aero-surface px-3 text-[11px] uppercase tracking-wider text-aero-t3 font-medium absolute">
               or continue with
             </span>
           </div>

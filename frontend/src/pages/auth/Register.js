@@ -121,16 +121,16 @@ export default function Register() {
           </div>
         )}
         {err && <div className="text-sm text-aero-rose" data-testid="register-error">{err}</div>}
-        <Button data-testid="register-submit" disabled={busy} className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold shadow-sm">
+        <Button data-testid="register-submit" disabled={busy} className="w-full bg-aero-cyan text-[#041014] hover:bg-aero-cyan/90 font-semibold">
           {busy ? "Creating…" : "Create account"}
         </Button>
       </form>
 
       {!isStaff && (
         <div className="mt-5 space-y-4">
-          <div className="relative flex items-center justify-center my-2">
-            <div className="border-t border-slate-300 dark:border-slate-800 w-full" />
-            <span className="bg-slate-50 dark:bg-[#071318] px-3 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold absolute">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-aero-border w-full" />
+            <span className="bg-aero-surface px-3 text-[11px] uppercase tracking-wider text-aero-t3 font-medium absolute">
               or sign up with
             </span>
           </div>

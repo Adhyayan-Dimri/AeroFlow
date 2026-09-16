@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Plane } from "lucide-react";
 
@@ -12,19 +12,11 @@ const LINES = [
 
 export default function CinematicLoader({ onDone }) {
   const [idx, setIdx] = useState(0);
-  const onDoneRef = useRef(onDone);
-  onDoneRef.current = onDone;
-
   useEffect(() => {
-    const iv = setInterval(() => setIdx((i) => Math.min(i + 1, LINES.length - 1)), 120);
-    const t = setTimeout(() => {
-      if (onDoneRef.current) onDoneRef.current();
-    }, 600);
-    return () => {
-      clearInterval(iv);
-      clearTimeout(t);
-    };
-  }, []);
+    const iv = setInterval(() => setIdx((i) => Math.min(i + 1, LINES.length - 1)), 150);
+    const t = setTimeout(() => onDone && onDone(), 800);
+    return () => { clearInterval(iv); clearTimeout(t); };
+  }, [onDone]);
 
   return (
     <motion.div
