@@ -133,6 +133,24 @@ const T3_LOCATIONS = {
   }
 };
 
+// Helper function to auto-detect if the passenger asked in Hindi or Hinglish
+function isHindiQuery(text) {
+  if (!text) return false;
+  // 1. Devanagari Unicode Characters Range (\u0900-\u097F)
+  if (/[\u0900-\u097F]/.test(text)) return true;
+
+  // 2. Common Hinglish / Spoken Hindi Keywords
+  const hindiKeywords = [
+    "kab", "nikal", "kahan", "kidhar", "kaise", "samay", "kitna", "chahiye", "madad",
+    "sahayata", "saman", "jaanch", "bheed", "mera", "meri", "hai", "hain", "kya",
+    "batao", "bataye", "janana", "milega", "pahunchna", "kitne", "ghar", "kaun", "konsa",
+    "shuru", "lagta", "lagega"
+  ];
+  const lower = text.toLowerCase();
+  const words = lower.split(/\s+/);
+  return words.some((w) => hindiKeywords.includes(w)) || hindiKeywords.some((kw) => lower.includes(kw));
+}
+
 export default function AeroVoiceAssistant({
   selectedFlight,
   forecast,
@@ -144,17 +162,15 @@ export default function AeroVoiceAssistant({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [response, setResponse] = useState(null); // { en: string, hi: string }
+  const [response, setResponse] = useState(null); // { en: string, hi: string, queryLang: 'hi' | 'en' }
   const [transitAdvice, setTransitAdvice] = useState(null);
   const [voiceRate, setVoiceRate] = useState(1.0);
-  const [inputLang, setInputLang] = useState("hi-IN"); // 'hi-IN' supports both Hindi & English seamlessly
   const [originCity, setOriginCity] = useState("Delhi NCR");
   const recognitionRef = useRef(null);
-  const speechSynthRef = useRef(null);
 
   const handleVoiceQueryRef = useRef(null);
 
-  // Initialize Speech Recognition
+  // Initialize Speech Recognition (en-IN natively captures English, Hinglish, and airport terms)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -162,7 +178,7 @@ export default function AeroVoiceAssistant({
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = true;
-        recognition.lang = inputLang;
+        recognition.lang = "en-IN";
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -204,7 +220,7 @@ export default function AeroVoiceAssistant({
         window.speechSynthesis.cancel();
       }
     };
-  }, [inputLang]);
+  }, []);
 
   // Keyboard Shortcut: Press 'V' to toggle Voice Assistant
   useEffect(() => {
@@ -246,51 +262,73 @@ export default function AeroVoiceAssistant({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // Dual-Language Speech Synthesis: First speaks English, then Hindi!
-  const speakBilingual = useCallback((englishText, hindiText) => {
+  // Dual-Language Speech Synthesis:
+  // Auto-detects input query: If question in Hindi/Hinglish -> Speaks Hindi first then English.
+  // If question in English -> Speaks English first then Hindi.
+  const speakBilingual = useCallback((englishText, hindiText, queryText = "") => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
+    const isHindiFirst = isHindiQuery(queryText);
     const voices = window.speechSynthesis.getVoices();
 
-    // 1. English Utterance
     const utterEn = new SpeechSynthesisUtterance(englishText);
     utterEn.rate = voiceRate;
     utterEn.pitch = 1.0;
     utterEn.lang = "en-IN";
-
     const enVoice = voices.find(
       (v) => (v.lang === "en-IN" || v.lang === "en-GB" || v.lang === "en-US") && v.name.includes("Natural")
     ) || voices.find((v) => v.lang.includes("en"));
     if (enVoice) utterEn.voice = enVoice;
 
-    // 2. Hindi Utterance
     const utterHi = new SpeechSynthesisUtterance(hindiText);
     utterHi.rate = Math.max(0.85, voiceRate * 0.95);
     utterHi.pitch = 1.0;
     utterHi.lang = "hi-IN";
-
     const hiVoice = voices.find((v) => v.lang === "hi-IN" || v.lang.includes("hi")) || enVoice;
     if (hiVoice) utterHi.voice = hiVoice;
 
-    utterEn.onstart = () => {
-      setIsSpeaking(true);
-      earcon.playResponseReady();
-    };
+    if (isHindiFirst) {
+      // 1. Speak Hindi First
+      utterHi.onstart = () => {
+        setIsSpeaking(true);
+        earcon.playResponseReady();
+      };
+      utterHi.onend = () => {
+        if (englishText) {
+          window.speechSynthesis.speak(utterEn);
+        } else {
+          setIsSpeaking(false);
+        }
+      };
+      utterHi.onerror = () => setIsSpeaking(false);
 
-    utterEn.onend = () => {
-      if (hindiText) {
-        window.speechSynthesis.speak(utterHi);
-      } else {
-        setIsSpeaking(false);
-      }
-    };
+      // 2. Then English
+      utterEn.onend = () => setIsSpeaking(false);
+      utterEn.onerror = () => setIsSpeaking(false);
 
-    utterHi.onend = () => setIsSpeaking(false);
-    utterHi.onerror = () => setIsSpeaking(false);
-    utterEn.onerror = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterHi);
+    } else {
+      // 1. Speak English First
+      utterEn.onstart = () => {
+        setIsSpeaking(true);
+        earcon.playResponseReady();
+      };
+      utterEn.onend = () => {
+        if (hindiText) {
+          window.speechSynthesis.speak(utterHi);
+        } else {
+          setIsSpeaking(false);
+        }
+      };
+      utterEn.onerror = () => setIsSpeaking(false);
 
-    window.speechSynthesis.speak(utterEn);
+      // 2. Then Hindi
+      utterHi.onend = () => setIsSpeaking(false);
+      utterHi.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utterEn);
+    }
   }, [voiceRate]);
 
   const stopSpeaking = () => {
@@ -589,9 +627,10 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
       answerHi = `टर्मिनल 3 सामान्य रूप से संचालित है। फ्लाइट ${activeFlight.flight_number} गेट ${activeFlight.gate || "32B"} से छूटेगी। आप घर से निकलने का समय या रास्ता पूछ सकते हैं।`;
     }
 
-    const fullResponse = { en: answerEn, hi: answerHi };
+    const isHindi = isHindiQuery(queryText);
+    const fullResponse = { en: answerEn, hi: answerHi, isHindiQuery: isHindi };
     setResponse(fullResponse);
-    speakBilingual(answerEn, answerHi);
+    speakBilingual(answerEn, answerHi, queryText);
   }, [selectedFlight, savedFlights, allFlights, calculateLeaveHomeAdvice, originCity, speakBilingual]);
 
   useEffect(() => {
@@ -632,7 +671,7 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
           <div className="relative flex items-center justify-center">
             <span className={`absolute w-7 h-7 rounded-full bg-cyan-400/30 ${isListening || isSpeaking ? "animate-ping" : "group-hover:animate-ping"}`} />
             <div className="w-8 h-8 rounded-full bg-cyan-500 text-slate-950 grid place-items-center font-black shrink-0 shadow-sm">
-              <VoiceAssistantLogo active={isListening} isSpeaking={isSpeaking} className="w-4 h-4 text-slate-950" />
+              <Mic className="w-4 h-4 text-slate-950" />
             </div>
           </div>
 
@@ -668,27 +707,19 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 grid place-items-center text-cyan-600 dark:text-cyan-400 shadow-sm">
-                  <VoiceAssistantLogo active={isListening} isSpeaking={isSpeaking} className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  <Mic className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
                 <div>
                   <h2 className="font-display font-black text-base leading-tight">
                     AeroVoice Guide
                   </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Bilingual Voice Navigation (DEL T3)
+                    Auto Bilingual (English &amp; हिंदी) Navigation
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setInputLang((l) => (l === "hi-IN" ? "en-IN" : "hi-IN"))}
-                  className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 font-mono text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
-                  title="Switch Listening Language"
-                >
-                  {inputLang === "hi-IN" ? "🇮🇳 हिंदी" : "🇬🇧 English"}
-                </button>
-
                 {isSpeaking && (
                   <button
                     onClick={stopSpeaking}
@@ -730,7 +761,7 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
                     }`}
                     title={isListening ? "Stop listening" : "Tap to speak"}
                   >
-                    <VoiceAssistantLogo active={isListening} isSpeaking={isSpeaking} className="w-7 h-7" />
+                    <Mic className="w-6 h-6" />
                   </motion.button>
                 </div>
 
@@ -739,18 +770,18 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
                     {isListening
                       ? "Listening to your voice..."
                       : isSpeaking
-                      ? "Speaking response in English + हिंदी..."
+                      ? "Speaking bilingual response..."
                       : "Tap above or press 'V' to speak"}
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {transcript ? `"${transcript}"` : "Ask about leave-home timing, gates, wheelchairs, or baggage."}
+                    {transcript ? `"${transcript}"` : "Speak in English or Hindi / Hinglish. Auto-detected."}
                   </p>
                 </div>
 
                 {response && !isSpeaking && (
                   <div className="pt-1 flex items-center justify-center">
                     <button
-                      onClick={() => speakBilingual(response.en, response.hi)}
+                      onClick={() => speakBilingual(response.en, response.hi, response.isHindiQuery ? "hindi" : "english")}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-600 dark:text-cyan-400 text-[11px] font-medium hover:bg-slate-100 cursor-pointer shadow-sm"
                     >
                       <RotateCcw className="w-3 h-3" /> Replay Audio
@@ -759,31 +790,58 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
                 )}
               </div>
 
-              {/* Spoken Response: Clean Bilingual Typography */}
+              {/* Spoken Response: Dynamic Ordering based on detected language */}
               {response && (
                 <div
                   className="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/25 border border-cyan-200/80 dark:border-cyan-500/30 space-y-2.5 text-left"
                   aria-live="assertive"
                 >
-                  <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider">
-                    <Volume2 className="w-3.5 h-3.5" /> Answer
+                  <div className="flex items-center justify-between text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5" /> Answer
+                    </span>
+                    <span className="text-[9px] lowercase font-sans opacity-70">
+                      (auto-translated bilingual)
+                    </span>
                   </div>
 
-                  {/* English Translation */}
-                  <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed">
-                    <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 mr-1.5">
-                      EN
-                    </span>
-                    {response.en}
-                  </div>
+                  {response.isHindiQuery ? (
+                    <>
+                      {/* Hindi Response First (since question was in Hindi) */}
+                      <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
+                        <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 mr-1.5">
+                          हिंदी (Primary)
+                        </span>
+                        {response.hi}
+                      </div>
 
-                  {/* Hindi Translation */}
-                  <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pt-2 border-t border-cyan-200/60 dark:border-cyan-500/20">
-                    <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 mr-1.5">
-                      हिंदी
-                    </span>
-                    {response.hi}
-                  </div>
+                      {/* English Translation */}
+                      <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pt-2 border-t border-cyan-200/60 dark:border-cyan-500/20">
+                        <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 mr-1.5">
+                          English
+                        </span>
+                        {response.en}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* English Response First (since question was in English) */}
+                      <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
+                        <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 mr-1.5">
+                          English (Primary)
+                        </span>
+                        {response.en}
+                      </div>
+
+                      {/* Hindi Translation */}
+                      <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pt-2 border-t border-cyan-200/60 dark:border-cyan-500/20">
+                        <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 mr-1.5">
+                          हिंदी
+                        </span>
+                        {response.hi}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -827,14 +885,14 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
                   ].map((q, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleQuickPrompt(inputLang === "hi-IN" ? q.hi : q.en)}
+                      onClick={() => handleQuickPrompt(q.en)}
                       className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-left transition-all cursor-pointer flex flex-col justify-between group"
                     >
                       <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 leading-tight">
                         {q.label}
                       </span>
                       <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 truncate">
-                        {inputLang === "hi-IN" ? q.hi : q.en}
+                        {q.en} · {q.hi}
                       </span>
                     </button>
                   ))}
