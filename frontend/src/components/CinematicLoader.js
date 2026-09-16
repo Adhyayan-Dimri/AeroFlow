@@ -12,11 +12,16 @@ const LINES = [
 
 export default function CinematicLoader({ onDone }) {
   const [idx, setIdx] = useState(0);
+  const doneRef = React.useRef(onDone);
+  doneRef.current = onDone;
+
   useEffect(() => {
-    const iv = setInterval(() => setIdx((i) => Math.min(i + 1, LINES.length - 1)), 150);
-    const t = setTimeout(() => onDone && onDone(), 800);
+    const iv = setInterval(() => setIdx((i) => Math.min(i + 1, LINES.length - 1)), 100);
+    const t = setTimeout(() => {
+      if (doneRef.current) doneRef.current();
+    }, 450);
     return () => { clearInterval(iv); clearTimeout(t); };
-  }, [onDone]);
+  }, []);
 
   return (
     <motion.div
