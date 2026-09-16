@@ -63,7 +63,7 @@ export default function PassengerPortal() {
   const detailsRef = useRef(null);
   const { user } = useAuth();
 
-  const fetchSavedFlights = () => {
+  const fetchSavedFlights = useCallback(() => {
     if (!user) return;
     api.get("/user/saved-flights")
       .then(({ data }) => {
@@ -75,7 +75,7 @@ export default function PassengerPortal() {
         }));
       })
       .catch(() => {});
-  };
+  }, [user]);
 
   const scrollToDetails = () => {
     if (detailsRef.current) {
@@ -129,7 +129,7 @@ export default function PassengerPortal() {
       setSavedFlights([]);
       setRecentFlights([]);
     }
-  }, [user]);
+  }, [user, fetchSavedFlights]);
 
   const handleClearRecentlyViewed = async () => {
     try {
