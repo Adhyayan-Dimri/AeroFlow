@@ -871,29 +871,32 @@ function VoiceAssistantLogo({ active, isSpeaking, className = "w-5 h-5" }) {
                 </div>
               )}
 
-              {/* Quick Inquiry Prompts (Clean 2-Column Grid) */}
-              <div className="space-y-1.5 pt-1">
+              {/* Quick Inquiry Prompts (Fully Visible, Unclipped Bilingual Cards) */}
+              <div className="space-y-2 pt-1">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3" /> Quick Questions:
+                  <HelpCircle className="w-3 h-3" /> Quick Inquiries:
                 </div>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="space-y-1.5">
                   {[
-                    { label: "Leave Home Time", en: "When should I leave home for my flight?", hi: "घर से कब निकलना चाहिए?" },
-                    { label: "T3 Terminal Time", en: "How much time will it take inside T3?", hi: "टर्मिनल में कितना समय लगेगा?" },
-                    { label: "Gate & Flight", en: "Where is my flight and gate?", hi: "मेरी फ्लाइट और गेट कहाँ है?" },
-                    { label: "Wheelchair Help", en: "Where is wheelchair assistance?", hi: "व्हीलचेयर सहायता कहाँ मिलेगी?" }
+                    { en: "When should I leave home for my flight?", hi: "घर से कब निकलना चाहिए?" },
+                    { en: "How much time will it take inside T3?", hi: "टर्मिनल में कितना समय लगेगा?" },
+                    { en: "Where is my flight and gate?", hi: "मेरी फ्लाइट और गेट कहाँ है?" },
+                    { en: "Where is wheelchair assistance?", hi: "व्हीलचेयर सहायता कहाँ मिलेगी?" }
                   ].map((q, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleQuickPrompt(q.en)}
-                      className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-left transition-all cursor-pointer flex flex-col justify-between group"
+                      className="w-full p-2.5 rounded-2xl bg-slate-50 hover:bg-cyan-50/50 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-cyan-300 dark:hover:border-cyan-700/50 text-left transition-all cursor-pointer flex items-center justify-between group"
                     >
-                      <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 leading-tight">
-                        {q.label}
-                      </span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 truncate">
-                        {q.en} · {q.hi}
-                      </span>
+                      <div className="space-y-0.5 pr-2">
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 leading-tight">
+                          {q.en}
+                        </div>
+                        <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                          {q.hi}
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all shrink-0" />
                     </button>
                   ))}
                 </div>
