@@ -6,7 +6,6 @@ import {
   Volume2,
   VolumeX,
   X,
-  Sparkles,
   Clock,
   Navigation,
   ShieldCheck,
@@ -20,13 +19,14 @@ import {
   MessageSquare,
   Compass,
   MapPin,
-  Car
+  Car,
+  Languages
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { fmtTime } from "@/lib/format";
 
-// Web Audio Earcon Synthesizer (Zero asset dependency, instant sound feedback)
+// Web Audio Earcon Synthesizer (Instant sound cues)
 class EarconAudio {
   constructor() {
     this.ctx = null;
@@ -105,23 +105,31 @@ class EarconAudio {
 
 const earcon = new EarconAudio();
 
-// Wayfinding database for DEL Terminal 3
+// Wayfinding database for DEL Terminal 3 (English & Hindi)
 const T3_LOCATIONS = {
-  gates: {
-    domestic: "Gates 27 through 62 on Departure Concourse Level 2.",
-    international: "Gates 1 through 26 on International Pier Level 2.",
-    gate32: "Walk past the central duty-free atrium, take the moving walkway towards Pier B. Gate 32 is on your left with tactile paving.",
-    gate34: "Continue down Concourse B for 90 meters past the central food court. Gate 34 is on your right.",
-    gate15: "After International Immigration and Security, proceed down Pier A for 110 meters. Gate 15 is on the right."
+  gate34: {
+    en: "To reach Gate 34, proceed past the central duty-free atrium down Concourse B for 90 meters. Gate 34 has tactile paving, elevator, and ramp access.",
+    hi: "गेट 34 जाने के लिए ड्यूटी फ्री से आगे कॉनकोर्स B में 90 मीटर सीधे चलें। गेट 34 पर लिफ्ट और रैंप की सुविधा उपलब्ध है।"
   },
-  amenities: {
-    wheelchair: "Special Assistance and PRM (Persons with Reduced Mobility) Desk is located adjacent to Departure Entry Gate 4 at the curb, and immediately after Security SHA.",
-    prm: "Special Assistance counters are available at Forecourt Gate 4 and Check-in Island B.",
-    washrooms: "Accessible restrooms with emergency call buttons are located every 45 meters along both departure piers and next to all boarding gates.",
-    security: "Domestic Security Hold Area (SHA) is located straight ahead after Check-in Islands A through D. DigiYatra express biometric lanes are on the extreme right.",
-    digiyatra: "DigiYatra biometric e-gates are available at Forecourt Gate 2 and Gate 6, offering seamless touchless entry in under 2 minutes.",
-    baggage: "Arrival baggage reclaim belts 1 through 14 are located on Ground Level. Belts 1 through 8 are High-Capacity belts for widebody arrivals.",
-    food: "The Central Food Court and accessible dining hub is located on Mezzanine Level, accessible via central glass elevators next to Gate 30."
+  gate15: {
+    en: "After International Immigration and Security, proceed down Pier A for 110 meters. Gate 15 is on your right.",
+    hi: "इंटरनेशनल इमिग्रेशन और सिक्योरिटी के बाद पियर A में 110 मीटर आगे बढ़ें। गेट 15 दाईं ओर स्थित है।"
+  },
+  generalGates: {
+    en: "To reach boarding gates, proceed through Security Hold Area North and follow the illuminated tactile walkway towards the central atrium. Elevators are available at every gate.",
+    hi: "बोर्डिंग गेट्स तक पहुंचने के लिए सिक्योरिटी एरिया नॉर्थ से सीधे सेंट्रल एट्रियम की ओर बढ़ें। सभी गेट्स पर लिफ्ट उपलब्ध है।"
+  },
+  wheelchair: {
+    en: "Special Assistance and PRM desk is located adjacent to Departure Entry Gate 4 at the curb, and immediately after Security SHA. Assistance officers and electric buggies are on duty.",
+    hi: "व्हीलचेयर और विशेष सहायता डेस्क डिपार्चर गेट 4 और सिक्योरिटी एरिया के तुरंत बाद उपलब्ध है। सहायता अधिकारी और इलेक्ट्रिक बग्गी तैनात हैं।"
+  },
+  security: {
+    en: "Security screening currently has 6 active lanes with an average 4-minute wait. DigiYatra biometric e-gates at Gate 2 and Gate 6 are clear with zero wait.",
+    hi: "सुरक्षा जांच में 6 लेन खुली हैं और औसतन 4 मिनट का समय लग रहा है। गेट 2 पर डिजीयात्रा ई-गेट पूरी तरह खाली है।"
+  },
+  baggage: {
+    en: "Arrival baggage reclaim belts are on the Ground Floor. High-Capacity belts 1 to 8 handle widebody arrivals. Bags arrive within 12 minutes of touchdown.",
+    hi: "आगमन बैगेज बेल्ट ग्राउंड फ्लोर पर स्थित हैं। बेल्ट 1 से 8 पर बड़े विमानों का सामान आता है। बैग 12 मिनट में पहुंच जाएंगे।"
   }
 };
 
@@ -136,11 +144,10 @@ export default function AeroVoiceAssistant({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [response, setResponse] = useState("");
+  const [response, setResponse] = useState(null); // { en: string, hi: string }
   const [transitAdvice, setTransitAdvice] = useState(null);
   const [voiceRate, setVoiceRate] = useState(1.0);
   const [originCity, setOriginCity] = useState("Delhi NCR");
-  const [history, setHistory] = useState([]);
   const recognitionRef = useRef(null);
   const speechSynthRef = useRef(null);
 
@@ -238,32 +245,51 @@ export default function AeroVoiceAssistant({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // Text to Speech
-  const speakText = useCallback((text) => {
+  // Dual-Language Speech Synthesis: First speaks English, then Hindi!
+  const speakBilingual = useCallback((englishText, hindiText) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = voiceRate;
-    utterance.pitch = 1.0;
-    utterance.lang = "en-IN";
-
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(
+
+    // 1. English Utterance
+    const utterEn = new SpeechSynthesisUtterance(englishText);
+    utterEn.rate = voiceRate;
+    utterEn.pitch = 1.0;
+    utterEn.lang = "en-IN";
+
+    const enVoice = voices.find(
       (v) => (v.lang === "en-IN" || v.lang === "en-GB" || v.lang === "en-US") && v.name.includes("Natural")
     ) || voices.find((v) => v.lang.includes("en"));
+    if (enVoice) utterEn.voice = enVoice;
 
-    if (preferredVoice) utterance.voice = preferredVoice;
+    // 2. Hindi Utterance
+    const utterHi = new SpeechSynthesisUtterance(hindiText);
+    utterHi.rate = Math.max(0.85, voiceRate * 0.95);
+    utterHi.pitch = 1.0;
+    utterHi.lang = "hi-IN";
 
-    utterance.onstart = () => {
+    const hiVoice = voices.find((v) => v.lang === "hi-IN" || v.lang.includes("hi")) || enVoice;
+    if (hiVoice) utterHi.voice = hiVoice;
+
+    utterEn.onstart = () => {
       setIsSpeaking(true);
       earcon.playResponseReady();
     };
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
 
-    speechSynthRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+    utterEn.onend = () => {
+      if (hindiText) {
+        window.speechSynthesis.speak(utterHi);
+      } else {
+        setIsSpeaking(false);
+      }
+    };
+
+    utterHi.onend = () => setIsSpeaking(false);
+    utterHi.onerror = () => setIsSpeaking(false);
+    utterEn.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterEn);
   }, [voiceRate]);
 
   const stopSpeaking = () => {
@@ -299,7 +325,6 @@ export default function AeroVoiceAssistant({
     const isIntl = (flight.flight_type || "").toLowerCase() === "international" || (flight.destination || "").length > 3;
     const depTimeStr = flight.departure_time || flight.scheduled_departure;
     
-    // Base times in minutes
     const forecourtTime = 3;
     const checkinTime = isIntl ? 12 : 8;
     const securityTime = 6;
@@ -357,7 +382,7 @@ export default function AeroVoiceAssistant({
     };
   }, [originCity]);
 
-  // Voice Query Brain
+  // Voice Query Brain with Dual-Language Generation
   const handleVoiceQuery = useCallback((queryText) => {
     const q = queryText.toLowerCase().trim();
     if (!q) return;
@@ -370,7 +395,8 @@ export default function AeroVoiceAssistant({
       carousel_number: "AC-04"
     });
 
-    let spokenAnswer = "";
+    let answerEn = "";
+    let answerHi = "";
 
     // 1. Leave Home & Transit Timing Intent
     if (
@@ -386,55 +412,68 @@ export default function AeroVoiceAssistant({
       const advice = calculateLeaveHomeAdvice(activeFlight);
       setTransitAdvice(advice);
 
-      spokenAnswer = `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: ` +
-        `Your total time inside Terminal 3 is approximately ${advice.totalTerminalTime} minutes. ` +
-        `With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted}, ` +
-        `reaching the T3 curb by ${advice.curbArrivalTimeFormatted}.`;
+      answerEn = `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: ` +
+        `Your total time in Terminal 3 is approximately ${advice.totalTerminalTime} minutes. ` +
+        `With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted} ` +
+        `to reach the T3 curb by ${advice.curbArrivalTimeFormatted}.`;
+
+      answerHi = `फ्लाइट ${advice.flightNumber} ${advice.destination} के लिए: ` +
+        `टर्मिनल 3 में कुल ${advice.totalTerminalTime} मिनट लगेंगे। ` +
+        `${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`;
     }
 
     // 2. Flight Status & Gate Guidance
     else if (q.includes("flight") || q.includes("gate") || q.includes("where is my") || q.includes("status")) {
       const gateStr = activeFlight.gate || "Gate 32B";
       const depTime = activeFlight.departure_time || activeFlight.scheduled_departure || "06:45 PM";
-      spokenAnswer = `Flight ${activeFlight.flight_number} to ${activeFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3. Security queue is approximately 4 minutes.`;
+      
+      answerEn = `Flight ${activeFlight.flight_number} to ${activeFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3. Security queue is currently 4 minutes.`;
+      answerHi = `फ्लाइट ${activeFlight.flight_number} ${activeFlight.destination} के लिए समय ${depTime} पर ${gateStr}, टर्मिनल 3 से रवाना होगी। सुरक्षा जांच में 4 मिनट का समय लग रहा है।`;
     }
 
     // 3. Directions & Wayfinding
     else if (q.includes("direction") || q.includes("how to reach") || q.includes("where is gate") || q.includes("way to")) {
       if (q.includes("gate 34") || q.includes("gate 32") || q.includes("gate 30")) {
-        spokenAnswer = T3_LOCATIONS.gates.gate34;
+        answerEn = T3_LOCATIONS.gate34.en;
+        answerHi = T3_LOCATIONS.gate34.hi;
       } else if (q.includes("international") || q.includes("pier a")) {
-        spokenAnswer = T3_LOCATIONS.gates.gate15;
+        answerEn = T3_LOCATIONS.gate15.en;
+        answerHi = T3_LOCATIONS.gate15.hi;
       } else {
-        spokenAnswer = `To reach boarding gates, proceed through Security Hold Area North and follow the illuminated tactile walkway towards the central atrium. Elevators are available at every gate.`;
+        answerEn = T3_LOCATIONS.generalGates.en;
+        answerHi = T3_LOCATIONS.generalGates.hi;
       }
     }
 
     // 4. Accessibility / PRM Assistance
     else if (q.includes("wheelchair") || q.includes("blind") || q.includes("assistance") || q.includes("help") || q.includes("prm") || q.includes("special assistance")) {
-      spokenAnswer = T3_LOCATIONS.amenities.wheelchair + " Assistance officers are on duty at Departure Gate 4.";
+      answerEn = T3_LOCATIONS.wheelchair.en;
+      answerHi = T3_LOCATIONS.wheelchair.hi;
     }
 
     // 5. Security & Queues
     else if (q.includes("security") || q.includes("queue") || q.includes("rush") || q.includes("crowd") || q.includes("digiyatra") || q.includes("wait")) {
-      spokenAnswer = `Security screening currently has 6 active lanes with a 4-minute average wait. DigiYatra e-gates at Gate 2 are clear.`;
+      answerEn = T3_LOCATIONS.security.en;
+      answerHi = T3_LOCATIONS.security.hi;
     }
 
     // 6. Baggage & Reclaim Belts
     else if (q.includes("baggage") || q.includes("belt") || q.includes("carousel") || q.includes("luggage")) {
       const beltNum = activeFlight.carousel_number || "Belt 4";
-      spokenAnswer = `Arrival baggage for ${activeFlight.flight_number} is scheduled at ${beltNum} on Ground Reclaim. Bags arrive within 12 minutes of touchdown.`;
+      answerEn = `Arrival baggage for ${activeFlight.flight_number} is scheduled at ${beltNum} on Ground Reclaim. Bags arrive within 12 minutes of touchdown.`;
+      answerHi = `फ्लाइट ${activeFlight.flight_number} का बैगेज ग्राउंड फ्लोर पर ${beltNum} पर आएगा। बैग 12 मिनट में पहुंच जाएंगे।`;
     }
 
     // 7. General Airport FAQ Fallback
     else {
-      spokenAnswer = `Terminal 3 is operating smoothly. Flight ${activeFlight.flight_number} departs from ${activeFlight.gate || "Gate 32B"}. Ask me when to leave home or for directions to your gate.`;
+      answerEn = `Terminal 3 is operating smoothly. Flight ${activeFlight.flight_number} departs from ${activeFlight.gate || "Gate 32B"}. Ask me when to leave home or for directions to your gate.`;
+      answerHi = `टर्मिनल 3 सामान्य रूप से संचालित है। फ्लाइट ${activeFlight.flight_number} गेट ${activeFlight.gate || "32B"} से छूटेगी। आप घर से निकलने का समय या रास्ता पूछ सकते हैं।`;
     }
 
-    setResponse(spokenAnswer);
-    setHistory((prev) => [{ query: queryText, answer: spokenAnswer, time: new Date() }, ...prev.slice(0, 3)]);
-    speakText(spokenAnswer);
-  }, [selectedFlight, savedFlights, allFlights, calculateLeaveHomeAdvice, originCity, speakText]);
+    const fullResponse = { en: answerEn, hi: answerHi };
+    setResponse(fullResponse);
+    speakBilingual(answerEn, answerHi);
+  }, [selectedFlight, savedFlights, allFlights, calculateLeaveHomeAdvice, originCity, speakBilingual]);
 
   useEffect(() => {
     handleVoiceQueryRef.current = handleVoiceQuery;
@@ -447,7 +486,7 @@ export default function AeroVoiceAssistant({
 
   return (
     <>
-      {/* Floating Accessible Audio Pill */}
+      {/* Floating High-Definition Voice Assistant Trigger Pill */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 pointer-events-auto">
         <motion.button
           whileHover={{ scale: 1.04 }}
@@ -463,23 +502,23 @@ export default function AeroVoiceAssistant({
               earcon.playClose();
             }
           }}
-          className={`relative group flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-xl transition-all border-2 cursor-pointer ${
+          className={`relative group flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-2xl transition-all border-2 cursor-pointer ${
             isOpen
               ? "bg-cyan-500 text-slate-950 border-cyan-400 shadow-cyan-500/30"
-              : "bg-white dark:bg-[#071318] text-slate-900 dark:text-white border-cyan-500/70 hover:border-cyan-400 shadow-slate-900/10 dark:shadow-black/50"
+              : "bg-white dark:bg-[#071318] text-slate-900 dark:text-white border-cyan-500/80 hover:border-cyan-400 shadow-slate-900/15 dark:shadow-black/60"
           }`}
-          aria-label="AeroFlow Accessibility Voice Assistant for Blind Passengers"
+          aria-label="AeroFlow Accessibility Voice Assistant"
           title="Press 'V' or click for Voice Assistant"
         >
           <div className="relative flex items-center justify-center">
             <span className={`absolute w-7 h-7 rounded-full bg-cyan-400/30 ${isListening || isSpeaking ? "animate-ping" : "group-hover:animate-ping"}`} />
-            <div className="w-8 h-8 rounded-full bg-cyan-500 text-slate-950 grid place-items-center font-bold shrink-0">
+            <div className="w-8 h-8 rounded-full bg-cyan-500 text-slate-950 grid place-items-center font-black shrink-0 shadow-sm">
               {isListening ? (
                 <Mic className="w-4 h-4 text-slate-950 animate-pulse" />
               ) : isSpeaking ? (
                 <Volume2 className="w-4 h-4 text-slate-950 animate-bounce" />
               ) : (
-                <Accessibility className="w-4 h-4 text-slate-950" />
+                <Mic className="w-4 h-4 text-slate-950" />
               )}
             </div>
           </div>
@@ -488,17 +527,18 @@ export default function AeroVoiceAssistant({
             <span className="font-display font-black text-xs sm:text-sm tracking-tight leading-none flex items-center gap-1.5">
               Voice Assistant
               <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
-                V
+                Press V
               </span>
             </span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-              {isListening ? "Listening..." : isSpeaking ? "Speaking..." : "Audio Guide"}
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+              <Languages className="w-2.5 h-2.5 text-cyan-500" />
+              {isListening ? "Listening..." : isSpeaking ? "Speaking..." : "EN + हिंदी Audio Guide"}
             </span>
           </div>
         </motion.button>
       </div>
 
-      {/* Compact, Light/Dark Mode Accessible Dialog */}
+      {/* Compact, Light & Dark Responsive Dialog */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -515,14 +555,14 @@ export default function AeroVoiceAssistant({
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-3 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 grid place-items-center text-cyan-600 dark:text-cyan-400">
-                  <Accessibility className="w-4 h-4" />
+                  <Mic className="w-4 h-4" />
                 </div>
                 <div>
                   <h2 className="font-display font-black text-sm sm:text-base flex items-center gap-1.5 leading-none">
                     AeroVoice Audio Guide
                   </h2>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                    Accessible T3 Transit & Wayfinding
+                    Bilingual (English + हिंदी) Navigation
                   </span>
                 </div>
               </div>
@@ -559,7 +599,7 @@ export default function AeroVoiceAssistant({
                   <div className="flex items-center gap-1.5 font-bold font-mono">
                     <span className={`w-2 h-2 rounded-full ${isListening ? "bg-rose-500 animate-ping" : isSpeaking ? "bg-cyan-500 animate-pulse" : "bg-emerald-500"}`} />
                     <span className="text-[11px] text-slate-700 dark:text-slate-300">
-                      {isListening ? "Listening..." : isSpeaking ? "Speaking..." : "Ready to listen"}
+                      {isListening ? "Listening to your voice..." : isSpeaking ? "Speaking bilingual response..." : "Ready for voice query"}
                     </span>
                   </div>
 
@@ -589,7 +629,7 @@ export default function AeroVoiceAssistant({
                     </div>
                   ) : (
                     <p className="text-xs text-slate-600 dark:text-slate-300 leading-tight">
-                      {transcript ? `"${transcript}"` : "Tap microphone or press 'V' to ask a question."}
+                      {transcript ? `"${transcript}"` : "Tap microphone or press 'V' to speak in English or Hindi."}
                     </p>
                   )}
                 </div>
@@ -620,7 +660,7 @@ export default function AeroVoiceAssistant({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => speakText(response)}
+                      onClick={() => speakBilingual(response.en, response.hi)}
                       className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 text-xs px-2.5 rounded-xl cursor-pointer"
                       title="Replay Audio"
                     >
@@ -630,21 +670,30 @@ export default function AeroVoiceAssistant({
                 </div>
               </div>
 
-              {/* Spoken Response */}
+              {/* Spoken Response Container (Clean, no shiny symbol, bilingual output) */}
               {response && (
                 <div
-                  className="p-3 rounded-2xl bg-cyan-50/80 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-500/30 space-y-1 text-left"
+                  className="p-3.5 rounded-2xl bg-cyan-50/80 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-500/30 space-y-2 text-left"
                   aria-live="assertive"
                 >
                   <div className="flex items-center justify-between text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400">
-                    <span className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Assistant Response:
+                    <span className="flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5" /> Assistant Response:
                     </span>
                     {isSpeaking && <span className="text-[9px] animate-pulse">Playing audio...</span>}
                   </div>
-                  <p className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
-                    {response}
-                  </p>
+
+                  {/* English Response */}
+                  <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
+                    <span className="font-bold text-cyan-700 dark:text-cyan-400 mr-1.5">English:</span>
+                    {response.en}
+                  </div>
+
+                  {/* Hindi Response */}
+                  <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium pt-2 border-t border-cyan-200/60 dark:border-cyan-500/20">
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 mr-1.5">हिंदी:</span>
+                    {response.hi}
+                  </div>
                 </div>
               )}
 
@@ -686,7 +735,7 @@ export default function AeroVoiceAssistant({
               {/* Quick Questions */}
               <div className="space-y-1.5 pt-0.5">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3" /> Quick Questions:
+                  <HelpCircle className="w-3 h-3" /> Quick Inquiries:
                 </div>
                 <div className="grid grid-cols-1 gap-1">
                   {[

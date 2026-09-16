@@ -632,8 +632,9 @@ export default function PassengerPortal() {
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 left-6 z-40 bg-slate-900/90 hover:bg-slate-800 text-cyan-400 border border-slate-700/80 rounded-full p-3 shadow-xl backdrop-blur-md transition-all hover:scale-110 cursor-pointer"
+          className="fixed bottom-24 right-6 z-40 bg-white/95 dark:bg-[#071318]/95 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-cyan-400 border border-slate-300 dark:border-slate-700 hover:border-cyan-500 rounded-full p-3 shadow-xl backdrop-blur-md transition-all hover:scale-110 cursor-pointer"
           aria-label="Scroll to top of page"
+          title="Scroll to top"
         >
           <ChevronUp className="w-5 h-5" />
         </button>
