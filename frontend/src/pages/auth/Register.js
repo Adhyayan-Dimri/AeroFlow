@@ -128,9 +128,9 @@ export default function Register() {
 
       {!isStaff && (
         <div className="mt-5 space-y-4">
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-aero-border w-full" />
-            <span className="bg-aero-surface px-3 text-[11px] uppercase tracking-wider text-aero-t3 font-medium absolute">
+          <div className="relative flex items-center justify-center my-2">
+            <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+            <span className="bg-white dark:bg-[#071318] px-3 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold absolute">
               or sign up with
             </span>
           </div>
