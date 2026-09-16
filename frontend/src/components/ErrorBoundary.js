@@ -24,14 +24,25 @@ export default class ErrorBoundary extends React.Component {
           </div>
           <h1 className="text-2xl font-bold font-display text-white">Something went wrong</h1>
           <p className="text-sm text-slate-400 mt-2 max-w-md">
-            The application encountered an unexpected issue. Please reload the page or return to the home screen.
+            The application encountered an issue while rendering. Please click below to reset the cache and reload cleanly.
           </p>
+          {this.state.error && (
+            <div className="mt-4 p-3 rounded-xl bg-slate-900/90 border border-rose-500/30 text-rose-300 text-xs font-mono max-w-lg overflow-x-auto text-left">
+              {this.state.error.toString()}
+            </div>
+          )}
           <div className="flex items-center gap-3 mt-6">
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                try {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                } catch {}
+                window.location.reload();
+              }}
               className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 text-xs font-bold hover:bg-cyan-400 transition-all flex items-center gap-2 shadow-md shadow-cyan-500/20"
             >
-              <RefreshCw className="w-4 h-4" /> Reload Page
+              <RefreshCw className="w-4 h-4" /> Reset & Reload Page
             </button>
             <button
               onClick={() => {

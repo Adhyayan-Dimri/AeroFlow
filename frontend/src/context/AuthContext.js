@@ -11,7 +11,11 @@ export function AuthProvider({ children }) {
   const [checked, setChecked] = useState(false);
 
   const refresh = useCallback(async () => {
-    const token = localStorage.getItem("aero_token");
+    let token = null;
+    try {
+      token = localStorage.getItem("aero_token");
+    } catch {}
+
     if (!token) {
       setUser(null);
       setChecked(true);
