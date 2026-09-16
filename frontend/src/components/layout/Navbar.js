@@ -35,10 +35,11 @@ export default function Navbar() {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           const currentY = window.scrollY || window.pageYOffset || 0;
-          // Dual-threshold hysteresis: activates at > 15px, deactivates at < 5px
-          // Eliminates boundary flicker while reacting immediately to scroll
+          // Dual-threshold hysteresis deadband:
+          // Activates at > 35px, deactivates at < 5px
+          // Completely eliminates layout-shift flickering while providing rich scroll animation
           setScrolled((prev) => {
-            if (!prev && currentY > 15) return true;
+            if (!prev && currentY > 35) return true;
             if (prev && currentY < 5) return false;
             return prev;
           });
@@ -57,14 +58,16 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-[99999] transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-out transform-gpu ${
+      className={`sticky top-0 z-[99999] transition-all duration-300 ease-out transform-gpu ${
         scrolled
           ? "bg-white/95 dark:bg-[#071318]/95 backdrop-blur-2xl shadow-lg dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)] border-b border-cyan-500/30 dark:border-cyan-500/30"
           : "bg-white/85 dark:bg-[#071318]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 shadow-none"
       }`}
       data-testid="navbar"
     >
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 h-16 sm:h-20">
+      <div className={`max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 ${
+        scrolled ? "h-14 sm:h-16" : "h-16 sm:h-20"
+      }`}>
         <Link
           to="/"
           className="flex items-center gap-2.5 sm:gap-3.5 group shrink-0"
@@ -73,13 +76,19 @@ export default function Navbar() {
           <img
             src="/logo.png"
             alt="AeroFlow Logo"
-            className="w-11 h-11 sm:w-14 sm:h-14 object-contain transition-transform duration-300 ease-out group-hover:scale-105 shrink-0"
+            className={`object-contain transition-all duration-300 ease-out group-hover:scale-105 shrink-0 ${
+              scrolled ? "w-11 h-11 sm:w-13 sm:h-13" : "w-13 h-13 sm:w-16 sm:h-16"
+            }`}
           />
-          <div className="flex flex-col justify-center items-start text-left">
-            <div className="font-display font-black tracking-tight text-slate-900 dark:text-white leading-none text-lg sm:text-xl">
+          <div className="flex flex-col justify-center items-start text-left -space-y-0.5 sm:-space-y-1">
+            <div className={`font-display font-black tracking-tight text-slate-900 dark:text-white leading-none transition-all duration-300 ${
+              scrolled ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
+            }`}>
               AERO<span className="text-cyan-600 dark:text-cyan-400">FLOW</span>
             </div>
-            <div className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-normal whitespace-nowrap mt-1 leading-none text-left">
+            <div className={`text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-semibold tracking-normal whitespace-nowrap leading-tight transition-all duration-300 ${
+              scrolled ? "opacity-80" : "opacity-100"
+            }`}>
               From Curb to Gate, No Need to Wait
             </div>
           </div>
@@ -89,7 +98,7 @@ export default function Navbar() {
         <div
           className={`hidden md:flex items-center gap-1 rounded-full transition-all duration-300 transform-gpu ${
             scrolled
-              ? "p-1 bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 dark:border-cyan-500/30 shadow-md shadow-cyan-500/15 backdrop-blur-xl scale-[0.95]"
+              ? "p-1 bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 dark:border-cyan-500/30 shadow-md shadow-cyan-500/15 backdrop-blur-xl scale-[0.96]"
               : "p-1.5 bg-slate-100/90 dark:bg-slate-900/80 border border-slate-300/80 dark:border-slate-800 shadow-inner scale-100"
           }`}
         >
@@ -122,7 +131,7 @@ export default function Navbar() {
         </div>
 
         <div className={`flex items-center gap-1.5 sm:gap-2 shrink-0 transition-transform duration-300 ease-out ${
-          scrolled ? "scale-[0.95] origin-right" : "scale-100 origin-right"
+          scrolled ? "scale-[0.96] origin-right" : "scale-100 origin-right"
         }`}>
           <div className="hidden lg:block mr-1">
             <Clock />
