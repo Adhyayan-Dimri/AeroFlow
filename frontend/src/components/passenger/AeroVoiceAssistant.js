@@ -202,6 +202,76 @@ function findFlightInQuery(text, flightList = []) {
   return null;
 }
 
+// Intelligent language auto-detection (Devanagari script + Hinglish / Hindi keywords vs English)
+function detectLanguage(text) {
+  if (!text) return "en";
+
+  // 1. Devanagari Unicode script range (\u0900-\u097F) -> strictly Hindi
+  if (/[\u0900-\u097F]/.test(text)) {
+    return "hi";
+  }
+
+  const clean = text.toLowerCase().trim();
+
+  // 2. Explicit switch requests
+  if (
+    clean.includes("hindi") ||
+    clean.includes("हिंदी") ||
+    clean.includes("hindustani") ||
+    clean.includes("in hindi")
+  ) {
+    return "hi";
+  }
+  if (
+    clean.includes("english") ||
+    clean.includes("अंग्रेजी") ||
+    clean.includes("in english")
+  ) {
+    return "en";
+  }
+
+  // 3. Hinglish & Hindi phonetic keywords
+  const hinglishTokens = new Set([
+    // Question & inquiry tokens
+    "kahan", "kaha", "kidhar", "kab", "kaise", "kitna", "kitne", "kitni", "kya", "kyun", "kyu", "kaun",
+    // Pronouns & address
+    "mera", "meri", "mere", "mujhe", "mujhko", "apna", "apni", "apne", "hum", "hamein", "aap", "bhai",
+    // Verbs & auxiliaries
+    "nikalna", "nikal", "nikle", "niklu", "nikale", "niklegi", "niklega",
+    "jana", "jaana", "jaye", "jayen", "jaun", "jaunga", "jaungi",
+    "pahunchna", "pahuchna", "pahuche", "pahuchenge", "pahuchengi",
+    "batao", "bataiye", "bata", "bolo", "boliye",
+    "chhootegi", "chhutegi", "chutegi", "milegi", "milega", "aayega", "aayegi",
+    "hoga", "hogi", "hoge", "hai", "hain", "ho", "hoon", "tha", "thi", "the",
+    "kare", "karo", "kijiye", "batao",
+    // Common nouns & airport words
+    "ghar", "vakt", "waqt", "samay", "rasta", "madad", "sahayata", "saman", "saaman",
+    "bheed", "bhid", "kripya", "dhanyawad", "shukriya", "namaste", "namaskar",
+    // Prepositions/particles
+    "se", "mein", "me", "ko", "par", "pe", "ke", "ki", "ka", "liye"
+  ]);
+
+  const words = clean.split(/[^a-z0-9]+/);
+  let hindiHits = 0;
+  for (const w of words) {
+    if (hinglishTokens.has(w)) {
+      hindiHits++;
+    }
+  }
+
+  // Strong signals
+  const strongTokens = [
+    "kahan", "kidhar", "kab", "kaise", "kitna", "kitne", "kitni",
+    "nikalna", "nikle", "niklu", "batao", "bataiye", "chhootegi",
+    "chhutegi", "milegi", "milega", "samay", "vakt", "waqt", "rasta", "madad"
+  ];
+  if (words.some((w) => strongTokens.includes(w)) || hindiHits >= 2) {
+    return "hi";
+  }
+
+  return "en";
+}
+
 export default function AeroVoiceAssistant({
   selectedFlight,
   forecast,
@@ -209,12 +279,12 @@ export default function AeroVoiceAssistant({
   onSelectFlight
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  // Session language is reset to null on every page load/reload
-  const [sessionLang, setSessionLang] = useState(null); // 'en' | 'hi' | null
+  // Auto-detected language ('en' | 'hi'), updates automatically on every query
+  const [currentLang, setCurrentLang] = useState("en");
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [response, setResponse] = useState(null); // text in sessionLang
+  const [response, setResponse] = useState(null); // text in currentLang
   const [transitAdvice, setTransitAdvice] = useState(null);
   const [voiceRate, setVoiceRate] = useState(1.0);
   const [originCity, setOriginCity] = useState("Delhi NCR");
@@ -254,7 +324,7 @@ export default function AeroVoiceAssistant({
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = true;
-        recognition.lang = sessionLang === "hi" ? "hi-IN" : "en-IN";
+        recognition.lang = currentLang === "hi" ? "hi-IN" : "en-IN";
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -296,14 +366,14 @@ export default function AeroVoiceAssistant({
         window.speechSynthesis.cancel();
       }
     };
-  }, [sessionLang]);
+  }, [currentLang]);
 
-  // Speak single language based on current session
-  const speakInSessionLanguage = useCallback((text, targetLang = null) => {
+  // Speak single language based on detected query language
+  const speakInLanguage = useCallback((text, targetLang = null) => {
     if (typeof window === "undefined" || !window.speechSynthesis || !text) return;
 
     window.speechSynthesis.cancel();
-    const lang = targetLang || sessionLang || "en";
+    const lang = targetLang || currentLang || "en";
     const voices = window.speechSynthesis.getVoices();
 
     const utter = new SpeechSynthesisUtterance(text);
@@ -329,7 +399,7 @@ export default function AeroVoiceAssistant({
     utter.onerror = () => setIsSpeaking(false);
 
     window.speechSynthesis.speak(utter);
-  }, [sessionLang, voiceRate]);
+  }, [currentLang, voiceRate]);
 
   const stopSpeaking = () => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -357,22 +427,14 @@ export default function AeroVoiceAssistant({
     }
   };
 
-  // User selects language for this session
-  const selectLanguage = useCallback((lang) => {
-    setSessionLang(lang);
+  // Manual language toggle helper
+  const switchLanguage = useCallback((lang) => {
+    setCurrentLang(lang);
     stopSpeaking();
-    setWaitingForFlight(false);
-    setResponse(null);
-    setTranscript("");
-
-    const welcomeMsg =
-      lang === "hi"
-        ? "हिंदी भाषा चुनी गई है। एयरोफ्लो में आपका स्वागत है! आप अपनी फ्लाइट, गेट, या घर से निकलने के समय के बारे में पूछ सकते हैं।"
-        : "English selected. Welcome to AeroFlow! Ask me when to leave home, where your gate is, or for assistance.";
-
-    setResponse(welcomeMsg);
-    speakInSessionLanguage(welcomeMsg, lang);
-  }, [speakInSessionLanguage]);
+    if (recognitionRef.current) {
+      recognitionRef.current.lang = lang === "hi" ? "hi-IN" : "en-IN";
+    }
+  }, []);
 
   // Keyboard Shortcut: Press 'V' to toggle Voice Assistant
   useEffect(() => {
@@ -386,7 +448,7 @@ export default function AeroVoiceAssistant({
           if (next) {
             earcon.playStartListening();
             setTimeout(() => {
-              if (sessionLang && recognitionRef.current) {
+              if (recognitionRef.current) {
                 try {
                   recognitionRef.current.start();
                 } catch (err) {}
@@ -408,7 +470,7 @@ export default function AeroVoiceAssistant({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, sessionLang]);
+  }, [isOpen]);
 
   // Calculate Intelligent Leave Home & Curb-to-Gate Breakdown
   const calculateLeaveHomeAdvice = useCallback((flight) => {
@@ -474,291 +536,255 @@ export default function AeroVoiceAssistant({
     };
   }, [originCity]);
 
-  // Voice Query Brain: Single Language throughout session, Dynamic Flight Parsing & Follow-Up
-  const handleVoiceQuery = useCallback((queryText) => {
-    const q = queryText.toLowerCase().trim();
-    if (!q) return;
+  // Voice Query Brain: Auto-Detect Language, Dynamic Flight Parsing & Follow-Up
+  const handleVoiceQuery = useCallback(
+    (queryText) => {
+      const q = queryText.toLowerCase().trim();
+      if (!q) return;
 
-    // 0. Handle Language Selection if in Language Picker Screen
-    if (!sessionLang) {
-      if (q.includes("hindi") || q.includes("हिंदी") || q.includes("hindustani")) {
-        selectLanguage("hi");
-        return;
+      // 1. Auto-detect language of this query (switches dynamically if user changes language)
+      const detectedLang = detectLanguage(queryText);
+      setCurrentLang(detectedLang);
+
+      if (recognitionRef.current) {
+        recognitionRef.current.lang = detectedLang === "hi" ? "hi-IN" : "en-IN";
       }
-      if (q.includes("english") || q.includes("अंग्रेजी") || q.includes("angrezi")) {
-        selectLanguage("en");
-        return;
-      }
-    }
 
-    // 1. Explicit Language Switch Commands
-    if (
-      q.includes("switch to hindi") ||
-      q.includes("change language to hindi") ||
-      q.includes("talk in hindi") ||
-      q.includes("speak in hindi") ||
-      q.includes("हिंदी में बात") ||
-      q.includes("हिंदी करो") ||
-      q.includes("भाषा बदलो")
-    ) {
-      selectLanguage("hi");
-      return;
-    }
+      // 2. Check if a specific flight is mentioned in this query
+      const flightPool = liveFlights.length > 0 ? liveFlights : savedFlights;
+      const mentionedFlight = findFlightInQuery(q, flightPool);
 
-    if (
-      q.includes("switch to english") ||
-      q.includes("change language to english") ||
-      q.includes("talk in english") ||
-      q.includes("speak in english") ||
-      q.includes("अंग्रेजी में") ||
-      q.includes("change language")
-    ) {
-      selectLanguage("en");
-      return;
-    }
-
-    const currentLang = sessionLang || "en";
-
-    // 2. Check if a specific flight is mentioned in this query
-    const flightPool = liveFlights.length > 0 ? liveFlights : savedFlights;
-    const mentionedFlight = findFlightInQuery(q, flightPool);
-
-    if (mentionedFlight) {
-      setActiveFlight(mentionedFlight);
-      setWaitingForFlight(false);
-      if (onSelectFlight) {
-        onSelectFlight(mentionedFlight);
-      }
-    }
-
-    const effectiveFlight = mentionedFlight || activeFlight || selectedFlight;
-
-    // 3. If currently waiting for user to provide flight details (Follow-up handling)
-    if (waitingForFlight) {
       if (mentionedFlight) {
+        setActiveFlight(mentionedFlight);
         setWaitingForFlight(false);
-        // Execute pending intent for the identified flight
-        if (pendingIntent === "leave_home") {
-          const advice = calculateLeaveHomeAdvice(mentionedFlight);
-          setTransitAdvice(advice);
+        if (onSelectFlight) {
+          onSelectFlight(mentionedFlight);
+        }
+      }
 
-          const answer =
-            currentLang === "hi"
-              ? `फ्लाइट ${advice.flightNumber} (${advice.destination}) के लिए: टर्मिनल 3 में कुल ${advice.totalTerminalTime} मिनट लगेंगे। ${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`
-              : `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: Your total time in Terminal 3 is approximately ${advice.totalTerminalTime} minutes. With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted} to reach T3 by ${advice.curbArrivalTimeFormatted}.`;
+      const effectiveFlight = mentionedFlight || activeFlight || selectedFlight;
 
-          setResponse(answer);
-          speakInSessionLanguage(answer, currentLang);
-          return;
+      // 3. If currently waiting for user to provide flight details (Follow-up handling)
+      if (waitingForFlight) {
+        if (mentionedFlight) {
+          setWaitingForFlight(false);
+          // Execute pending intent for the identified flight in detected language
+          if (pendingIntent === "leave_home") {
+            const advice = calculateLeaveHomeAdvice(mentionedFlight);
+            setTransitAdvice(advice);
+
+            const answer =
+              detectedLang === "hi"
+                ? `फ्लाइट ${advice.flightNumber} (${advice.destination}) के लिए: टर्मिनल 3 में कुल ${advice.totalTerminalTime} मिनट लगेंगे। ${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`
+                : `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: Your total time in Terminal 3 is approximately ${advice.totalTerminalTime} minutes. With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted} to reach T3 by ${advice.curbArrivalTimeFormatted}.`;
+
+            setResponse(answer);
+            speakInLanguage(answer, detectedLang);
+            return;
+          } else {
+            const gateStr = mentionedFlight.gate || "Gate 32B";
+            const depTime = mentionedFlight.departure_time || mentionedFlight.scheduled_departure || mentionedFlight.std || "06:45 PM";
+            const answer =
+              detectedLang === "hi"
+                ? `फ्लाइट ${mentionedFlight.flight_number} ${mentionedFlight.destination} के लिए समय ${depTime} पर ${gateStr}, टर्मिनल 3 से छूटेगी।`
+                : `Flight ${mentionedFlight.flight_number} to ${mentionedFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3.`;
+
+            setResponse(answer);
+            speakInLanguage(answer, detectedLang);
+            return;
+          }
         } else {
-          const gateStr = mentionedFlight.gate || "Gate 32B";
-          const depTime = mentionedFlight.departure_time || mentionedFlight.scheduled_departure || mentionedFlight.std || "06:45 PM";
-          const answer =
-            currentLang === "hi"
-              ? `फ्लाइट ${mentionedFlight.flight_number} ${mentionedFlight.destination} के लिए समय ${depTime} पर ${gateStr}, टर्मिनल 3 से छूटेगी।`
-              : `Flight ${mentionedFlight.flight_number} to ${mentionedFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3.`;
+          // Still couldn't find the flight
+          const promptAgain =
+            detectedLang === "hi"
+              ? `मुझे '${queryText}' से मिलती हुई उड़ान नहीं मिली। कृपया फ्लाइट नंबर जैसे AI-102 या गंतव्य जैसे मुंबई बताएं।`
+              : `I couldn't find a flight matching '${queryText}'. Please tell me a flight number like AI-102 or destination like Mumbai.`;
 
-          setResponse(answer);
-          speakInSessionLanguage(answer, currentLang);
+          setResponse(promptAgain);
+          speakInLanguage(promptAgain, detectedLang);
           return;
         }
-      } else {
-        // Still couldn't find the flight
-        const promptAgain =
-          currentLang === "hi"
-            ? `मुझे '${queryText}' से मिलती हुई उड़ान नहीं मिली। कृपया फ्लाइट नंबर जैसे AI-102 या गंतव्य जैसे मुंबई बताएं।`
-            : `I couldn't find a flight matching '${queryText}'. Please tell me a flight number like AI-102 or destination like Mumbai.`;
-
-        setResponse(promptAgain);
-        speakInSessionLanguage(promptAgain, currentLang);
-        return;
-      }
-    }
-
-    let answer = "";
-
-    // 4. Leave Home & Transit Timing Intent
-    if (
-      q.includes("leave home") ||
-      q.includes("when should i leave") ||
-      q.includes("how much time") ||
-      q.includes("transit time") ||
-      q.includes("time will it take") ||
-      q.includes("when to go") ||
-      q.includes("timing") ||
-      q.includes("departure advice") ||
-      q.includes("घर") ||
-      q.includes("निकल") ||
-      q.includes("समय") ||
-      q.includes("टाइम") ||
-      q.includes("वक्त") ||
-      q.includes("kab nikle") ||
-      q.includes("kab nikalna") ||
-      q.includes("kitna time") ||
-      q.includes("ghar se")
-    ) {
-      // If user specifically asks for leave home advice but NO flight is known or selected:
-      if (!effectiveFlight) {
-        setWaitingForFlight(true);
-        setPendingIntent("leave_home");
-
-        const askDetails =
-          currentLang === "hi"
-            ? "बिल्कुल! कृपया अपना फ्लाइट नंबर, एयरलाइन, गंतव्य शहर या प्रस्थान समय बताएं ताकि मैं सटीक समय की गणना कर सकूं।"
-            : "Sure! Please tell me your flight number, airline, destination city, or departure time so I can calculate your exact travel timing.";
-
-        setResponse(askDetails);
-        speakInSessionLanguage(askDetails, currentLang);
-        return;
       }
 
-      // We have the specific flight! Calculate timing
-      const advice = calculateLeaveHomeAdvice(effectiveFlight);
-      setTransitAdvice(advice);
+      let answer = "";
 
-      answer =
-        currentLang === "hi"
-          ? `फ्लाइट ${advice.flightNumber} (${advice.destination}) के लिए: टर्मिनल 3 में कुल ${advice.totalTerminalTime} मिनट लगेंगे। ${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`
-          : `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: Your total time in Terminal 3 is approximately ${advice.totalTerminalTime} minutes. With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted} to reach T3 by ${advice.curbArrivalTimeFormatted}.`;
-    }
+      // 4. Leave Home & Transit Timing Intent
+      if (
+        q.includes("leave home") ||
+        q.includes("when should i leave") ||
+        q.includes("how much time") ||
+        q.includes("transit time") ||
+        q.includes("time will it take") ||
+        q.includes("when to go") ||
+        q.includes("timing") ||
+        q.includes("departure advice") ||
+        q.includes("घर") ||
+        q.includes("निकल") ||
+        q.includes("समय") ||
+        q.includes("टाइम") ||
+        q.includes("वक्त") ||
+        q.includes("kab nikle") ||
+        q.includes("kab nikalna") ||
+        q.includes("kitna time") ||
+        q.includes("ghar se")
+      ) {
+        if (!effectiveFlight) {
+          setWaitingForFlight(true);
+          setPendingIntent("leave_home");
 
-    // 5. Flight Status & Gate Guidance
-    else if (
-      q.includes("flight") ||
-      q.includes("gate") ||
-      q.includes("where is my") ||
-      q.includes("status") ||
-      q.includes("गेट") ||
-      q.includes("फ्लाइट") ||
-      q.includes("विमान") ||
-      q.includes("उड़ान") ||
-      q.includes("उड़ान") ||
-      q.includes("कहाँ") ||
-      q.includes("किधर") ||
-      q.includes("kahan") ||
-      q.includes("kidhar")
-    ) {
-      if (!effectiveFlight) {
-        setWaitingForFlight(true);
-        setPendingIntent("gate");
+          const askDetails =
+            detectedLang === "hi"
+              ? "बिल्कुल! कृपया अपना फ्लाइट नंबर, एयरलाइन, गंतव्य शहर या प्रस्थान समय बताएं ताकि मैं सटीक समय की गणना कर सकूं।"
+              : "Sure! Please tell me your flight number, airline, destination city, or departure time so I can calculate your exact travel timing.";
 
-        const askDetails =
-          currentLang === "hi"
-            ? "आप किस उड़ान या गेट के बारे में जानना चाहते हैं? कृपया अपना फ्लाइट नंबर या गंतव्य बताएं।"
-            : "Which flight would you like to check? Please tell me your flight number or destination city.";
+          setResponse(askDetails);
+          speakInLanguage(askDetails, detectedLang);
+          return;
+        }
 
-        setResponse(askDetails);
-        speakInSessionLanguage(askDetails, currentLang);
-        return;
-      }
+        const advice = calculateLeaveHomeAdvice(effectiveFlight);
+        setTransitAdvice(advice);
 
-      const gateStr = effectiveFlight.gate || "Gate 32B";
-      const depTime = effectiveFlight.departure_time || effectiveFlight.scheduled_departure || effectiveFlight.std || "06:45 PM";
-
-      answer =
-        currentLang === "hi"
-          ? `फ्लाइट ${effectiveFlight.flight_number} ${effectiveFlight.destination} के लिए समय ${depTime} पर ${gateStr}, टर्मिनल 3 से रवाना होगी। सुरक्षा जांच में 4 मिनट का समय लग रहा है।`
-          : `Flight ${effectiveFlight.flight_number} to ${effectiveFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3. Security queue is currently 4 minutes.`;
-    }
-
-    // 6. Directions & Wayfinding
-    else if (
-      q.includes("direction") ||
-      q.includes("how to reach") ||
-      q.includes("where is gate") ||
-      q.includes("way to") ||
-      q.includes("रास्ता") ||
-      q.includes("दिशा") ||
-      q.includes("कैसे पहुंचे") ||
-      q.includes("कैसे जाऊं") ||
-      q.includes("rasta") ||
-      q.includes("kaise pauhchu")
-    ) {
-      if (q.includes("gate 34") || q.includes("gate 32") || q.includes("gate 30") || q.includes("34") || q.includes("32")) {
-        answer = T3_LOCATIONS.gate34[currentLang];
-      } else if (q.includes("international") || q.includes("pier a") || q.includes("15") || q.includes("इमिग्रेशन")) {
-        answer = T3_LOCATIONS.gate15[currentLang];
-      } else {
-        answer = T3_LOCATIONS.generalGates[currentLang];
-      }
-    }
-
-    // 7. Accessibility / PRM Assistance
-    else if (
-      q.includes("wheelchair") ||
-      q.includes("blind") ||
-      q.includes("assistance") ||
-      q.includes("help") ||
-      q.includes("prm") ||
-      q.includes("special assistance") ||
-      q.includes("व्हीलचेयर") ||
-      q.includes("सहायता") ||
-      q.includes("मदद") ||
-      q.includes("दिव्यांग") ||
-      q.includes("नेत्रहीन") ||
-      q.includes("madad")
-    ) {
-      answer = T3_LOCATIONS.wheelchair[currentLang];
-    }
-
-    // 8. Security & Queues
-    else if (
-      q.includes("security") ||
-      q.includes("queue") ||
-      q.includes("rush") ||
-      q.includes("crowd") ||
-      q.includes("digiyatra") ||
-      q.includes("wait") ||
-      q.includes("सुरक्षा") ||
-      q.includes("सिक्योरिटी") ||
-      q.includes("जांच") ||
-      q.includes("कतार") ||
-      q.includes("लाइन") ||
-      q.includes("भीड़") ||
-      q.includes("डिजीयात्रा")
-    ) {
-      answer = T3_LOCATIONS.security[currentLang];
-    }
-
-    // 9. Baggage & Reclaim Belts
-    else if (
-      q.includes("baggage") ||
-      q.includes("belt") ||
-      q.includes("carousel") ||
-      q.includes("luggage") ||
-      q.includes("सामान") ||
-      q.includes("बैग") ||
-      q.includes("बैगेज") ||
-      q.includes("बेल्ट") ||
-      q.includes("saman")
-    ) {
-      const beltNum = effectiveFlight?.carousel_number || "Belt 4";
-      const fNum = effectiveFlight ? effectiveFlight.flight_number : "your flight";
-
-      answer =
-        currentLang === "hi"
-          ? `फ्लाइट ${fNum} का बैगेज ग्राउंड फ्लोर पर ${beltNum} पर आएगा। बैग 12 मिनट में पहुंच जाएंगे।`
-          : `Arrival baggage for ${fNum} is scheduled at ${beltNum} on Ground Reclaim. Bags arrive within 12 minutes of touchdown.`;
-    }
-
-    // 10. General Airport Fallback
-    else {
-      if (effectiveFlight) {
         answer =
-          currentLang === "hi"
-            ? `फ्लाइट ${effectiveFlight.flight_number} गेट ${effectiveFlight.gate || "32B"} से छूटेगी। आप घर से निकलने का समय या रास्ता पूछ सकते हैं।`
-            : `Terminal 3 is operating smoothly. Flight ${effectiveFlight.flight_number} departs from ${effectiveFlight.gate || "Gate 32B"}. Ask me when to leave home or for directions.`;
-      } else {
-        answer =
-          currentLang === "hi"
-            ? "टर्मिनल 3 सामान्य रूप से संचालित है। अपनी फ्लाइट का नंबर या शहर बताएं ताकि मैं आपको सटीक समय और गेट की जानकारी दे सकूं।"
-            : "Terminal 3 is operating smoothly. Please tell me your flight number or destination to check your gate or leave-home schedule.";
+          detectedLang === "hi"
+            ? `फ्लाइट ${advice.flightNumber} (${advice.destination}) के लिए: टर्मिनल 3 में कुल ${advice.totalTerminalTime} मिनट लगेंगे। ${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`
+            : `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: Your total time in Terminal 3 is approximately ${advice.totalTerminalTime} minutes. With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted} to reach T3 by ${advice.curbArrivalTimeFormatted}.`;
       }
-    }
+      // 5. Flight Status & Gate Guidance
+      else if (
+        q.includes("flight") ||
+        q.includes("gate") ||
+        q.includes("where is my") ||
+        q.includes("status") ||
+        q.includes("गेट") ||
+        q.includes("फ्लाइट") ||
+        q.includes("विमान") ||
+        q.includes("उड़ान") ||
+        q.includes("उड़ान") ||
+        q.includes("कहाँ") ||
+        q.includes("किधर") ||
+        q.includes("kahan") ||
+        q.includes("kidhar")
+      ) {
+        if (!effectiveFlight) {
+          setWaitingForFlight(true);
+          setPendingIntent("gate");
 
-    setResponse(answer);
-    speakInSessionLanguage(answer, currentLang);
-  }, [sessionLang, selectLanguage, liveFlights, savedFlights, activeFlight, selectedFlight, onSelectFlight, waitingForFlight, pendingIntent, calculateLeaveHomeAdvice, originCity, speakInSessionLanguage]);
+          const askDetails =
+            detectedLang === "hi"
+              ? "आप किस उड़ान या गेट के बारे में जानना चाहते हैं? कृपया अपना फ्लाइट नंबर या गंतव्य बताएं।"
+              : "Which flight would you like to check? Please tell me your flight number or destination city.";
+
+          setResponse(askDetails);
+          speakInLanguage(askDetails, detectedLang);
+          return;
+        }
+
+        const gateStr = effectiveFlight.gate || "Gate 32B";
+        const depTime = effectiveFlight.departure_time || effectiveFlight.scheduled_departure || effectiveFlight.std || "06:45 PM";
+
+        answer =
+          detectedLang === "hi"
+            ? `फ्लाइट ${effectiveFlight.flight_number} ${effectiveFlight.destination} के लिए समय ${depTime} पर ${gateStr}, टर्मिनल 3 से रवाना होगी। सुरक्षा जांच में 4 मिनट का समय लग रहा है।`
+            : `Flight ${effectiveFlight.flight_number} to ${effectiveFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3. Security queue is currently 4 minutes.`;
+      }
+      // 6. Directions & Wayfinding
+      else if (
+        q.includes("direction") ||
+        q.includes("how to reach") ||
+        q.includes("where is gate") ||
+        q.includes("way to") ||
+        q.includes("रास्ता") ||
+        q.includes("दिशा") ||
+        q.includes("कैसे पहुंचे") ||
+        q.includes("कैसे जाऊं") ||
+        q.includes("rasta") ||
+        q.includes("kaise pauhchu") ||
+        q.includes("kaise jaye")
+      ) {
+        if (q.includes("gate 34") || q.includes("gate 32") || q.includes("gate 30") || q.includes("34") || q.includes("32")) {
+          answer = T3_LOCATIONS.gate34[detectedLang];
+        } else if (q.includes("international") || q.includes("pier a") || q.includes("15") || q.includes("इमिग्रेशन")) {
+          answer = T3_LOCATIONS.gate15[detectedLang];
+        } else {
+          answer = T3_LOCATIONS.generalGates[detectedLang];
+        }
+      }
+      // 7. Accessibility / PRM Assistance
+      else if (
+        q.includes("wheelchair") ||
+        q.includes("blind") ||
+        q.includes("assistance") ||
+        q.includes("help") ||
+        q.includes("prm") ||
+        q.includes("special assistance") ||
+        q.includes("व्हीलचेयर") ||
+        q.includes("सहायता") ||
+        q.includes("मदद") ||
+        q.includes("दिव्यांग") ||
+        q.includes("नेत्रहीन") ||
+        q.includes("madad")
+      ) {
+        answer = T3_LOCATIONS.wheelchair[detectedLang];
+      }
+      // 8. Security & Queues
+      else if (
+        q.includes("security") ||
+        q.includes("queue") ||
+        q.includes("rush") ||
+        q.includes("crowd") ||
+        q.includes("digiyatra") ||
+        q.includes("wait") ||
+        q.includes("सुरक्षा") ||
+        q.includes("सिक्योरिटी") ||
+        q.includes("जांच") ||
+        q.includes("कतार") ||
+        q.includes("लाइन") ||
+        q.includes("भीड़") ||
+        q.includes("डिजीयात्रा")
+      ) {
+        answer = T3_LOCATIONS.security[detectedLang];
+      }
+      // 9. Baggage & Reclaim Belts
+      else if (
+        q.includes("baggage") ||
+        q.includes("belt") ||
+        q.includes("carousel") ||
+        q.includes("luggage") ||
+        q.includes("सामान") ||
+        q.includes("बैग") ||
+        q.includes("बैगेज") ||
+        q.includes("बेल्ट") ||
+        q.includes("saman")
+      ) {
+        const beltNum = effectiveFlight?.carousel_number || "Belt 4";
+        const fNum = effectiveFlight ? effectiveFlight.flight_number : (detectedLang === "hi" ? "आपकी फ्लाइट" : "your flight");
+
+        answer =
+          detectedLang === "hi"
+            ? `फ्लाइट ${fNum} का बैगेज ग्राउंड फ्लोर पर ${beltNum} पर आएगा। बैग 12 मिनट में पहुंच जाएंगे।`
+            : `Arrival baggage for ${fNum} is scheduled at ${beltNum} on Ground Reclaim. Bags arrive within 12 minutes of touchdown.`;
+      }
+      // 10. General Airport Fallback
+      else {
+        if (effectiveFlight) {
+          answer =
+            detectedLang === "hi"
+              ? `फ्लाइट ${effectiveFlight.flight_number} गेट ${effectiveFlight.gate || "32B"} से छूटेगी। आप घर से निकलने का समय या रास्ता पूछ सकते हैं।`
+              : `Terminal 3 is operating smoothly. Flight ${effectiveFlight.flight_number} departs from ${effectiveFlight.gate || "Gate 32B"}. Ask me when to leave home or for directions.`;
+        } else {
+          answer =
+            detectedLang === "hi"
+              ? "टर्मिनल 3 सामान्य रूप से संचालित है। अपनी फ्लाइट का नंबर या शहर बताएं ताकि मैं आपको सटीक समय और गेट की जानकारी दे सकूं।"
+              : "Terminal 3 is operating smoothly. Please tell me your flight number or destination to check your gate or leave-home schedule.";
+        }
+      }
+
+      setResponse(answer);
+      speakInLanguage(answer, detectedLang);
+    },
+    [liveFlights, savedFlights, activeFlight, selectedFlight, onSelectFlight, waitingForFlight, pendingIntent, calculateLeaveHomeAdvice, originCity, speakInLanguage]
+  );
 
   useEffect(() => {
     handleVoiceQueryRef.current = handleVoiceQuery;
@@ -781,9 +807,7 @@ export default function AeroVoiceAssistant({
               setIsOpen(true);
               earcon.playStartListening();
               setTimeout(() => {
-                if (sessionLang) {
-                  startListening();
-                }
+                startListening();
               }, 300);
             } else {
               setIsOpen(false);
@@ -815,7 +839,7 @@ export default function AeroVoiceAssistant({
             </span>
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 flex items-center gap-1">
               <Languages className="w-2.5 h-2.5 text-cyan-500" />
-              {sessionLang === "hi" ? "हिंदी Voice Guide" : sessionLang === "en" ? "English Voice Guide" : "Choose Language"}
+              {currentLang === "hi" ? "हिंदी (Auto-Detect)" : "English (Auto-Detect)"}
             </span>
           </div>
         </motion.button>
@@ -834,7 +858,7 @@ export default function AeroVoiceAssistant({
             aria-modal="true"
             aria-label="AeroVoice Assistant Dialog"
           >
-            {/* Header: Clean & Spacious */}
+            {/* Header: Clean & Spacious with Auto-Language Badge */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 grid place-items-center text-cyan-600 dark:text-cyan-400 shadow-sm">
@@ -845,22 +869,21 @@ export default function AeroVoiceAssistant({
                     AeroVoice Guide
                   </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {sessionLang === "hi" ? "टर्मिनल 3 वॉइस नेविगेशन" : "Terminal 3 Voice Navigation"}
+                    {currentLang === "hi" ? "टर्मिनल 3 वॉइस नेविगेशन" : "Terminal 3 Voice Navigation"}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
-                {/* Language Switch Badge if session is active */}
-                {sessionLang && (
-                  <button
-                    onClick={() => selectLanguage(sessionLang === "hi" ? "en" : "hi")}
-                    className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 font-mono text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
-                    title="Switch Language"
-                  >
-                    {sessionLang === "hi" ? "🇮🇳 हिंदी (Change)" : "🇬🇧 English (Change)"}
-                  </button>
-                )}
+                {/* Auto-detected Language Indicator & Manual Toggle Pill */}
+                <button
+                  onClick={() => switchLanguage(currentLang === "hi" ? "en" : "hi")}
+                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 font-mono text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-1"
+                  title="Auto-detects language (click to switch manually)"
+                >
+                  <Languages className="w-3 h-3 text-cyan-500" />
+                  <span>{currentLang === "hi" ? "🇮🇳 Auto: हिंदी" : "🇬🇧 Auto: English"}</span>
+                </button>
 
                 {isSpeaking && (
                   <button
@@ -886,216 +909,170 @@ export default function AeroVoiceAssistant({
               </div>
             </div>
 
-            {/* If user hasn't selected language in this session, show welcoming Language Picker screen */}
-            {!sessionLang ? (
-              <div className="flex-1 py-6 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 grid place-items-center text-cyan-500">
-                  <Languages className="w-6 h-6" />
+            {/* Direct Workspace without language selection barrier */}
+            <div className="flex-1 overflow-y-auto pr-1 py-3.5 space-y-3.5 scrollbar-thin">
+              {/* Active Flight Indicator (If identified) */}
+              {activeFlight && (
+                <div className="px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 font-mono font-bold text-cyan-700 dark:text-cyan-300">
+                    <Plane className="w-3.5 h-3.5" />
+                    {activeFlight.flight_number} ({activeFlight.destination})
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Gate {activeFlight.gate || "TBD"} · {activeFlight.std || activeFlight.departure_time || "Scheduled"}
+                  </span>
+                </div>
+              )}
+
+              {/* Primary Voice Action Hub */}
+              <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+                <div className="flex items-center justify-center">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={isListening ? () => recognitionRef.current?.stop() : startListening}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all cursor-pointer ${
+                      isListening
+                        ? "bg-rose-500 text-white ring-4 ring-rose-500/30 animate-pulse"
+                        : isSpeaking
+                        ? "bg-cyan-500 text-slate-950 ring-4 ring-cyan-500/30"
+                        : "bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 hover:scale-105"
+                    }`}
+                    title={isListening ? "Stop listening" : "Tap to speak"}
+                  >
+                    <Mic className="w-6 h-6" />
+                  </motion.button>
                 </div>
 
-                <div className="space-y-1 max-w-[280px]">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Select Your Language / भाषा चुनें
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Which language would you like to use for this voice session?
+                <div>
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    {isListening
+                      ? currentLang === "hi" ? "आपकी आवाज़ सुनी जा रही है..." : "Listening to your voice..."
+                      : isSpeaking
+                      ? currentLang === "hi" ? "उत्तर बोला जा रहा है..." : "Speaking response..."
+                      : currentLang === "hi" ? "बोलने के लिए ऊपर टैप करें या 'V' दबाएं" : "Tap above or press 'V' to speak"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {transcript
+                      ? `"${transcript}"`
+                      : waitingForFlight
+                      ? currentLang === "hi"
+                        ? "कृपया अपनी उड़ान संख्या (जैसे AI-102) या शहर बताएं..."
+                        : "Please tell your flight number (like AI-102) or destination city..."
+                      : currentLang === "hi"
+                      ? "घर से निकलने का समय, गेट, व्हीलचेयर या सामान के बारे में पूछें।"
+                      : "Ask when to leave home, gate directions, wheelchair, or baggage."}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 w-full max-w-[300px] pt-1">
-                  <button
-                    onClick={() => selectLanguage("en")}
-                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-cyan-50 dark:bg-slate-900/70 dark:hover:bg-slate-800 border-2 border-slate-200 hover:border-cyan-500 dark:border-slate-800 dark:hover:border-cyan-400 text-center transition-all cursor-pointer group"
-                  >
-                    <div className="text-xl mb-1">🇬🇧</div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400">
-                      English
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">Continue in English</div>
-                  </button>
-
-                  <button
-                    onClick={() => selectLanguage("hi")}
-                    className="p-3.5 rounded-2xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/70 dark:hover:bg-slate-800 border-2 border-slate-200 hover:border-emerald-500 dark:border-slate-800 dark:hover:border-emerald-400 text-center transition-all cursor-pointer group"
-                  >
-                    <div className="text-xl mb-1">🇮🇳</div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                      हिंदी
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">हिंदी में जारी रखें</div>
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 italic pt-2">
-                  Say "English" or "Hindi" to choose by voice.
-                </p>
-              </div>
-            ) : (
-              /* Session Workspace */
-              <div className="flex-1 overflow-y-auto pr-1 py-3.5 space-y-3.5 scrollbar-thin">
-                {/* Active Flight Indicator (If identified) */}
-                {activeFlight && (
-                  <div className="px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 font-mono font-bold text-cyan-700 dark:text-cyan-300">
-                      <Plane className="w-3.5 h-3.5" />
-                      {activeFlight.flight_number} ({activeFlight.destination})
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Gate {activeFlight.gate || "TBD"} · {activeFlight.std || activeFlight.departure_time || "Scheduled"}
-                    </span>
-                  </div>
-                )}
-
-                {/* Primary Voice Action Hub */}
-                <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-center space-y-3">
-                  <div className="flex items-center justify-center">
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={isListening ? () => recognitionRef.current?.stop() : startListening}
-                      className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all cursor-pointer ${
-                        isListening
-                          ? "bg-rose-500 text-white ring-4 ring-rose-500/30 animate-pulse"
-                          : isSpeaking
-                          ? "bg-cyan-500 text-slate-950 ring-4 ring-cyan-500/30"
-                          : "bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 hover:scale-105"
-                      }`}
-                      title={isListening ? "Stop listening" : "Tap to speak"}
+                {response && !isSpeaking && (
+                  <div className="pt-1 flex items-center justify-center">
+                    <button
+                      onClick={() => speakInLanguage(response, currentLang)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-600 dark:text-cyan-400 text-[11px] font-medium hover:bg-slate-100 cursor-pointer shadow-sm"
                     >
-                      <Mic className="w-6 h-6" />
-                    </motion.button>
+                      <RotateCcw className="w-3 h-3" />
+                      {currentLang === "hi" ? "ऑडियो दोबारा सुनें" : "Replay Audio"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Spoken Response Container */}
+              {response && (
+                <div
+                  className="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/25 border border-cyan-200/80 dark:border-cyan-500/30 space-y-2.5 text-left"
+                  aria-live="assertive"
+                >
+                  <div className="flex items-center justify-between text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5" />
+                      {currentLang === "hi" ? "सहायक उत्तर" : "Assistant Response"}
+                    </span>
+                    <span className="text-[9px] lowercase font-sans opacity-70">
+                      ({currentLang === "hi" ? "हिंदी" : "English"})
+                    </span>
                   </div>
 
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {isListening
-                        ? sessionLang === "hi" ? "आपकी आवाज़ सुनी जा रही है..." : "Listening to your voice..."
-                        : isSpeaking
-                        ? sessionLang === "hi" ? "उत्तर बोला जा रहा है..." : "Speaking response..."
-                        : sessionLang === "hi" ? "बोलने के लिए ऊपर टैप करें या 'V' दबाएं" : "Tap above or press 'V' to speak"}
-                    </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      {transcript
-                        ? `"${transcript}"`
-                        : waitingForFlight
-                        ? sessionLang === "hi"
-                          ? "कृपया अपनी उड़ान संख्या (जैसे AI-102) या शहर बताएं..."
-                          : "Please tell your flight number (like AI-102) or destination city..."
-                        : sessionLang === "hi"
-                        ? "घर से निकलने का समय, गेट, व्हीलचेयर या सामान के बारे में पूछें।"
-                        : "Ask when to leave home, gate directions, wheelchair, or baggage."}
-                    </p>
+                  <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
+                    {response}
                   </div>
-
-                  {response && !isSpeaking && (
-                    <div className="pt-1 flex items-center justify-center">
-                      <button
-                        onClick={() => speakInSessionLanguage(response, sessionLang)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-cyan-600 dark:text-cyan-400 text-[11px] font-medium hover:bg-slate-100 cursor-pointer shadow-sm"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        {sessionLang === "hi" ? "ऑडियो दोबारा सुनें" : "Replay Audio"}
-                      </button>
-                    </div>
-                  )}
                 </div>
+              )}
 
-                {/* Spoken Response Container */}
-                {response && (
-                  <div
-                    className="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/25 border border-cyan-200/80 dark:border-cyan-500/30 space-y-2.5 text-left"
-                    aria-live="assertive"
-                  >
-                    <div className="flex items-center justify-between text-[11px] font-mono font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider">
-                      <span className="flex items-center gap-1.5">
-                        <Volume2 className="w-3.5 h-3.5" />
-                        {sessionLang === "hi" ? "सहायक उत्तर" : "Assistant Response"}
-                      </span>
-                      <span className="text-[9px] lowercase font-sans opacity-70">
-                        ({sessionLang === "hi" ? "हिंदी" : "English"})
-                      </span>
-                    </div>
-
-                    <div className="text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium">
-                      {response}
-                    </div>
+              {/* Leave Home Timing Pill (When available) */}
+              {transitAdvice && (
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      {currentLang === "hi" ? "घर से निकलने का समय" : "Leave Home Time"} ({transitAdvice.flightNumber})
+                    </span>
+                    <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800">
+                      {transitAdvice.leaveHomeTimeFormatted}
+                    </span>
                   </div>
-                )}
 
-                {/* Leave Home Timing Pill (When available) */}
-                {transitAdvice && (
-                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        {sessionLang === "hi" ? "घर से निकलने का समय" : "Leave Home Time"} ({transitAdvice.flightNumber})
-                      </span>
-                      <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-xs px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800">
-                        {transitAdvice.leaveHomeTimeFormatted}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-center text-xs pt-1">
-                      <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                        <div className="text-[10px] text-slate-500 uppercase font-mono">
-                          {sessionLang === "hi" ? "टी3 समय" : "T3 Process Time"}
-                        </div>
-                        <div className="font-bold text-xs text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">
-                          {transitAdvice.totalTerminalTime} {sessionLang === "hi" ? "मिनट" : "mins"}
-                        </div>
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs pt-1">
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                      <div className="text-[10px] text-slate-500 uppercase font-mono">
+                        {currentLang === "hi" ? "टी3 समय" : "T3 Process Time"}
                       </div>
-                      <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                        <div className="text-[10px] text-slate-500 uppercase font-mono">
-                          {sessionLang === "hi" ? "एयरपोर्ट आगमन" : "Curb Arrival"}
-                        </div>
-                        <div className="font-bold text-xs text-slate-800 dark:text-slate-200 font-mono mt-0.5">
-                          {transitAdvice.curbArrivalTimeFormatted}
-                        </div>
+                      <div className="font-bold text-xs text-cyan-600 dark:text-cyan-400 font-mono mt-0.5">
+                        {transitAdvice.totalTerminalTime} {currentLang === "hi" ? "मिनट" : "mins"}
+                      </div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                      <div className="text-[10px] text-slate-500 uppercase font-mono">
+                        {currentLang === "hi" ? "एयरपोर्ट आगमन" : "Curb Arrival"}
+                      </div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200 font-mono mt-0.5">
+                        {transitAdvice.curbArrivalTimeFormatted}
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Quick Inquiry Prompts (In the chosen session language) */}
-                <div className="space-y-2 pt-1">
-                  <div className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <HelpCircle className="w-3 h-3" />
-                    {sessionLang === "hi" ? "सुझाए गए प्रश्न:" : "Quick Inquiries:"}
-                  </div>
-                  <div className="space-y-1.5">
-                    {(sessionLang === "hi"
-                      ? [
-                          { text: "मेरी फ्लाइट के लिए घर से कब निकलना चाहिए?", desc: "घर से निकलने का समय और रूट ट्रैफ़िक" },
-                          { text: "टर्मिनल 3 में कुल कितना समय लगेगा?", desc: "सुरक्षा जांच, चेक-इन और गेट वॉक" },
-                          { text: "मेरी फ्लाइट और गेट कहाँ स्थित है?", desc: "उड़ान स्थिति और बोर्डिंग गेट" },
-                          { text: "व्हीलचेयर और विशेष सहायता कहाँ मिलेगी?", desc: "दिव्यांग सहायता डेस्क व बग्गी" }
-                        ]
-                      : [
-                          { text: "When should I leave home for my flight?", desc: "Calculates drive time and airport transit" },
-                          { text: "How much time will it take inside T3?", desc: "Check-in, security screening, and gate walk" },
-                          { text: "Where is my flight and gate?", desc: "Departure time, terminal, and boarding gate" },
-                          { text: "Where is wheelchair assistance?", desc: "PRM desk, buggy, and accessible routes" }
-                        ]
-                    ).map((q, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleQuickPrompt(q.text)}
-                        className="w-full p-2.5 rounded-2xl bg-slate-50 hover:bg-cyan-50/50 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-cyan-300 dark:hover:border-cyan-700/50 text-left transition-all cursor-pointer flex items-center justify-between group"
-                      >
-                        <div className="space-y-0.5 pr-2">
-                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 leading-tight">
-                            {q.text}
-                          </div>
-                          <div className="text-[10px] text-slate-400 dark:text-slate-500">
-                            {q.desc}
-                          </div>
+              {/* Quick Inquiry Prompts (In current detected language) */}
+              <div className="space-y-2 pt-1">
+                <div className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <HelpCircle className="w-3 h-3" />
+                  {currentLang === "hi" ? "सुझाए गए प्रश्न:" : "Quick Inquiries:"}
+                </div>
+                <div className="space-y-1.5">
+                  {(currentLang === "hi"
+                    ? [
+                        { text: "मेरी फ्लाइट के लिए घर से कब निकलना चाहिए?", desc: "घर से निकलने का समय और रूट ट्रैफ़िक" },
+                        { text: "टर्मिनल 3 में कुल कितना समय लगेगा?", desc: "सुरक्षा जांच, चेक-इन और गेट वॉक" },
+                        { text: "मेरी फ्लाइट और गेट कहाँ स्थित है?", desc: "उड़ान स्थिति और बोर्डिंग गेट" },
+                        { text: "व्हीलचेयर और विशेष सहायता कहाँ मिलेगी?", desc: "दिव्यांग सहायता डेस्क व बग्गी" }
+                      ]
+                    : [
+                        { text: "When should I leave home for my flight?", desc: "Calculates drive time and airport transit" },
+                        { text: "How much time will it take inside T3?", desc: "Check-in, security screening, and gate walk" },
+                        { text: "Where is my flight and gate?", desc: "Departure time, terminal, and boarding gate" },
+                        { text: "Where is wheelchair assistance?", desc: "PRM desk, buggy, and accessible routes" }
+                      ]
+                  ).map((q, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleQuickPrompt(q.text)}
+                      className="w-full p-2.5 rounded-2xl bg-slate-50 hover:bg-cyan-50/50 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-cyan-300 dark:hover:border-cyan-700/50 text-left transition-all cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="space-y-0.5 pr-2">
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 leading-tight">
+                          {q.text}
                         </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all shrink-0" />
-                      </button>
-                    ))}
-                  </div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                          {q.desc}
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Clean Minimal Footer */}
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
