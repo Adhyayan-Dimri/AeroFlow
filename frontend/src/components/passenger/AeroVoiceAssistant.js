@@ -20,7 +20,6 @@ import {
   Compass,
   MapPin,
   Car,
-  Languages,
   CheckCircle2,
   Search
 } from "lucide-react";
@@ -247,20 +246,20 @@ function detectLanguage(text) {
   // 3. Hinglish & Hindi phonetic keywords
   const hinglishTokens = new Set([
     // Question & inquiry tokens
-    "kahan", "kaha", "kidhar", "kab", "kaise", "kitna", "kitne", "kitni", "kya", "kyun", "kyu", "kaun",
+    "kahan", "kaha", "kidhar", "kab", "kaise", "kitna", "kitne", "kitni", "kya", "kyun", "kyu", "kaun", "kaunsa", "kaunsi",
     // Pronouns & address
     "mera", "meri", "mere", "mujhe", "mujhko", "apna", "apni", "apne", "hum", "hamein", "aap", "bhai",
     // Verbs & auxiliaries
     "nikalna", "nikal", "nikle", "niklu", "nikale", "niklegi", "niklega",
     "jana", "jaana", "jaye", "jayen", "jaun", "jaunga", "jaungi",
     "pahunchna", "pahuchna", "pahuche", "pahuchenge", "pahuchengi",
-    "batao", "bataiye", "bata", "bolo", "boliye",
+    "batao", "bataiye", "bata", "bolo", "boliye", "bataye", "batayen",
     "chhootegi", "chhutegi", "chutegi", "milegi", "milega", "aayega", "aayegi",
     "hoga", "hogi", "hoge", "hai", "hain", "ho", "hoon", "tha", "thi", "the",
-    "kare", "karo", "kijiye", "batao",
+    "lag", "lagega", "lagegi", "kare", "karo", "kijiye",
     // Common nouns & airport words
     "ghar", "vakt", "waqt", "samay", "rasta", "madad", "sahayata", "saman", "saaman",
-    "bheed", "bhid", "kripya", "dhanyawad", "shukriya", "namaste", "namaskar",
+    "bheed", "bhid", "baje", "kripya", "dhanyawad", "shukriya", "namaste", "namaskar",
     // Prepositions/particles
     "se", "mein", "me", "ko", "par", "pe", "ke", "ki", "ka", "liye"
   ]);
@@ -273,13 +272,14 @@ function detectLanguage(text) {
     }
   }
 
-  // Strong signals
+  // Strong signals that unambiguously indicate Hindi / Hinglish inquiry
   const strongTokens = [
-    "kahan", "kidhar", "kab", "kaise", "kitna", "kitne", "kitni",
-    "nikalna", "nikle", "niklu", "batao", "bataiye", "chhootegi",
-    "chhutegi", "milegi", "milega", "samay", "vakt", "waqt", "rasta", "madad"
+    "kahan", "kaha", "kidhar", "kab", "kaise", "kitna", "kitne", "kitni", "kya", "kaunsa", "kaunsi",
+    "nikalna", "nikle", "niklu", "niklegi", "niklega", "batao", "bataiye", "bata", "bataye",
+    "chhootegi", "chhutegi", "milegi", "milega", "aayega", "aayegi", "lagega", "lagegi",
+    "samay", "vakt", "waqt", "rasta", "madad", "ghar", "saman", "saaman", "baje"
   ];
-  if (words.some((w) => strongTokens.includes(w)) || hindiHits >= 2) {
+  if (words.some((w) => strongTokens.includes(w)) || hindiHits >= 1) {
     return "hi";
   }
 
@@ -440,15 +440,6 @@ export default function AeroVoiceAssistant({
       }, 200);
     }
   };
-
-  // Manual language toggle helper
-  const switchLanguage = useCallback((lang) => {
-    setCurrentLang(lang);
-    stopSpeaking();
-    if (recognitionRef.current) {
-      recognitionRef.current.lang = lang === "hi" ? "hi-IN" : "en-IN";
-    }
-  }, []);
 
   // Keyboard Shortcut: Press 'V' to toggle Voice Assistant
   useEffect(() => {
@@ -832,9 +823,8 @@ export default function AeroVoiceAssistant({
                 Press V
               </span>
             </span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 flex items-center gap-1">
-              <Languages className="w-2.5 h-2.5 text-cyan-500" />
-              {currentLang === "hi" ? "हिंदी (Auto-Detect)" : "English (Auto-Detect)"}
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+              Terminal 3 Smart Voice
             </span>
           </div>
         </motion.button>
@@ -864,21 +854,12 @@ export default function AeroVoiceAssistant({
                     AeroVoice Guide
                   </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {currentLang === "hi" ? "टर्मिनल 3 वॉइस नेविगेशन" : "Terminal 3 Voice Navigation"}
+                    Terminal 3 Voice Navigation
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1.5">
-                {/* Auto-detected Language Indicator & Manual Toggle Pill */}
-                <button
-                  onClick={() => switchLanguage(currentLang === "hi" ? "en" : "hi")}
-                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-300 font-mono text-[10px] font-bold border border-slate-200 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-1"
-                  title="Auto-detects language (click to switch manually)"
-                >
-                  <Languages className="w-3 h-3 text-cyan-500" />
-                  <span>{currentLang === "hi" ? "🇮🇳 Auto: हिंदी" : "🇬🇧 Auto: English"}</span>
-                </button>
 
                 {isSpeaking && (
                   <button
