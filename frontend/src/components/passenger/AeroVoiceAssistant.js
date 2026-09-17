@@ -197,6 +197,8 @@ function findFlightInQuery(text, flightList = []) {
       );
       if (found) return found;
     }
+  }
+
   return null;
 }
 
