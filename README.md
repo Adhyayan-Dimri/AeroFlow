@@ -338,6 +338,3 @@ python -m pytest tests/ -v
 
 ---
 
-## 📄 License & Credits
-
-Developed with precision for modern airport intelligence. Released under the **MIT License**.
