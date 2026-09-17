@@ -626,7 +626,7 @@ export default function PassengerPortal() {
         selectedFlight={selected}
         forecast={forecast}
         savedFlights={savedFlights}
-        allFlights={savedFlights}
+        onSelectFlight={loadFlight}
       />
 
       {showScrollTop && (
