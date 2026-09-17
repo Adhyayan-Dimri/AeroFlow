@@ -197,9 +197,21 @@ function findFlightInQuery(text, flightList = []) {
       );
       if (found) return found;
     }
-  }
-
   return null;
+}
+
+// Cleanly format any timestamp (ISO string, 24h, or formatted time) into human-readable clock format
+function safeFormatTime(val) {
+  if (!val) return "06:45 PM";
+  const s = String(val).trim();
+  if (/^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(s)) return s;
+  try {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+    }
+  } catch (e) {}
+  return s;
 }
 
 // Intelligent language auto-detection (Devanagari script + Hinglish / Hindi keywords vs English)
@@ -324,7 +336,7 @@ export default function AeroVoiceAssistant({
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = true;
-        recognition.lang = currentLang === "hi" ? "hi-IN" : "en-IN";
+        recognition.lang = "en-IN"; // en-IN natively supports both English and Hinglish dictation
 
         recognition.onstart = () => {
           setIsListening(true);
@@ -366,7 +378,7 @@ export default function AeroVoiceAssistant({
         window.speechSynthesis.cancel();
       }
     };
-  }, [currentLang]);
+  }, []); // Initialize only once, allowing en-IN to handle both English and Hinglish continuously
 
   // Speak single language based on detected query language
   const speakInLanguage = useCallback((text, targetLang = null) => {
@@ -476,40 +488,62 @@ export default function AeroVoiceAssistant({
   const calculateLeaveHomeAdvice = useCallback((flight) => {
     if (!flight) return null;
 
-    const isIntl = (flight.flight_type || "").toLowerCase() === "international" || (flight.destination || "").length > 3;
-    const depTimeStr = flight.departure_time || flight.scheduled_departure || flight.etd || flight.std;
-    
-    const forecourtTime = 3;
-    const checkinTime = isIntl ? 12 : 8;
-    const securityTime = 6;
-    const immigrationTime = isIntl ? 10 : 0;
-    const gateWalkTime = 9;
-    const boardingBuffer = isIntl ? 30 : 20;
-    const totalTerminalTime = forecourtTime + checkinTime + securityTime + immigrationTime + gateWalkTime + boardingBuffer;
-
-    let cityDriveTime = 45;
-    if (originCity.toLowerCase().includes("gurugram") || originCity.toLowerCase().includes("gurgaon")) {
-      cityDriveTime = 30;
-    } else if (originCity.toLowerCase().includes("noida")) {
-      cityDriveTime = 60;
-    } else if (originCity.toLowerCase().includes("south delhi")) {
-      cityDriveTime = 25;
+    let hasForecast = false;
+    let forecastSafe = null;
+    if (forecast && flight.flight_number === selectedFlight?.flight_number) {
+      hasForecast = true;
+      forecastSafe = forecast || {};
     }
 
-    const totalPreFlightMinutes = cityDriveTime + totalTerminalTime;
+    const isIntl = (flight.flight_type || "").toLowerCase() === "international" || (flight.destination || "").length > 3;
+    const depTimeStr = flight.departure_time || flight.scheduled_departure || flight.etd || flight.std;
 
+    let totalTerminalTime = 0;
+    let cityDriveTime = 45;
+    let totalPreFlightMinutes = 0;
+    let leaveHomeDate = null;
+    let curbArrivalDate = null;
+    
     let depDate = new Date();
     if (depTimeStr) {
-      const parts = depTimeStr.split(":");
-      if (parts.length >= 2) {
-        depDate.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
+      if (typeof depTimeStr === "string" && (depTimeStr.includes("T") || depTimeStr.includes("-"))) {
+        const parsed = new Date(depTimeStr);
+        if (!isNaN(parsed.getTime())) {
+          depDate = parsed;
+        }
+      } else if (typeof depTimeStr === "string") {
+        const parts = depTimeStr.split(":");
+        if (parts.length >= 2) {
+          depDate.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), 0, 0);
+        }
       }
     } else {
       depDate.setHours(depDate.getHours() + 3);
     }
 
-    const leaveHomeDate = new Date(depDate.getTime() - totalPreFlightMinutes * 60000);
-    const curbArrivalDate = new Date(depDate.getTime() - totalTerminalTime * 60000);
+    let forecourtTime = 3, checkinTime = isIntl ? 12 : 8, securityTime = 6, immigrationTime = isIntl ? 10 : 0, gateWalkTime = 9, boardingBuffer = isIntl ? 30 : 20;
+
+    if (hasForecast && forecastSafe.suggested_airport_arrival) {
+      cityDriveTime = forecastSafe.travel_time_minutes || 45;
+      totalPreFlightMinutes = forecastSafe.total_journey_minutes || 90;
+      totalTerminalTime = Math.max(0, totalPreFlightMinutes - cityDriveTime);
+      
+      leaveHomeDate = new Date(new Date(forecastSafe.suggested_airport_arrival).getTime() - cityDriveTime * 60000);
+      curbArrivalDate = new Date(forecastSafe.suggested_airport_arrival);
+    } else {
+      if (originCity.toLowerCase().includes("gurugram") || originCity.toLowerCase().includes("gurgaon")) {
+        cityDriveTime = 30;
+      } else if (originCity.toLowerCase().includes("noida")) {
+        cityDriveTime = 60;
+      } else if (originCity.toLowerCase().includes("south delhi")) {
+        cityDriveTime = 25;
+      }
+
+      totalTerminalTime = forecourtTime + checkinTime + securityTime + immigrationTime + gateWalkTime + boardingBuffer;
+      totalPreFlightMinutes = cityDriveTime + totalTerminalTime;
+      leaveHomeDate = new Date(depDate.getTime() - totalPreFlightMinutes * 60000);
+      curbArrivalDate = new Date(depDate.getTime() - totalTerminalTime * 60000);
+    }
 
     const formatClock = (d) => d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 
@@ -534,7 +568,7 @@ export default function AeroVoiceAssistant({
         { label: "Boarding Buffer", time: `${boardingBuffer}m`, desc: "Pre-departure" }
       ]
     };
-  }, [originCity]);
+  }, [originCity, forecast, selectedFlight]);
 
   // Voice Query Brain: Auto-Detect Language, Dynamic Flight Parsing & Follow-Up
   const handleVoiceQuery = useCallback(
@@ -545,10 +579,6 @@ export default function AeroVoiceAssistant({
       // 1. Auto-detect language of this query (switches dynamically if user changes language)
       const detectedLang = detectLanguage(queryText);
       setCurrentLang(detectedLang);
-
-      if (recognitionRef.current) {
-        recognitionRef.current.lang = detectedLang === "hi" ? "hi-IN" : "en-IN";
-      }
 
       // 2. Check if a specific flight is mentioned in this query
       const flightPool = liveFlights.length > 0 ? liveFlights : savedFlights;
@@ -583,7 +613,8 @@ export default function AeroVoiceAssistant({
             return;
           } else {
             const gateStr = mentionedFlight.gate || "Gate 32B";
-            const depTime = mentionedFlight.departure_time || mentionedFlight.scheduled_departure || mentionedFlight.std || "06:45 PM";
+            const rawDep = mentionedFlight.departure_time || mentionedFlight.scheduled_departure || mentionedFlight.std;
+            const depTime = safeFormatTime(rawDep);
             const answer =
               detectedLang === "hi"
                 ? `फ्लाइट ${mentionedFlight.flight_number} ${mentionedFlight.destination} के लिए समय ${depTime} पर ${gateStr}, टर्मिनल 3 से छूटेगी।`
@@ -597,7 +628,7 @@ export default function AeroVoiceAssistant({
           // Still couldn't find the flight
           const promptAgain =
             detectedLang === "hi"
-              ? `मुझे '${queryText}' से मिलती हुई उड़ान नहीं मिली। कृपया फ्लाइट नंबर जैसे AI-102 या गंतव्य जैसे मुंबई बताएं।`
+              ? `मुझे '${queryText}' से मिलती हुई कोई उड़ान नहीं मिली। कृपया फ्लाइट नंबर जैसे AI-102 या गंतव्य जैसे मुंबई बताएं।`
               : `I couldn't find a flight matching '${queryText}'. Please tell me a flight number like AI-102 or destination like Mumbai.`;
 
           setResponse(promptAgain);
@@ -608,34 +639,21 @@ export default function AeroVoiceAssistant({
 
       let answer = "";
 
+      // Smart Regex Intent Matching
+      const isLeaveHomeIntent = /leave (home|house)|when (should i|to) (leave|go)|transit time|how much time|time (will it|to) take|departure advice|ghar( se)? nikal|kab nikalna|kab nikle|kitna time|ghar se|samay|vakt|waqt|time/i.test(q) && !/where is|kahan/i.test(q);
+      const isGateIntent = /gate|where is my (flight|gate)|flight status|gate number|kaunsa gate|kahan se (niklegi|chhutegi|jayegi)|kidhar/i.test(q) || q.includes("गेट") || q.includes("कहाँ");
+      const isDirectionsIntent = /direction|how to reach|where is|way to|rasta|kaise (pauhchu|jaye)|रास्ता|दिशा|कैसे (पहुंचे|जाऊं)/i.test(q) && !isGateIntent;
+
       // 4. Leave Home & Transit Timing Intent
-      if (
-        q.includes("leave home") ||
-        q.includes("when should i leave") ||
-        q.includes("how much time") ||
-        q.includes("transit time") ||
-        q.includes("time will it take") ||
-        q.includes("when to go") ||
-        q.includes("timing") ||
-        q.includes("departure advice") ||
-        q.includes("घर") ||
-        q.includes("निकल") ||
-        q.includes("समय") ||
-        q.includes("टाइम") ||
-        q.includes("वक्त") ||
-        q.includes("kab nikle") ||
-        q.includes("kab nikalna") ||
-        q.includes("kitna time") ||
-        q.includes("ghar se")
-      ) {
+      if (isLeaveHomeIntent) {
         if (!effectiveFlight) {
           setWaitingForFlight(true);
           setPendingIntent("leave_home");
 
           const askDetails =
             detectedLang === "hi"
-              ? "बिल्कुल! कृपया अपना फ्लाइट नंबर, एयरलाइन, गंतव्य शहर या प्रस्थान समय बताएं ताकि मैं सटीक समय की गणना कर सकूं।"
-              : "Sure! Please tell me your flight number, airline, destination city, or departure time so I can calculate your exact travel timing.";
+              ? "बिल्कुल! कृपया अपना फ्लाइट नंबर, या गंतव्य शहर बताएं ताकि मैं सटीक समय की गणना कर सकूं।"
+              : "Sure! Please tell me your flight number, or destination city so I can calculate your exact travel timing.";
 
           setResponse(askDetails);
           speakInLanguage(askDetails, detectedLang);
@@ -647,25 +665,11 @@ export default function AeroVoiceAssistant({
 
         answer =
           detectedLang === "hi"
-            ? `फ्लाइट ${advice.flightNumber} (${advice.destination}) के लिए: टर्मिनल 3 में कुल ${advice.totalTerminalTime} मिनट लगेंगे। ${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`
+            ? `फ्लाइट ${advice.flightNumber} (${advice.destination}) के लिए: आपको टर्मिनल 3 में लगभग ${advice.totalTerminalTime} मिनट लगेंगे। ${originCity} से कृपया ${advice.leaveHomeTimeFormatted} बजे तक घर से निकलें ताकि आप ${advice.curbArrivalTimeFormatted} तक टी3 पहुंच सकें।`
             : `For flight ${advice.flightNumber} to ${advice.destination} departing at ${advice.departureTimeFormatted}: Your total time in Terminal 3 is approximately ${advice.totalTerminalTime} minutes. With a ${advice.cityDriveTime}-minute drive from ${originCity}, please leave home by ${advice.leaveHomeTimeFormatted} to reach T3 by ${advice.curbArrivalTimeFormatted}.`;
       }
       // 5. Flight Status & Gate Guidance
-      else if (
-        q.includes("flight") ||
-        q.includes("gate") ||
-        q.includes("where is my") ||
-        q.includes("status") ||
-        q.includes("गेट") ||
-        q.includes("फ्लाइट") ||
-        q.includes("विमान") ||
-        q.includes("उड़ान") ||
-        q.includes("उड़ान") ||
-        q.includes("कहाँ") ||
-        q.includes("किधर") ||
-        q.includes("kahan") ||
-        q.includes("kidhar")
-      ) {
+      else if (isGateIntent) {
         if (!effectiveFlight) {
           setWaitingForFlight(true);
           setPendingIntent("gate");
@@ -681,7 +685,8 @@ export default function AeroVoiceAssistant({
         }
 
         const gateStr = effectiveFlight.gate || "Gate 32B";
-        const depTime = effectiveFlight.departure_time || effectiveFlight.scheduled_departure || effectiveFlight.std || "06:45 PM";
+        const rawDep = effectiveFlight.departure_time || effectiveFlight.scheduled_departure || effectiveFlight.std;
+        const depTime = safeFormatTime(rawDep);
 
         answer =
           detectedLang === "hi"
@@ -689,19 +694,7 @@ export default function AeroVoiceAssistant({
             : `Flight ${effectiveFlight.flight_number} to ${effectiveFlight.destination} departs at ${depTime} from ${gateStr}, Terminal 3. Security queue is currently 4 minutes.`;
       }
       // 6. Directions & Wayfinding
-      else if (
-        q.includes("direction") ||
-        q.includes("how to reach") ||
-        q.includes("where is gate") ||
-        q.includes("way to") ||
-        q.includes("रास्ता") ||
-        q.includes("दिशा") ||
-        q.includes("कैसे पहुंचे") ||
-        q.includes("कैसे जाऊं") ||
-        q.includes("rasta") ||
-        q.includes("kaise pauhchu") ||
-        q.includes("kaise jaye")
-      ) {
+      else if (isDirectionsIntent) {
         if (q.includes("gate 34") || q.includes("gate 32") || q.includes("gate 30") || q.includes("34") || q.includes("32")) {
           answer = T3_LOCATIONS.gate34[detectedLang];
         } else if (q.includes("international") || q.includes("pier a") || q.includes("15") || q.includes("इमिग्रेशन")) {
@@ -919,7 +912,7 @@ export default function AeroVoiceAssistant({
                     {activeFlight.flight_number} ({activeFlight.destination})
                   </span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Gate {activeFlight.gate || "TBD"} · {activeFlight.std || activeFlight.departure_time || "Scheduled"}
+                    Gate {activeFlight.gate || "TBD"} · {safeFormatTime(activeFlight.std || activeFlight.departure_time || activeFlight.scheduled_departure) || "Scheduled"}
                   </span>
                 </div>
               )}
