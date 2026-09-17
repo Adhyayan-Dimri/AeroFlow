@@ -20,9 +20,9 @@ EMAIL_KEY = os.environ.get("RESEND_API_KEY", "")
 EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME") or "AeroFlow"
 EMAIL_FROM_ADDRESS = os.environ.get("RESEND_FROM_ADDRESS") or "onboarding@resend.dev"
 
-GMAIL_EMAIL = os.environ.get("GMAIL_EMAIL", "").strip() or "aeroflow2026@gmail.com"
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip() or "tmjcaletxvzzftxq"
-GMAIL_ENABLED = os.environ.get("GMAIL_ENABLED", "true").lower().strip() not in ("false", "0", "no")
+GMAIL_EMAIL = os.environ.get("GMAIL_EMAIL", "").strip()
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
+GMAIL_ENABLED = os.environ.get("GMAIL_ENABLED", "false").lower().strip() not in ("false", "0", "no")
 
 _SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
 _CRED_ASK = ("reply with your password", "reply with the code", "send your password", "cvv",
@@ -93,9 +93,9 @@ def _assert_safe_email(subject: str, html: str) -> None:
                 raise ValueError(f"Anchor text {m.group(1)!r} != host {real!r} (G3)")
 
 def _get_gmail_config():
-    enabled_str = os.environ.get("GMAIL_ENABLED", "true").lower().strip()
-    email = os.environ.get("GMAIL_EMAIL", "").strip() or "aeroflow2026@gmail.com"
-    password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip() or "tmjcaletxvzzftxq"
+    enabled_str = os.environ.get("GMAIL_ENABLED", "false").lower().strip()
+    email = os.environ.get("GMAIL_EMAIL", "").strip()
+    password = os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip()
     enabled = enabled_str not in ("false", "0", "no") and bool(email) and bool(password)
     return enabled, email, password
 
