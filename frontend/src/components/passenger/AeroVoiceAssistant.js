@@ -1008,83 +1008,46 @@ export default function AeroVoiceAssistant({
               {/* Quick Inquiry Prompts (Bilingual: English & Hindi Both Displayed) */}
               <div className="space-y-2 pt-1">
                 <div className="text-[10px] font-mono font-bold uppercase text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <HelpCircle className="w-3 h-3 text-cyan-500" />
-                    Quick Inquiries · सुझाए गए प्रश्न
-                  </span>
-                  <span className="text-[9px] text-cyan-600 dark:text-cyan-400 font-sans font-medium normal-case">
-                    English & हिंदी
+                  <span className="flex items-center gap-1.5">
+                    <HelpCircle className="w-3.5 h-3.5 text-cyan-500" />
+                    Quick Inquiries · सामान्य प्रश्न
                   </span>
                 </div>
                 <div className="space-y-2">
                   {[
                     {
                       en: "When should I leave home for my flight?",
-                      hi: "मेरी उड़ान के लिए घर से कब निकलना चाहिए?",
-                      desc: "Drive time & T3 transit • घर से निकलने का समय"
+                      hi: "मेरी उड़ान के लिए घर से कब निकलना चाहिए?"
                     },
                     {
                       en: "How much time will it take inside T3?",
-                      hi: "टर्मिनल 3 में कुल कितना समय लगेगा?",
-                      desc: "Check-in, security & walk • सुरक्षा जांच और चेक-इन"
+                      hi: "टर्मिनल 3 में कुल कितना समय लगेगा?"
                     },
                     {
                       en: "Where is my flight and gate?",
-                      hi: "मेरी उड़ान और बोर्डिंग गेट कहाँ स्थित है?",
-                      desc: "Gate status & departures • प्रस्थान समय व गेट"
+                      hi: "मेरी उड़ान और बोर्डिंग गेट कहाँ स्थित है?"
                     },
                     {
                       en: "Where is wheelchair assistance?",
-                      hi: "व्हीलचेयर और विशेष सहायता कहाँ मिलेगी?",
-                      desc: "PRM desk & buggy assistance • दिव्यांग सहायता व बग्गी"
+                      hi: "व्हीलचेयर और विशेष सहायता कहाँ मिलेगी?"
                     }
                   ].map((q, idx) => (
-                    <div
+                    <button
                       key={idx}
-                      className="w-full p-2.5 rounded-2xl bg-slate-50 hover:bg-cyan-50/50 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 hover:border-cyan-300 dark:hover:border-cyan-700/50 transition-all text-left group"
+                      type="button"
+                      onClick={() => handleQuickPrompt(currentLang === "hi" ? q.hi : q.en)}
+                      className="w-full p-3 rounded-2xl bg-slate-50/80 hover:bg-cyan-50/50 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-800 hover:border-cyan-400/50 dark:hover:border-cyan-600/50 text-left transition-all cursor-pointer flex items-center justify-between group shadow-sm"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1 flex-1 pr-1">
-                          <button
-                            type="button"
-                            onClick={() => handleQuickPrompt(q.en)}
-                            className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-cyan-400 block text-left cursor-pointer transition-colors leading-tight"
-                            title="Ask in English"
-                          >
-                            🇬🇧 {q.en}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleQuickPrompt(q.hi)}
-                            className="text-[11.5px] font-medium text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 block text-left cursor-pointer transition-colors leading-tight pt-0.5"
-                            title="हिंदी में पूछें"
-                          >
-                            🇮🇳 {q.hi}
-                          </button>
-                          <div className="text-[9.5px] text-slate-400 dark:text-slate-500 font-sans pt-0.5">
-                            {q.desc}
-                          </div>
+                      <div className="space-y-1 pr-2">
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 leading-snug">
+                          {q.en}
                         </div>
-                        <div className="flex flex-col gap-1 shrink-0 pt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => handleQuickPrompt(q.en)}
-                            className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-950/40 text-slate-500 dark:text-slate-400 cursor-pointer transition-all"
-                            title="Ask in English"
-                          >
-                            EN
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleQuickPrompt(q.hi)}
-                            className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-950/40 text-slate-500 dark:text-slate-400 cursor-pointer transition-all"
-                            title="हिंदी में पूछें"
-                          >
-                            HI
-                          </button>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                          {q.hi}
                         </div>
                       </div>
-                    </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    </button>
                   ))}
                 </div>
               </div>
