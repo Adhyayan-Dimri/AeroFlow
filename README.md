@@ -10,7 +10,7 @@
 [![Docker](https://img.shields.io/badge/Container-Docker%20%7C%20K8s%20Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel%20Edge-000000?logo=vercel&logoColor=white)](https://aeroflow-hub.vercel.app)
 [![Render](https://img.shields.io/badge/Deploy-Render%20Cloud-46E3B7?logo=render&logoColor=black)](https://render.com)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 
 ---
 
