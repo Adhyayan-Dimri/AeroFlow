@@ -24,12 +24,14 @@ import api from "@/lib/api";
 import { useTheme } from "@/context/ThemeContext";
 
 const TERMINAL_ZONES = [
-  // Forecourt & Entry
+  // Forecourt & Entry (Level 2 Drop-off)
   {
     id: "forecourt_north",
     name: "Forecourt Entry (Gates 1–4)",
+    shortTitle: "Forecourt Entry",
+    subTitle: "Gates 1–4 · DigiYatra",
     category: "forecourt",
-    coords: { x: 40, y: 30, w: 220, h: 55 },
+    coords: { x: 35, y: 35, w: 275, h: 62 },
     baseCapacity: 1200,
     baseLoad: 580,
     waitMultiplier: 0.008,
@@ -39,8 +41,10 @@ const TERMINAL_ZONES = [
   {
     id: "forecourt_south",
     name: "Forecourt Entry (Gates 5–8)",
+    shortTitle: "Forecourt Entry",
+    subTitle: "Gates 5–8 · Standard",
     category: "forecourt",
-    coords: { x: 280, y: 30, w: 220, h: 55 },
+    coords: { x: 330, y: 35, w: 275, h: 62 },
     baseCapacity: 1200,
     baseLoad: 690,
     waitMultiplier: 0.009,
@@ -52,8 +56,10 @@ const TERMINAL_ZONES = [
   {
     id: "checkin_a_b",
     name: "Check-in Islands A & B",
+    shortTitle: "Check-in Islands A & B",
+    subTitle: "Domestic Indigo / Air India",
     category: "checkin",
-    coords: { x: 40, y: 115, w: 135, h: 80 },
+    coords: { x: 35, y: 115, w: 175, h: 85 },
     baseCapacity: 850,
     baseLoad: 540,
     waitMultiplier: 0.018,
@@ -63,8 +69,10 @@ const TERMINAL_ZONES = [
   {
     id: "checkin_c_d",
     name: "Check-in Islands C & D",
+    shortTitle: "Check-in Islands C & D",
+    subTitle: "Priority & Full Service",
     category: "checkin",
-    coords: { x: 195, y: 115, w: 145, h: 80 },
+    coords: { x: 230, y: 115, w: 175, h: 85 },
     baseCapacity: 950,
     baseLoad: 680,
     waitMultiplier: 0.016,
@@ -74,8 +82,10 @@ const TERMINAL_ZONES = [
   {
     id: "checkin_e_k",
     name: "Check-in Islands E–K (Intl / Self Drop)",
+    shortTitle: "Check-in Islands E–K",
+    subTitle: "Intl / Self Bag Drop",
     category: "checkin",
-    coords: { x: 360, y: 115, w: 140, h: 80 },
+    coords: { x: 425, y: 115, w: 180, h: 85 },
     baseCapacity: 1100,
     baseLoad: 720,
     waitMultiplier: 0.015,
@@ -87,8 +97,10 @@ const TERMINAL_ZONES = [
   {
     id: "security_sha_north",
     name: "Security Screening SHA (North)",
+    shortTitle: "Security SHA North",
+    subTitle: "Domestic ATRS Screening",
     category: "security",
-    coords: { x: 40, y: 225, w: 215, h: 85 },
+    coords: { x: 35, y: 220, w: 275, h: 90 },
     baseCapacity: 1500,
     baseLoad: 1180,
     waitMultiplier: 0.012,
@@ -98,8 +110,10 @@ const TERMINAL_ZONES = [
   {
     id: "security_sha_south",
     name: "Security Screening SHA (South)",
+    shortTitle: "Security SHA South",
+    subTitle: "International ATRS Screening",
     category: "security",
-    coords: { x: 285, y: 225, w: 215, h: 85 },
+    coords: { x: 330, y: 220, w: 275, h: 90 },
     baseCapacity: 1500,
     baseLoad: 1040,
     waitMultiplier: 0.011,
@@ -111,8 +125,10 @@ const TERMINAL_ZONES = [
   {
     id: "immigration_hall",
     name: "International Immigration & E-Gates",
+    shortTitle: "International Immigration",
+    subTitle: "Biometric E-Gates & Border Control Desks",
     category: "immigration",
-    coords: { x: 140, y: 340, w: 260, h: 70 },
+    coords: { x: 100, y: 330, w: 440, h: 75 },
     baseCapacity: 1600,
     baseLoad: 1210,
     waitMultiplier: 0.014,
@@ -124,8 +140,10 @@ const TERMINAL_ZONES = [
   {
     id: "pier_a_gates",
     name: "Departure Pier A (Gates 1–18)",
+    shortTitle: "Departure Pier A",
+    subTitle: "Domestic Gates 1–18",
     category: "piers",
-    coords: { x: 40, y: 440, w: 195, h: 90 },
+    coords: { x: 35, y: 425, w: 175, h: 95 },
     baseCapacity: 2400,
     baseLoad: 1450,
     waitMultiplier: 0.003,
@@ -135,8 +153,10 @@ const TERMINAL_ZONES = [
   {
     id: "central_retail_lounge",
     name: "Central Airside Lounge & Concourse",
+    shortTitle: "Central Airside Lounge",
+    subTitle: "Transit Concourse & Retail",
     category: "piers",
-    coords: { x: 250, y: 440, w: 140, h: 90 },
+    coords: { x: 230, y: 425, w: 180, h: 95 },
     baseCapacity: 1800,
     baseLoad: 920,
     waitMultiplier: 0.002,
@@ -146,8 +166,10 @@ const TERMINAL_ZONES = [
   {
     id: "pier_b_gates",
     name: "Departure Pier B (Gates 19–36)",
+    shortTitle: "Departure Pier B",
+    subTitle: "Intl Gates 19–36",
     category: "piers",
-    coords: { x: 405, y: 440, w: 195, h: 90 },
+    coords: { x: 430, y: 425, w: 175, h: 95 },
     baseCapacity: 2400,
     baseLoad: 1620,
     waitMultiplier: 0.003,
@@ -159,8 +181,10 @@ const TERMINAL_ZONES = [
   {
     id: "baggage_claim_hall",
     name: "Arrivals Baggage Claim (Belts AC-01–14)",
+    shortTitle: "Arrivals Baggage Claim Hall",
+    subTitle: "Reclaim Belts AC-01 to AC-14 (105m & 88m)",
     category: "baggage",
-    coords: { x: 100, y: 560, w: 440, h: 80 },
+    coords: { x: 60, y: 540, w: 520, h: 85 },
     baseCapacity: 2800,
     baseLoad: 1890,
     waitMultiplier: 0.007,
@@ -462,6 +486,7 @@ export default function TerminalSpatialHeatmap() {
                 const isSelected = selectedZone?.id === zone.id;
                 const isDimmed = selectedCategory !== "all" && zone.category !== selectedCategory;
                 const { x, y, w, h } = zone.coords;
+                const clipId = `zone-clip-${zone.id}`;
 
                 return (
                   <g
@@ -470,6 +495,13 @@ export default function TerminalSpatialHeatmap() {
                     className="cursor-pointer transition-all duration-200 group"
                     opacity={isDimmed ? 0.25 : 1}
                   >
+                    {/* SVG ClipPath prevents ANY text from bleeding outside the box boundary */}
+                    <defs>
+                      <clipPath id={clipId}>
+                        <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4} rx="7" />
+                      </clipPath>
+                    </defs>
+
                     {/* Zone Boundary Box */}
                     <rect
                       x={x}
@@ -486,53 +518,73 @@ export default function TerminalSpatialHeatmap() {
                       }}
                     />
 
-                    {/* Zone Name Label */}
-                    <text
-                      x={x + 10}
-                      y={y + 20}
-                      fill={isDark ? "#FFFFFF" : "#0F172A"}
-                      fontSize="10.5"
-                      fontFamily="sans-serif"
-                      fontWeight="800"
-                      className="pointer-events-none"
-                    >
-                      {zone.name}
-                    </text>
+                    {/* Zone Content Clamped to Bounding Box */}
+                    <g clipPath={`url(#${clipId})`}>
+                      {/* Line 1: Primary Title */}
+                      <text
+                        x={x + 10}
+                        y={y + 18}
+                        fill={isDark ? "#FFFFFF" : "#0F172A"}
+                        fontSize="10"
+                        fontFamily="sans-serif"
+                        fontWeight="800"
+                        className="pointer-events-none select-none"
+                      >
+                        {zone.shortTitle || zone.name}
+                      </text>
 
-                    {/* Live Metric Stats on Zone */}
-                    <text
-                      x={x + 10}
-                      y={y + 36}
-                      fill={zone.color.stroke}
-                      fontSize="9.5"
-                      fontFamily="monospace"
-                      fontWeight="bold"
-                      className="pointer-events-none"
-                    >
-                      {zone.currentPax.toLocaleString()} pax ({zone.densityPct}%)
-                    </text>
+                      {/* Line 2: Subtitle / Gates / Category Descriptor */}
+                      {zone.subTitle && (
+                        <text
+                          x={x + 10}
+                          y={y + 31}
+                          fill={isDark ? "#94A3B8" : "#64748B"}
+                          fontSize="8.5"
+                          fontFamily="sans-serif"
+                          fontWeight="600"
+                          className="pointer-events-none select-none"
+                        >
+                          {zone.subTitle}
+                        </text>
+                      )}
 
-                    {/* Wait Time Indicator */}
-                    <text
-                      x={x + 10}
-                      y={y + 50}
-                      fill={isDark ? "#94A3B8" : "#475569"}
-                      fontSize="8.5"
-                      fontFamily="monospace"
-                      fontWeight="600"
-                      className="pointer-events-none"
-                    >
-                      ⏱ ~{zone.waitMinutes}m wait
-                    </text>
+                      {/* Line 3: Live Occupancy Metrics */}
+                      <text
+                        x={x + 10}
+                        y={h < 70 ? y + 44 : y + 49}
+                        fill={zone.color.stroke}
+                        fontSize="9.5"
+                        fontFamily="monospace"
+                        fontWeight="bold"
+                        className="pointer-events-none select-none"
+                      >
+                        {zone.currentPax.toLocaleString()} pax ({zone.densityPct}%)
+                      </text>
 
-                    {/* Bottleneck Warning Icon for heavy zones */}
+                      {/* Line 4: Estimated Wait Time */}
+                      <text
+                        x={x + 10}
+                        y={h < 70 ? y + 55 : y + 64}
+                        fill={isDark ? "#94A3B8" : "#475569"}
+                        fontSize="8.5"
+                        fontFamily="monospace"
+                        fontWeight="600"
+                        className="pointer-events-none select-none"
+                      >
+                        ⏱ ~{zone.waitMinutes}m wait
+                      </text>
+                    </g>
+
+                    {/* Bottleneck Pulse Indicator for high congestion zones */}
                     {zone.densityPct >= 80 && (
                       <circle
-                        cx={x + w - 16}
-                        cy={y + 16}
-                        r="6"
+                        cx={x + w - 14}
+                        cy={y + 14}
+                        r="5.5"
                         fill="#F43F5E"
-                        className="animate-pulse"
+                        stroke={isDark ? "#070E14" : "#FFFFFF"}
+                        strokeWidth="1.5"
+                        className="animate-pulse pointer-events-none"
                       />
                     )}
                   </g>
@@ -656,7 +708,7 @@ export default function TerminalSpatialHeatmap() {
                       <span className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-bold flex items-center justify-center text-slate-700 dark:text-slate-400">
                         {idx + 1}
                       </span>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-300 truncate max-w-[150px]">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-300 flex-1 truncate">
                         {z.name}
                       </span>
                     </div>
