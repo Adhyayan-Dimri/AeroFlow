@@ -81,9 +81,7 @@ dump.rdb
 .Trashes
 ehthumbs.db
 Thumbs.db
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
+.vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
@@ -97,3 +95,10 @@ Thumbs.db
 *.tfstate.backup
 .cache/
 .eslintcache
+pics/
+*.jpeg
+*.jpg
+scratch/
+*.tex
+*.bib
+research_paper/
