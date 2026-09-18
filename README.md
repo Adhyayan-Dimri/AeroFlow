@@ -14,7 +14,7 @@
 
 ---
 
-## 📑 Table of Contents
+##  Table of Contents
 1. [Executive Overview & Operational Value](#-executive-overview--operational-value)
 2. [Live Deployments & Endpoints](#-live-deployments--endpoints)
 3. [Key Innovations & Feature Deep-Dive](#-key-innovations--feature-deep-dive)
@@ -39,23 +39,23 @@
 
 ---
 
-## 🌟 Executive Overview & Operational Value
+##  Executive Overview & Operational Value
 
 Aviation mega-hubs process tens of millions of passengers every year. Bottlenecks at forecourt entry gates, unexpected passenger arrival surges, security checkpoint gridlocks, misallocated baggage reclaim belts, and fragmented communications result in millions of dollars in carrier delays and passenger frustration.
 
 **AeroFlow** is a next-generation distributed airport operations platform that bridges the gap between **tactical airport ground operations** and **personalized passenger intelligence**. Powered by real-time spatial telemetry, queuing theory, computer vision surveillance (YOLOv8x + DeepSORT), machine-learning baggage models, an autonomous RAG (Retrieval-Augmented Generation) policy engine, and bilingual voice assistance, AeroFlow ensures frictionless transit from city curb to departure gate.
 
 ### Key Value Pillars
-- ⚡ **Autonomous SOP Execution**: Eliminates operator hesitation during critical bottleneck events by automatically triggering ICAO & CISF directives.
-- 👁️ **Real-Time Computer Vision Telemetry**: YOLOv8x neural detection and DeepSORT persistent tracking measure passenger ingress/egress and terminal occupancy live from CCTV feeds.
-- 🎯 **Synchronized Door-to-Gate Guidance**: Calculates live "Leave Home By" advisories factoring city traffic (OSRM), security screening delays, and physical gate walking distances.
-- 🗺️ **Full Spatial Awareness**: Live 2D architectural heatmaps of terminal zones provide airport duty managers with instantaneous operational clarity.
-- 🎙️ **Frictionless Multilingual Accessibility**: High-accuracy Indian English, Hindi, and mixed Hinglish voice assistant tailored for domestic and international travelers.
-- 🔒 **Zero-Trust Enterprise Security**: Multi-tier RBAC, Google OAuth 2.0 SSO, multi-channel 2FA, heuristic anti-phishing email validation, and Fernet database encryption.
+-  **Autonomous SOP Execution**: Eliminates operator hesitation during critical bottleneck events by automatically triggering ICAO & CISF directives.
+-  **Real-Time Computer Vision Telemetry**: YOLOv8x neural detection and DeepSORT persistent tracking measure passenger ingress/egress and terminal occupancy live from CCTV feeds.
+-  **Synchronized Door-to-Gate Guidance**: Calculates live "Leave Home By" advisories factoring city traffic (OSRM), security screening delays, and physical gate walking distances.
+-  **Full Spatial Awareness**: Live 2D architectural heatmaps of terminal zones provide airport duty managers with instantaneous operational clarity.
+-  **Frictionless Multilingual Accessibility**: High-accuracy Indian English, Hindi, and mixed Hinglish voice assistant tailored for domestic and international travelers.
+-  **Zero-Trust Enterprise Security**: Multi-tier RBAC, Google OAuth 2.0 SSO, multi-channel 2FA, heuristic anti-phishing email validation, and Fernet database encryption.
 
 ---
 
-## 🚀 Live Deployments & Endpoints
+##  Live Deployments & Endpoints
 
 | Service Component | Infrastructure / Provider | URL | Status |
 | :--- | :--- | :--- | :--- |
@@ -66,7 +66,7 @@ Aviation mega-hubs process tens of millions of passengers every year. Bottleneck
 
 ---
 
-## 💡 Key Innovations & Feature Deep-Dive
+##  Key Innovations & Feature Deep-Dive
 
 ### 1. Autonomous RAG & Auto-Pilot Dispatch Engine
 Located in `backend/rag_engine.py` and `frontend/src/components/ops/RagAutomationController.js`, AeroFlow integrates a tactical Retrieval-Augmented Generation engine designed specifically for airport terminal operations.
@@ -290,7 +290,7 @@ Located in `backend/engines.py` and `backend/baggage_model.py`.
 
 ---
 
-## 🏗 System Architecture & Data Flow
+##  System Architecture & Data Flow
 
 ```
                                     +----------------------------------------------------+
@@ -347,7 +347,7 @@ Located in `backend/engines.py` and `backend/baggage_model.py`.
 
 ---
 
-## 📐 Mathematical & Machine Learning Foundations
+##  Mathematical & Machine Learning Foundations
 
 ### 1. Terminal Queueing Simulation ($M/M/c$ Model)
 Passenger arrivals at each checkpoint zone $z$ follow a time-varying non-homogeneous Poisson process:
@@ -376,7 +376,7 @@ $$\text{BagsOnBelt}(m) = \text{TotalBags} \times \left(1 - \frac{\text{PctRetrie
 
 ---
 
-## 🛠 Technology Stack
+##  Technology Stack
 
 | Layer | Technology | Version | Purpose |
 | :--- | :--- | :--- | :--- |
@@ -402,7 +402,7 @@ $$\text{BagsOnBelt}(m) = \text{TotalBags} \times \left(1 - \frac{\text{PctRetrie
 
 ---
 
-## 📂 Repository Directory Structure
+##  Repository Directory Structure
 
 ```
 AeroFlow/
@@ -457,7 +457,7 @@ AeroFlow/
 
 ---
 
-## ⚡ Quick Start & Local Setup
+##  Quick Start & Local Setup
 
 ### Option 1: Docker Compose (One-Click)
 Spins up MongoDB, the FastAPI backend, and the React frontend on an isolated bridge network:
@@ -517,7 +517,7 @@ The application will launch automatically at [http://localhost:3000](http://loca
 
 ---
 
-## 📡 Comprehensive API Reference
+##  Comprehensive API Reference
 
 ### 1. Autonomous RAG & Auto-Pilot Endpoints
 | Method | Endpoint | Access | Description |
@@ -563,7 +563,7 @@ The application will launch automatically at [http://localhost:3000](http://loca
 
 ---
 
-## 🔒 Security Hardening & Privacy
+##  Security Hardening & Privacy
 
 AeroFlow adheres to enterprise defense-in-depth security standards:
 - **Zero-Secret Exposure Policy**: No API keys, passwords, or database credentials are committed to version control. All secrets are loaded exclusively via environment variables and audited regularly.
@@ -574,7 +574,7 @@ AeroFlow adheres to enterprise defense-in-depth security standards:
 
 ---
 
-## 🧪 Automated Testing & Quality Verification
+##  Automated Testing & Quality Verification
 
 AeroFlow includes an automated testing suite covering queuing theory mathematics, carousel sizing algorithms, anti-phishing filters, RAG vector retrieval, computer vision CCTV streams, and authentication:
 
